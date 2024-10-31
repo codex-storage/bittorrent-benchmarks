@@ -19,7 +19,7 @@ def mock_sampler(elements: List[int]) -> Sampler:
 class MockNode(Node[MockHandle]):
 
     def __init__(self):
-        self.seeding: Optional[MockNode] = None
+        self.seeding: Optional[Path] = None
         self.leeching: Optional[MockHandle] = None
 
     def seed(self, path: Path, handle: Optional[MockHandle] = None) -> MockHandle:
@@ -36,7 +36,7 @@ class MockFileSharingNetwork(FileSharingNetwork[MockNode]):
         self._nodes = [MockNode() for _ in range(n)]
 
     @property
-    def nodes(self) -> List[TNode]:
+    def nodes(self) -> List[MockNode]:
         return self._nodes
 
 
