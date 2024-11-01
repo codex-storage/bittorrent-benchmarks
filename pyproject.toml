@@ -5,15 +5,20 @@ description = "Harness for benchmarking Codex against BitTorrent."
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
 deluge-client = "^1.10.2"
-
+pathvalidate = "^3.2.1"
+torrentool = "^1.2.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
 mypy = "^1.13.0"
+
+[tool.mypy]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry-core"]

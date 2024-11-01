@@ -108,6 +108,22 @@ files = [
 ]
 
 [[package]]
+name = "pathvalidate"
+version = "3.2.1"
+description = "pathvalidate is a Python library to sanitize/validate a string such as filenames/file-paths/etc."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pathvalidate-3.2.1-py3-none-any.whl", hash = "sha256:9a6255eb8f63c9e2135b9be97a5ce08f10230128c4ae7b3e935378b82b22c4c9"},
+    {file = "pathvalidate-3.2.1.tar.gz", hash = "sha256:f5d07b1e2374187040612a1fcd2bcb2919f8db180df254c9581bb90bf903377d"},
+]
+
+[package.extras]
+docs = ["Sphinx (>=2.4)", "sphinx-rtd-theme (>=1.2.2)", "urllib3 (<2)"]
+readme = ["path (>=13,<17)", "readmemaker (>=1.1.0)"]
+test = ["Faker (>=1.0.8)", "allpairspy (>=2)", "click (>=6.2)", "pytest (>=6.0.1)", "pytest-md-report (>=0.6.2)"]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
@@ -143,6 +159,20 @@ pluggy = ">=1.5,<2"
 dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
+name = "torrentool"
+version = "1.2.0"
+description = "The tool to work with torrent files."
+optional = false
+python-versions = "*"
+files = [
+    {file = "torrentool-1.2.0-py3-none-any.whl", hash = "sha256:bc6c55622e23978cf3c1e4aaf8f087971d75608c15b83be5a2c029464d3dd803"},
+    {file = "torrentool-1.2.0.tar.gz", hash = "sha256:72cdd049eaf856ddc907d1d61527764ef0288512087d93a49267e00c4033c429"},
+]
+
+[package.extras]
+cli = ["click"]
+
+[[package]]
 name = "typing-extensions"
 version = "4.12.2"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -156,4 +186,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "4c657d5b89f926722ec65f35124c9ac0e8138a4264be1860490ab5eaa8a1eb44"
+content-hash = "8bd651f652770aa65718872bbe04dd3851922037be99281bceaea5e379a5cc4c"

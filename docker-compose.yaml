@@ -1,0 +1,35 @@
+# You will need [rootless Docker](https://docs.docker.com/engine/security/rootless/)
+# for this to work cause the tests rely on user-writable bind mounts.
+
+services:
+  deluge-1:
+    image: codexstorage/deluge
+    container_name: deluge-1
+    environment:
+      - DELUGE_RPC_PORT=6890
+      - DELUGE_LISTEN_PORTS=6891,6892
+    volumes:
+      - ./volume/deluge-1:/var/lib/deluge
+      - ./volume/deluge-1/downloads:/var/lib/deluge/downloads
+    ports:
+      - "6890:6890"
+      - "6891-6892:6891-6892"
+
+  deluge-2:
+    image: codexstorage/deluge
+    container_name: deluge-2
+    environment:
+      - DELUGE_RPC_PORT=6893
+      - DELUGE_LISTEN_PORTS=6894,6895
+    volumes:
+      - ./volume/deluge-2:/var/lib/deluge
+      - ./volume/deluge-2/downloads:/var/lib/deluge/downloads
+    ports:
+      - "6893:6893"
+      - "6894-6895:6894-6895"
+
+  tracker:
+    image: codexstorage/bittorrent-tracker
+    container_name: tracker
+    ports:
+      - "8000:8000"

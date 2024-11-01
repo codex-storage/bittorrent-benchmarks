@@ -1,13 +1,13 @@
 from typing_extensions import Generic
 
-from benchmarks.core.network import FileSharingNetwork, TNode
+from benchmarks.core.network import FileSharingNetwork, TInitialMetadata, TNetworkHandle
 from benchmarks.core.utils import Sampler, DataGenerator
 
 
-class StaticDisseminationExperiment(Generic[TNode]):
+class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata]):
     def __init__(
             self,
-            network: FileSharingNetwork[TNode],
+            network: FileSharingNetwork[TNetworkHandle, TInitialMetadata],
             seeders: int,
             sampler: Sampler,
             generator: DataGenerator
@@ -25,8 +25,8 @@ class StaticDisseminationExperiment(Generic[TNode]):
             [self.network.nodes[i] for i in range(0, len(self.network.nodes)) if i not in seeder_idx]
         )
 
-        data = self.generate_data()
-        handle = None
+        meta, data = self.generate_data()
+        handle = meta
 
         for node in seeders:
             handle = node.seed(data, handle)

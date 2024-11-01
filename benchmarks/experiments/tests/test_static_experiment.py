@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple, Union, Sequence
 
-from benchmarks.core.network import FileSharingNetwork, TFileHandle, TNode, Node
+from benchmarks.core.network import FileSharingNetwork, Node
 from benchmarks.core.utils import Sampler
 from benchmarks.experiments.static_experiment import StaticDisseminationExperiment
 
@@ -10,33 +10,42 @@ from benchmarks.experiments.static_experiment import StaticDisseminationExperime
 @dataclass
 class MockHandle:
     path: Path
+    name: str
 
 
 def mock_sampler(elements: List[int]) -> Sampler:
     return lambda _: iter(elements)
 
 
-class MockNode(Node[MockHandle]):
+class MockNode(Node[MockHandle, str]):
 
-    def __init__(self):
-        self.seeding: Optional[Path] = None
+    def __init__(self) -> None:
+        self.seeding: Optional[Tuple[MockHandle, Path]] = None
         self.leeching: Optional[MockHandle] = None
 
-    def seed(self, path: Path, handle: Optional[MockHandle] = None) -> MockHandle:
-        self.seeding = path
-        return MockHandle(path)
+    def seed(
+            self,
+            file: Path,
+            handle: Union[str, MockHandle]
+    ) -> MockHandle:
+        if isinstance(handle, MockHandle):
+            self.seeding = (handle, file)
+        else:
+            self.seeding = (MockHandle(name=handle, path=file), file)
+
+        return self.seeding[0]
 
     def leech(self, handle: MockHandle):
         self.leeching = handle
 
 
-class MockFileSharingNetwork(FileSharingNetwork[MockNode]):
+class MockFileSharingNetwork(FileSharingNetwork[MockHandle, str]):
 
-    def __init__(self, n: int):
+    def __init__(self, n: int) -> None:
         self._nodes = [MockNode() for _ in range(n)]
 
     @property
-    def nodes(self) -> List[MockNode]:
+    def nodes(self) -> Sequence[Node[MockHandle, str]]:
         return self._nodes
 
 
@@ -49,7 +58,7 @@ def test_should_place_seeders():
         seeders=3,
         sampler=mock_sampler(seeder_indexes),
         network=network,
-        generator=lambda: Path('/path/to/data'),
+        generator=lambda: ('data', Path('/path/to/data')),
     )
 
     experiment.run()
@@ -58,7 +67,7 @@ def test_should_place_seeders():
     for index, node in enumerate(network.nodes):
         if node.seeding is not None:
             actual_seeders.add(index)
-            assert node.seeding == file
+            assert node.seeding[0] == MockHandle(name='data', path=file)
 
     assert actual_seeders == set(seeder_indexes)
 
@@ -72,7 +81,7 @@ def test_should_place_leechers():
         seeders=3,
         sampler=mock_sampler(seeder_indexes),
         network=network,
-        generator=lambda: Path('/path/to/data'),
+        generator=lambda: ('data', Path('/path/to/data')),
     )
 
     experiment.run()
@@ -81,6 +90,7 @@ def test_should_place_leechers():
     for index, node in enumerate(network.nodes):
         if node.leeching is not None:
             assert node.leeching.path == file
+            assert node.leeching.name == 'data'
             assert node.seeding is None
             actual_leechers.add(index)
 
