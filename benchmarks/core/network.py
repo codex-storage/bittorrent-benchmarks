@@ -9,6 +9,18 @@ TNetworkHandle = TypeVar('TNetworkHandle')
 TInitialMetadata = TypeVar('TInitialMetadata')
 
 
+class DownloadHandle(ABC):
+    """A :class:`DownloadHandle` represents a reference to an underlying download."""
+
+    @abstractmethod
+    def await_for_completion(self, timeout: float = 0) -> bool:
+        """Blocks the current thread until either the download completes or a timeout expires.
+
+        :param timeout: Timeout in seconds.
+        :return: True if the download completed within the timeout, False otherwise."""
+        pass
+
+
 class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
     """A :class:`Node` represents a peer within a :class:`FileSharingNetwork`."""
 
@@ -31,7 +43,7 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         pass
 
     @abstractmethod
-    def leech(self, handle: TNetworkHandle):
+    def leech(self, handle: TNetworkHandle) -> DownloadHandle:
         """Makes the current node a leecher for the provided handle."""
         pass
 

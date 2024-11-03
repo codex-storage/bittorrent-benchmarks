@@ -1,8 +1,10 @@
 import base64
+import logging
 import shutil
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+from time import time
 from typing import List, Union, Optional, Self, Dict, Any
 
 import pathvalidate
@@ -10,7 +12,9 @@ from deluge_client import DelugeRPCClient
 from torrentool.torrent import Torrent
 from urllib3.util import Url
 
-from benchmarks.core.network import TNetworkHandle, SharedFSNode
+from benchmarks.core.network import SharedFSNode, DownloadHandle
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -85,8 +89,17 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
 
         return torrent
 
-    def leech(self, handle: TNetworkHandle):
-        pass
+    def leech(self, handle: Torrent) -> DownloadHandle:
+        self.rpc.core.add_torrent_file(
+            filename=f'{handle.name}.torrent',
+            filedump=self._b64dump(handle),
+            options=dict(),
+        )
+
+        return DelugeDownloadHandle(
+            node=self,
+            torrent=handle,
+        )
 
     def torrent_info(self, name: str) -> List[Dict[bytes, Any]]:
         return list(self.rpc.core.get_torrents_status({'name': name}, []).values())
@@ -111,3 +124,24 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
         buffer = BytesIO()
         buffer.write(handle.to_string())
         return base64.b64encode(buffer.getvalue())
+
+
+class DelugeDownloadHandle(DownloadHandle):
+
+    def __init__(self, torrent: Torrent, node: DelugeNode) -> None:
+        self.node = node
+        self.torrent = torrent
+
+    def await_for_completion(self, timeout: float = 0) -> bool:
+        name = self.torrent.name
+        current = time()
+        while (time() - current) <= timeout:
+            response = self.node.rpc.core.get_torrents_status({'name': name}, [])
+            if len(response) > 1:
+                logger.warning(f'Client has multiple torrents matching name {name}. Returning the first one.')
+
+            status = list(response.values())[0]
+            if status[b'is_finished']:
+                return True
+
+        return False
