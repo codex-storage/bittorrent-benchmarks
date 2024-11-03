@@ -28,6 +28,19 @@ services:
       - "6893:6893"
       - "6894-6895:6894-6895"
 
+  deluge-3:
+    image: codexstorage/deluge
+    container_name: deluge-3
+    environment:
+      - DELUGE_RPC_PORT=6896
+      - DELUGE_LISTEN_PORTS=6897,6898
+    volumes:
+      - ./volume/deluge-3:/var/lib/deluge
+      - ./volume/deluge-3/downloads:/var/lib/deluge/downloads
+    ports:
+      - "6896:6896"
+      - "6897-6898:6897-6898"
+
   tracker:
     image: codexstorage/bittorrent-tracker
     container_name: tracker
