@@ -19,17 +19,25 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata]):
 
     def run(self):
         sample = self.sampler(len(self.network.nodes))
-        seeder_idx = [next(sample) for _ in range(0, self.seeders)]
+        seeder_indexes = [next(sample) for _ in range(0, self.seeders)]
         seeders, leechers = (
-            [self.network.nodes[i] for i in seeder_idx],
-            [self.network.nodes[i] for i in range(0, len(self.network.nodes)) if i not in seeder_idx]
+            [
+                self.network.nodes[i]
+                for i in seeder_indexes
+            ],
+            [
+                self.network.nodes[i]
+                for i in range(0, len(self.network.nodes))
+                if i not in seeder_indexes
+            ]
         )
 
         meta, data = self.generate_data()
-        handle = meta
 
+        handle = meta
         for node in seeders:
             handle = node.seed(data, handle)
 
-        for node in leechers:
-            node.leech(handle)
+        handles = [node.leech(handle) for node in leechers]
+        for handle in handles:
+            handle.await_for_completion()
