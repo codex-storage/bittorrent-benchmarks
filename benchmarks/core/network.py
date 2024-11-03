@@ -48,16 +48,6 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         pass
 
 
-class FileSharingNetwork(Generic[TNetworkHandle, TInitialMetadata], ABC):
-    """A :class:`FileSharingNetwork` is a set of :class:`Node`s that share
-    an interest in a given file."""
-
-    @property
-    @abstractmethod
-    def nodes(self) -> Sequence[Node[TNetworkHandle, TInitialMetadata]]:
-        pass
-
-
 class SharedFSNode(Node[TNetworkHandle, TInitialMetadata], ABC):
     """A `SharedFSNode` is a :class:`Node` which shares a network volume with us. This means
     we are able to upload files to it by means of simple file copies."""
