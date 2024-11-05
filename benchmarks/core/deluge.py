@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class DelugeMeta:
+    """:class:`DelugeMeta` represents the initial metadata required so that a :class:`DelugeNode`
+    can introduce a file into the network, becoming its initial seeder."""
     name: str
     announce_url: Url
 

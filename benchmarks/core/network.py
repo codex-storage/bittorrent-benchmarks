@@ -10,7 +10,7 @@ TInitialMetadata = TypeVar('TInitialMetadata')
 
 
 class DownloadHandle(ABC):
-    """A :class:`DownloadHandle` represents a reference to an underlying download."""
+    """A :class:`DownloadHandle` is a reference to an ongoing download operation."""
 
     @abstractmethod
     def await_for_completion(self, timeout: float = 0) -> bool:
@@ -22,7 +22,7 @@ class DownloadHandle(ABC):
 
 
 class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
-    """A :class:`Node` represents a peer within a :class:`FileSharingNetwork`."""
+    """A :class:`Node` represents a peer within a file sharing network."""
 
     @abstractmethod
     def seed(
@@ -34,17 +34,23 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         Makes the current :class:`Node` a seeder for the specified file.
 
         :param file: local path to the file to seed.
-        :param handle: file sharing requires some initial set of information when a file is first uploaded into the
-            network, and that will typically then result into a compact representation such as a CID or a Torrent file,
-            which other nodes can then use to identify the file and its metadata within the network. This method can
-            take both such initial metadata (TInitialMetadata) or the subsequent network handle (TNetworkHandle) if
-            it exists.
+        :param handle: file sharing typically requires some initial metadata when a file is first uploaded into the
+            network, and this will typically then result into a compact representation such as a manifest CID (Codex)
+            or a Torrent file (Bittorrent) which other nodes can then use to identify and locate both the file and its
+            metadata within the network. When doing an initial seed, this method should be called with the initial
+            metadata (TInitialMetadata). Subsequent calls should use the network handle (TNetworkHandle).
+
+        :return: The network handle (TNetworkHandle) for this file. This handle should be used for subsequent calls to
+            :meth:`seed`.
         """
         pass
 
     @abstractmethod
     def leech(self, handle: TNetworkHandle) -> DownloadHandle:
-        """Makes the current node a leecher for the provided handle."""
+        """Makes the current node a leecher for the provided handle.
+
+        :param handle: a :class:`DownloadHandle`, which can be used to interact with the download process.
+        """
         pass
 
 
