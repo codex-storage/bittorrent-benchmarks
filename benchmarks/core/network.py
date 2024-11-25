@@ -1,7 +1,6 @@
 import shutil
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Sequence
 
 from typing_extensions import Generic, TypeVar, Union
 
