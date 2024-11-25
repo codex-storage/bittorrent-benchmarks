@@ -1,5 +1,8 @@
+import os
 import random
+import tempfile
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterator, Tuple
@@ -31,6 +34,18 @@ class DataGenerator(Generic[TInitialMetadata], ABC):
     def generate(self) -> DataHandle[TInitialMetadata]:
         """Generates fresh data and metadata and returns a :class:`DataHandle`."""
         pass
+
+
+@contextmanager
+def temp_random_file(size: int, name: str = 'data.bin'):
+    with tempfile.TemporaryDirectory() as temp_dir_str:
+        temp_dir = Path(temp_dir_str)
+        random_file = temp_dir / name
+        random_bytes = os.urandom(size)
+        with random_file.open('wb') as outfile:
+            outfile.write(random_bytes)
+
+        yield random_file
 
 
 def sample(n: int) -> Iterator[int]:

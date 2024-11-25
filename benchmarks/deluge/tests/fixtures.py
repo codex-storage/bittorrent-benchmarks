@@ -1,13 +1,12 @@
-import os
-import tempfile
 from pathlib import Path
 from typing import Generator
 
 import pytest
 from urllib3.util import Url, parse_url
 
-from benchmarks.core.deluge import DelugeNode
+from benchmarks.core import utils
 from benchmarks.core.utils import megabytes
+from benchmarks.deluge.deluge_node import DelugeNode
 from benchmarks.tests.utils import shared_volume
 
 
@@ -31,14 +30,13 @@ def deluge_node2() -> Generator[DelugeNode, None, None]:
 
 
 @pytest.fixture
-def temp_random_file() -> Generator[Path, None, None]:
-    with tempfile.TemporaryDirectory() as temp_dir_str:
-        temp_dir = Path(temp_dir_str)
-        random_file = temp_dir / 'data.bin'
-        random_bytes = os.urandom(megabytes(1))
-        with random_file.open('wb') as outfile:
-            outfile.write(random_bytes)
+def deluge_node3() -> Generator[DelugeNode, None, None]:
+    yield from deluge_node('deluge-3', 6896)
 
+
+@pytest.fixture
+def temp_random_file() -> Generator[Path, None, None]:
+    with utils.temp_random_file(size=megabytes(1)) as random_file:
         yield random_file
 
 

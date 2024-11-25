@@ -2,8 +2,8 @@ from pathlib import Path
 
 from urllib3.util import Url
 
-from benchmarks.core.deluge import DelugeNode, DelugeMeta
 from benchmarks.core.utils import megabytes
+from benchmarks.deluge.deluge_node import DelugeNode, DelugeMeta
 
 
 def test_should_seed_files(deluge_node1: DelugeNode, temp_random_file: Path, tracker: Url):

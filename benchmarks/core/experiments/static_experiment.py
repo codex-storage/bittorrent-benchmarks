@@ -1,10 +1,8 @@
-from pathlib import Path
-
 from typing_extensions import Generic, List
 
 from benchmarks.core.network import TInitialMetadata, TNetworkHandle, Node
 from benchmarks.core.utils import Sampler, DataGenerator, DataHandle
-from benchmarks.experiments.experiments import Experiment, RunnableExperiment, TRunnableExperiment
+from benchmarks.core.experiments.experiments import Experiment, RunnableExperiment
 
 
 class _RunnableSDE(RunnableExperiment, Generic[TNetworkHandle, TInitialMetadata]):

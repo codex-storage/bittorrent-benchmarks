@@ -1,1 +1,1 @@
-from benchmarks.core.tests.fixtures import *
+from benchmarks.deluge.tests.fixtures import *

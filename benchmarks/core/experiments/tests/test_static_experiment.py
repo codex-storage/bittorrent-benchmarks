@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Optional, List, Tuple, Union
 
 from benchmarks.core.network import Node, DownloadHandle
-from benchmarks.experiments.static_experiment import StaticDisseminationExperiment
-from benchmarks.experiments.tests.utils import mock_sampler, MockGenerator
+from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
+from benchmarks.core.experiments.tests.utils import mock_sampler, MockGenerator
 
 
 @dataclass
