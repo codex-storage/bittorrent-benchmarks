@@ -137,13 +137,13 @@ class DelugeDownloadHandle(DownloadHandle):
     def await_for_completion(self, timeout: float = 0) -> bool:
         name = self.torrent.name
         current = time()
-        while (time() - current) <= timeout:
+        while (timeout == 0) or ((time() - current) <= timeout):
             response = self.node.rpc.core.get_torrents_status({'name': name}, [])
             if len(response) > 1:
                 logger.warning(f'Client has multiple torrents matching name {name}. Returning the first one.')
 
             status = list(response.values())[0]
-            if status[b'is_finished']:
+            if status[b'is_seed']:
                 return True
 
         return False

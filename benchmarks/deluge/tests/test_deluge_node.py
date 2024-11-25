@@ -6,17 +6,21 @@ from benchmarks.core.utils import megabytes
 from benchmarks.deluge.deluge_node import DelugeNode, DelugeMeta
 
 
+def assert_is_seed(node: DelugeNode, name: str, size: int):
+    response = node.torrent_info(name=name)
+    assert len(response) == 1
+    info = response[0]
+
+    assert info[b'name'] == name.encode('utf-8') # not sure that this works for ANY name...
+    assert info[b'total_size'] == size
+    assert info[b'is_seed'] == True
+
+
 def test_should_seed_files(deluge_node1: DelugeNode, temp_random_file: Path, tracker: Url):
     assert not deluge_node1.torrent_info(name='dataset1')
 
     deluge_node1.seed(temp_random_file, DelugeMeta(name='dataset1', announce_url=tracker))
-    response = deluge_node1.torrent_info(name='dataset1')
-    assert len(response) == 1
-    info = response[0]
-
-    assert info[b'name'] == b'dataset1'
-    assert info[b'total_size'] == megabytes(1)
-    assert info[b'is_seed'] == True
+    assert_is_seed(deluge_node1, name='dataset1', size=megabytes(1))
 
 
 def test_should_download_files(
@@ -30,10 +34,4 @@ def test_should_download_files(
 
     assert handle.await_for_completion(5)
 
-    response = deluge_node2.torrent_info(name='dataset1')
-    assert len(response) == 1
-    info = response[0]
-
-    assert info[b'name'] == b'dataset1'
-    assert info[b'total_size'] == megabytes(1)
-    assert info[b'is_seed'] == True
+    assert_is_seed(deluge_node2, name='dataset1', size=megabytes(1))

@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple, Union
 
 from benchmarks.core.network import Node, DownloadHandle
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
-from benchmarks.core.experiments.tests.utils import mock_sampler, MockGenerator
+from benchmarks.core.experiments.tests.utils import MockExperimentData
 
 
 @dataclass
@@ -52,67 +52,62 @@ def mock_network(n: int) -> List[MockNode]:
 
 def test_should_place_seeders():
     network = mock_network(n=13)
-    generator = MockGenerator(meta='data', data=Path('/path/to/data'))
-    seeder_indexes = [9, 6, 3]
+    data = MockExperimentData(meta='data', data=Path('/path/to/data'))
+    seeders = [9, 6, 3]
 
     experiment = StaticDisseminationExperiment(
-        seeders=3,
-        sampler=mock_sampler(seeder_indexes),
+        seeders=seeders,
         network=network,
-        generator=generator,
+        data=data,
     )
 
-    runnable = experiment.setup()
-    runnable.run()
+    experiment.run()
 
     actual_seeders = set()
     for index, node in enumerate(network):
         if node.seeding is not None:
             actual_seeders.add(index)
-            assert node.seeding[0] == MockHandle(name=generator.meta, path=generator.data)
+            assert node.seeding[0] == MockHandle(name=data.meta, path=data.data)
 
-    assert actual_seeders == set(seeder_indexes)
+    assert actual_seeders == set(seeders)
 
 
 def test_should_download_at_remaining_nodes():
     network = mock_network(n=13)
-    generator = MockGenerator(meta='data', data=Path('/path/to/data'))
-    seeder_indexes = [9, 6, 3]
+    data = MockExperimentData(meta='data', data=Path('/path/to/data'))
+    seeders = [9, 6, 3]
 
     experiment = StaticDisseminationExperiment(
-        seeders=3,
-        sampler=mock_sampler(seeder_indexes),
+        seeders=seeders,
         network=network,
-        generator=generator,
+        data=data,
     )
 
-    runnable = experiment.setup()
-    runnable.run()
+    experiment.run()
 
     actual_leechers = set()
     for index, node in enumerate(network):
         if node.leeching is not None:
-            assert node.leeching.path == generator.data
-            assert node.leeching.name == generator.meta
+            assert node.leeching.path == data.data
+            assert node.leeching.name == data.meta
             assert node.seeding is None
             assert node.download_was_awaited
             actual_leechers.add(index)
 
-    assert actual_leechers == set(range(13)) - set(seeder_indexes)
+    assert actual_leechers == set(range(13)) - set(seeders)
+
 
 def test_should_delete_generated_file_at_end_of_experiment():
     network = mock_network(n=2)
-    generator = MockGenerator(meta='data', data=Path('/path/to/data'))
-    seeder_indexes = [1]
+    data = MockExperimentData(meta='data', data=Path('/path/to/data'))
+    seeders = [1]
 
     experiment = StaticDisseminationExperiment(
-        seeders=1,
-        sampler=mock_sampler(seeder_indexes),
+        seeders=seeders,
         network=network,
-        generator=generator,
+        data=data,
     )
 
-    runnable = experiment.setup()
-    runnable.run()
+    experiment.run()
 
-    assert generator.cleanup_called
+    assert data.cleanup_called

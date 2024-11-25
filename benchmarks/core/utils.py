@@ -2,38 +2,49 @@ import os
 import random
 import tempfile
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import contextmanager, AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator, Tuple
+from typing import Iterator, Tuple, ContextManager, Optional
 
 from typing_extensions import Generic
 
 from benchmarks.core.network import TInitialMetadata
 
-# A Sampler samples without replacement from [0, ..., n].
-type Sampler = Callable[[int], Iterator[int]]
-
 
 @dataclass
-class DataHandle(Generic[TInitialMetadata], ABC):
-    """A :class:`DataHandle` knows how to clean up data and metadata that has been generated
-    by a :class:`DataGenerator`."""
-    meta: TInitialMetadata
-    data: Path
-
-    def cleanup(self):
-        if self.data.exists():
-            self.data.unlink()
-
-
-class DataGenerator(Generic[TInitialMetadata], ABC):
-    """A :class:`DataGenerator` knows how to generate data for an :class:`Experiment`."""
+class ExperimentData(Generic[TInitialMetadata], AbstractContextManager, ABC):
+    """:class:`ExperimentData` provides a context for providing and wiping out
+    data and metadata objects, usually within the scope of an experiment. """
 
     @abstractmethod
-    def generate(self) -> DataHandle[TInitialMetadata]:
-        """Generates fresh data and metadata and returns a :class:`DataHandle`."""
+    def __enter__(self) -> Tuple[TInitialMetadata, Path]:
+        """Generates new data and metadata and returns it."""
         pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Wipes out data and metadata."""
+        pass
+
+
+class RandomTempData(ExperimentData[TInitialMetadata]):
+
+    def __init__(self, size: int, meta: TInitialMetadata):
+        self.meta = meta
+        self.size = size
+        self._context: Optional[ContextManager[Tuple[TInitialMetadata, Path]]] = None
+
+    def __enter__(self) -> Tuple[TInitialMetadata, Path]:
+        if self._context is not None:
+            raise Exception('Cannot enter context twice')
+
+        self._context = temp_random_file(self.size, 'data.bin')
+
+        return self.meta, self._context.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._context.__exit__(exc_type, exc_val, exc_tb)
 
 
 @contextmanager

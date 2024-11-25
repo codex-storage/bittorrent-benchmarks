@@ -1,30 +1,18 @@
 from pathlib import Path
-from typing import List
+from typing import Tuple
 
 from benchmarks.core.network import TInitialMetadata
-from benchmarks.core.utils import Sampler, DataGenerator, DataHandle
+from benchmarks.core.utils import ExperimentData
 
 
-def mock_sampler(elements: List[int]) -> Sampler:
-    return lambda _: iter(elements)
-
-
-class MockGenerator(DataGenerator[TInitialMetadata]):
+class MockExperimentData(ExperimentData[TInitialMetadata]):
     def __init__(self, meta: TInitialMetadata, data: Path):
         self.cleanup_called = False
         self.meta = meta
         self.data = data
 
-    def generate(self) -> DataHandle[TInitialMetadata]:
-        return MockHandle(self.meta, self.data, self)
+    def __enter__(self) -> Tuple[TInitialMetadata, Path]:
+        return self.meta, self.data
 
-
-class MockHandle(DataHandle[TInitialMetadata]):
-    def __init__(self, meta: TInitialMetadata, data: Path, parent: MockGenerator):
-        self.meta = meta
-        self.data = data
-        self.parent = parent
-
-    def cleanup(self):
-        assert not self.parent.cleanup_called
-        self.parent.cleanup_called = True
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup_called = True
