@@ -1,11 +1,12 @@
 from pathlib import Path
 
+import pytest
 from urllib3.util import Url
 
 from benchmarks.core.utils import megabytes
 from benchmarks.deluge.deluge_node import DelugeNode, DelugeMeta
 
-
+@pytest.mark.integration
 def assert_is_seed(node: DelugeNode, name: str, size: int):
     response = node.torrent_info(name=name)
     assert len(response) == 1
@@ -15,14 +16,14 @@ def assert_is_seed(node: DelugeNode, name: str, size: int):
     assert info[b'total_size'] == size
     assert info[b'is_seed'] == True
 
-
+@pytest.mark.integration
 def test_should_seed_files(deluge_node1: DelugeNode, temp_random_file: Path, tracker: Url):
     assert not deluge_node1.torrent_info(name='dataset1')
 
     deluge_node1.seed(temp_random_file, DelugeMeta(name='dataset1', announce_url=tracker))
     assert_is_seed(deluge_node1, name='dataset1', size=megabytes(1))
 
-
+@pytest.mark.integration
 def test_should_download_files(
         deluge_node1: DelugeNode, deluge_node2: DelugeNode,
         temp_random_file: Path, tracker: Url):

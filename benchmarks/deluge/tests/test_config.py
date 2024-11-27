@@ -1,4 +1,5 @@
 from io import StringIO
+from unittest.mock import patch
 
 import yaml
 
@@ -54,7 +55,11 @@ def test_should_build_experiment_from_config():
     """)
 
     config = DelugeExperimentConfig.model_validate(yaml.safe_load(config_file)['deluge_experiment'])
-    experiment = config.build()
+
+    # Need to patch mkdir, or we'll try to actually create the folder when DelugeNode gets initialized.
+    with patch('pathlib.Path.mkdir'):
+        experiment = config.build()
+
 
     assert len(experiment.nodes) == 10
 
