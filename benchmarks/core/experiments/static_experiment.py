@@ -1,10 +1,11 @@
 from typing_extensions import Generic, List
 
+from benchmarks.core.experiments.experiment import Experiment
 from benchmarks.core.network import TInitialMetadata, TNetworkHandle, Node
 from benchmarks.core.utils import ExperimentData
 
 
-class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata]):
+class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], Experiment):
     def __init__(
             self,
             network: List[Node[TNetworkHandle, TInitialMetadata]],

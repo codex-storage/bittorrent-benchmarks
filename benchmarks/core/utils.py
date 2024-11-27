@@ -65,7 +65,8 @@ def sample(n: int) -> Iterator[int]:
     for i in range(n - 1):
         j = i + random.randint(0, n - i)
         tmp = p[j]
-        p[j], p[j + 1] = p[j + 1], tmp
+        p[j] = p[i]
+        p[i] = tmp
         yield p[i]
 
 

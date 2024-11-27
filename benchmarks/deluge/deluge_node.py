@@ -52,8 +52,6 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
 
         super().__init__(self.downloads_root)
 
-        self._init_folders()
-
     def wipe_all_torrents(self):
         torrent_ids = list(self.rpc.core.get_torrents_status({}, []).keys())
         if torrent_ids:
@@ -109,6 +107,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
     @property
     def rpc(self) -> DelugeRPCClient:
         if self._rpc is None:
+            self._init_folders()
             self.connect()
         return self._rpc
 

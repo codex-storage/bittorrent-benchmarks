@@ -1,4 +1,6 @@
 deluge_experiment:
+  seeders: ${SEEDERS}
+  tracker_announce_url: ${TRACKER_ANNOUNCE_URL}
   file_size: ${FILE_SIZE}
   repetitions: ${REPETITIONS}
   shared_volume_path: ${SHARED_VOLUME_PATH}

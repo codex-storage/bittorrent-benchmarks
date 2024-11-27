@@ -3,7 +3,7 @@ from ipaddress import IPv4Address, IPv6Address
 import pytest
 from pydantic import ValidationError
 
-from benchmarks.deluge.config.host import Host, DomainName
+from benchmarks.core.config import Host, DomainName
 
 
 def test_should_parse_ipv4_address():
@@ -24,6 +24,14 @@ def test_should_parse_simple_dns_names():
 def test_should_parse_localhost():
     h = Host(address='localhost')
     assert h.address == DomainName('localhost')
+
+
+def test_should_return_correct_string_representation_for_addresses():
+    h = Host(address='localhost')
+    assert str(h.address) == 'localhost'
+
+    h = Host(address='192.168.1.1')
+    assert str(h.address) == '192.168.1.1'
 
 
 def test_should_fail_invalid_names():
