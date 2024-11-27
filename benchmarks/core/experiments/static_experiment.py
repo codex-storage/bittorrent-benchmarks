@@ -30,10 +30,10 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
         )
 
         with self.data as (meta, data):
-            handle = meta
+            meta_or_cid = meta
             for node in seeders:
-                handle = node.seed(data, handle)
+                meta_or_cid = node.seed(data, meta_or_cid)
 
-            handles = [node.leech(handle) for node in leechers]
-            for handle in handles:
-                handle.await_for_completion()
+            downloads = [node.leech(meta_or_cid) for node in leechers]
+            for download in downloads:
+                download.await_for_completion()
