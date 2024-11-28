@@ -1,9 +1,13 @@
+import os
+from io import StringIO
 from ipaddress import IPv4Address, IPv6Address
+from typing import cast
 
 import pytest
-from pydantic import ValidationError
+import yaml
+from pydantic import ValidationError, BaseModel
 
-from benchmarks.core.config import Host, DomainName
+from benchmarks.core.config import Host, DomainName, ConfigParser, ConfigModel
 
 
 def test_should_parse_ipv4_address():
@@ -47,3 +51,51 @@ def test_should_fail_invalid_names():
     for invalid_name in invalid_names:
         with pytest.raises(ValidationError):
             Host(address=invalid_name)
+
+
+class Root1(ConfigModel):
+    index: int
+
+
+class Root2(ConfigModel):
+    name: str
+
+
+def test_should_parse_multiple_roots():
+    config_file = StringIO("""
+    root1:
+      index: 1
+    
+    root2: 
+      name: "root2"
+    """)
+
+    parser = ConfigParser()
+
+    parser.register(Root1)
+    parser.register(Root2)
+
+    conf = parser.parse(yaml.safe_load(config_file))
+
+    assert cast(Root1, conf['root1']).index == 1
+    assert cast(Root2, conf['root2']).name == 'root2'
+
+
+def test_should_expand_env_vars_when_fed_a_config_file():
+    config_file = StringIO("""
+    root1:
+      index: ${BTB_MY_INDEX}
+    root2:
+      name: "My name is ${BTB_NAME}"
+    """)
+
+    os.environ['BTB_MY_INDEX'] = '10'
+    os.environ['BTB_NAME'] = 'John Doe'
+
+    parser = ConfigParser()
+    parser.register(Root1)
+    parser.register(Root2)
+
+    conf = parser.parse(config_file)
+    assert cast(Root1, conf['root1']).index == 10
+    assert cast(Root2, conf['root2']).name == 'My name is John Doe'
