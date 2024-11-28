@@ -7,7 +7,7 @@ from typing import Annotated
 from pydantic import BaseModel, IPvAnyAddress, AfterValidator
 from typing_extensions import Generic
 
-from benchmarks.core.experiments.experiment import TExperiment
+from benchmarks.core.experiments.experiments import TExperiment
 
 
 def drop_config_suffix(name: str) -> str:

@@ -1,6 +1,6 @@
 from typing_extensions import Generic, List
 
-from benchmarks.core.experiments.experiment import Experiment
+from benchmarks.core.experiments.experiments import Experiment
 from benchmarks.core.network import TInitialMetadata, TNetworkHandle, Node
 from benchmarks.core.utils import ExperimentData
 
@@ -16,7 +16,7 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
         self.seeders = seeders
         self.data = data
 
-    def run(self):
+    def run(self, run: int = 0):
         seeders, leechers = (
             [
                 self.nodes[i]

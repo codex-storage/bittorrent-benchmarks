@@ -1,10 +1,12 @@
 from io import StringIO
+from typing import cast
 from unittest.mock import patch
 
 import yaml
 
 from benchmarks.core.config import Host
 from benchmarks.deluge.config import DelugeNodeSetConfig, DelugeNodeConfig, DelugeExperimentConfig
+from benchmarks.deluge.deluge_node import DelugeNode
 
 
 def test_should_expand_node_sets_into_simple_nodes():
@@ -42,6 +44,7 @@ def test_should_expand_node_sets_into_simple_nodes():
 def test_should_build_experiment_from_config():
     config_file = StringIO("""
     deluge_experiment:
+      repetitions: 3
       seeders: 3
       tracker_announce_url: http://localhost:2020/announce
       file_size: 1024
@@ -59,8 +62,10 @@ def test_should_build_experiment_from_config():
     # Need to patch mkdir, or we'll try to actually create the folder when DelugeNode gets initialized.
     with patch('pathlib.Path.mkdir'):
         experiment = config.build()
+        repetitions = list(experiment.experiments)
 
-
-    assert len(experiment.nodes) == 10
+    assert len(repetitions) == 3
+    assert len(repetitions[0].nodes) == 10
+    assert cast(DelugeNode, repetitions[0].nodes[5]).daemon_args['port'] == 6890
 
 

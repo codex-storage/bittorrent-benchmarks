@@ -7,6 +7,7 @@ from torrentool.torrent import Torrent
 from urllib3.util import parse_url
 
 from benchmarks.core.config import Host, ExperimentBuilder
+from benchmarks.core.experiments.experiments import IteratedExperiment
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.utils import sample, RandomTempData
 from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode as RealDelugeNode
@@ -38,10 +39,11 @@ class DelugeNodeSetConfig(BaseModel):
         return self
 
 
-DelugeDisseminationExperiment = StaticDisseminationExperiment[Torrent, DelugeMeta]
+DelugeDisseminationExperiment = IteratedExperiment[StaticDisseminationExperiment[Torrent, DelugeMeta]]
 
 
 class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
+    repetitions: int = Field(gt=0)
     file_size: int = Field(gt=0)
     seeders: int = Field(gt=0)
     shared_volume_path: Path
@@ -50,17 +52,23 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
 
     def build(self) -> DelugeDisseminationExperiment:
         nodes = self.nodes.nodes if isinstance(self.nodes, DelugeNodeSetConfig) else self.nodes
-        return StaticDisseminationExperiment(
-            network=[
-                RealDelugeNode(
-                    name=f'deluge-{i}',
-                    volume=self.shared_volume_path / f'deluge-{i}',
-                    daemon_port=node.daemon_port,
-                    daemon_address=str(node.address.address),
-                )
-                for i, node in enumerate(nodes)
-            ],
-            seeders=list(islice(sample(len(nodes)), self.seeders)),
-            data=RandomTempData(size=self.file_size,
-                                meta=DelugeMeta('dataset-1', announce_url=parse_url(str(self.tracker_announce_url))))
+        repetitions = (
+            StaticDisseminationExperiment(
+                network=[
+                    RealDelugeNode(
+                        name=f'deluge-{i}',
+                        volume=self.shared_volume_path / f'deluge-{i}',
+                        daemon_port=node.daemon_port,
+                        daemon_address=str(node.address.address),
+                    )
+                    for i, node in enumerate(nodes)
+                ],
+                seeders=list(islice(sample(len(nodes)), self.seeders)),
+                data=RandomTempData(size=self.file_size,
+                                    meta=DelugeMeta(f'dataset-{experiment_run}',
+                                                    announce_url=parse_url(str(self.tracker_announce_url))))
+            )
+            for experiment_run in range(self.repetitions)
         )
+
+        return IteratedExperiment(repetitions)
