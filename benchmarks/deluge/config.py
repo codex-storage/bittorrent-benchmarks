@@ -10,7 +10,7 @@ from benchmarks.core.config import Host, ExperimentBuilder
 from benchmarks.core.experiments.experiments import IteratedExperiment
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.utils import sample, RandomTempData
-from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode as RealDelugeNode
+from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode
 
 
 class DelugeNodeConfig(BaseModel):
@@ -55,7 +55,7 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
         repetitions = (
             StaticDisseminationExperiment(
                 network=[
-                    RealDelugeNode(
+                    DelugeNode(
                         name=f'deluge-{i + 1}',
                         volume=self.shared_volume_path,
                         daemon_port=node.daemon_port,
