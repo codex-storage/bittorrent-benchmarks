@@ -56,8 +56,8 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
             StaticDisseminationExperiment(
                 network=[
                     RealDelugeNode(
-                        name=f'deluge-{i}',
-                        volume=self.shared_volume_path / f'deluge-{i}',
+                        name=f'deluge-{i + 1}',
+                        volume=self.shared_volume_path,
                         daemon_port=node.daemon_port,
                         daemon_address=str(node.address),
                     )

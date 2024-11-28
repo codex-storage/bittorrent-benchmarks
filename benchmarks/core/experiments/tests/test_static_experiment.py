@@ -20,6 +20,10 @@ class MockNode(Node[MockHandle, str]):
         self.leeching: Optional[MockHandle] = None
         self.download_was_awaited = False
 
+    @property
+    def name(self) -> str:
+        return 'mock_node'
+
     def seed(
             self,
             file: Path,

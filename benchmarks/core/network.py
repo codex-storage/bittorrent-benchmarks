@@ -23,6 +23,12 @@ class DownloadHandle(ABC):
 class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
     """A :class:`Node` represents a peer within a file sharing network."""
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """A network-wide name for this node."""
+        pass
+
     @abstractmethod
     def seed(
             self,

@@ -4,6 +4,10 @@ from benchmarks.core.experiments.experiments import Experiment
 from benchmarks.core.network import TInitialMetadata, TNetworkHandle, Node
 from benchmarks.core.utils import ExperimentData
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], Experiment):
     def __init__(
@@ -29,13 +33,21 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
             ]
         )
 
+        logger.info('Running experiment with %d seeders and %d leechers',
+                    len(seeders), len(leechers))
+
         with self.data as (meta, data):
             cid = None
+            logger.info('Seeding data')
             for node in seeders:
                 cid = node.seed(data, meta if cid is None else cid)
 
             assert cid is not None  # to please mypy
 
+            logger.info('Setting up leechers')
             downloads = [node.leech(cid) for node in leechers]
-            for download in downloads:
+
+            logger.info('Now waiting for downloads to complete')
+            for i, download in enumerate(downloads):
                 download.await_for_completion()
+                logger.info('Download %d / %d completed', i + 1, len(downloads))

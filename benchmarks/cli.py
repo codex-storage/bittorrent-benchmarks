@@ -48,8 +48,18 @@ def run(config: Path, experiment: str):
     if experiment not in experiments:
         print(f'Experiment {experiment} not found in {config}.')
         sys.exit(-1)
-    experiments[experiment].run()
+    experiments[experiment].build().run()
+
+
+def _init_logging():
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
 
 if __name__ == '__main__':
+    _init_logging()
     app()

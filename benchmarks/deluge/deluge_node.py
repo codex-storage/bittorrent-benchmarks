@@ -4,7 +4,7 @@ import shutil
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from time import time
+from time import time, sleep
 from typing import List, Union, Optional, Self, Dict, Any
 
 import pathvalidate
@@ -39,7 +39,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
         if not pathvalidate.is_valid_filename(name):
             raise ValueError(f'Node name must be a valid filename (bad name: "{name}")')
 
-        self.name = name
+        self._name = name
         self.downloads_root = volume / name / 'downloads'
 
         self._rpc: Optional[DelugeRPCClient] = None
@@ -53,6 +53,10 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
         super().__init__(self.downloads_root)
 
         self._init_folders()
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def wipe_all_torrents(self):
         torrent_ids = list(self.rpc.core.get_torrents_status({}, []).keys())
@@ -146,5 +150,7 @@ class DelugeDownloadHandle(DownloadHandle):
             status = list(response.values())[0]
             if status[b'is_seed']:
                 return True
+
+            sleep(0.5)
 
         return False
