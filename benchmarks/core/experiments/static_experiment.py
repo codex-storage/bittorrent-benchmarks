@@ -30,10 +30,12 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
         )
 
         with self.data as (meta, data):
-            meta_or_cid = meta
+            cid = None
             for node in seeders:
-                meta_or_cid = node.seed(data, meta_or_cid)
+                cid = node.seed(data, meta if cid is None else cid)
 
-            downloads = [node.leech(meta_or_cid) for node in leechers]
+            assert cid is not None  # to please mypy
+
+            downloads = [node.leech(cid) for node in leechers]
             for download in downloads:
                 download.await_for_completion()

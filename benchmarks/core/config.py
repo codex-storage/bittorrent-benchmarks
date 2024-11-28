@@ -3,10 +3,10 @@ import os
 import re
 from abc import abstractmethod
 from io import TextIOBase
-from typing import Annotated, Type, Dict, TextIO
+from typing import Annotated, Type, Dict, TextIO, Callable, cast
 
 import yaml
-from pydantic import BaseModel, IPvAnyAddress, AfterValidator
+from pydantic import BaseModel, IPvAnyAddress, AfterValidator, TypeAdapter
 from typing_extensions import Generic, overload
 
 from benchmarks.core.experiments.experiments import TExperiment, Experiment
@@ -39,9 +39,7 @@ def is_valid_domain_name(domain_name: str):
 
 DomainName = Annotated[str, AfterValidator(is_valid_domain_name)]
 
-
-class Host(BaseModel):
-    address: IPvAnyAddress | DomainName
+type Host = IPvAnyAddress | DomainName
 
 
 class ExperimentBuilder(ConfigModel, Generic[TExperiment]):
@@ -61,20 +59,21 @@ class ConfigParser:
     def __init__(self):
         self.root_tags = {}
 
-    def register(self, root: Type[ExperimentBuilder[Experiment]]):
+    def register(self, root: Type[ExperimentBuilder[TExperiment]]):
         name = root.__name__
-        alias = root.model_config.get('alias_generator', lambda x: x)(name)
+        alias = cast(Callable[[str], str],
+                     root.model_config.get('alias_generator', lambda x: x))(name)
         self.root_tags[alias] = root
 
     @overload
-    def parse(self, data: dict) -> Dict[str, ExperimentBuilder[Experiment]]:
+    def parse(self, data: dict) -> Dict[str, ExperimentBuilder[TExperiment]]:
         ...
 
     @overload
-    def parse(self, data: TextIO) -> Dict[str, ExperimentBuilder[Experiment]]:
+    def parse(self, data: TextIO) -> Dict[str, ExperimentBuilder[TExperiment]]:
         ...
 
-    def parse(self, data: dict | TextIO) -> Dict[str, ExperimentBuilder[Experiment]]:
+    def parse(self, data: dict | TextIO) -> Dict[str, ExperimentBuilder[TExperiment]]:
         if isinstance(data, TextIOBase):
             entries = yaml.safe_load(os.path.expandvars(data.read()))
         else:

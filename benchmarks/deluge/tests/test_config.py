@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import yaml
 
-from benchmarks.core.config import Host
 from benchmarks.deluge.config import DelugeNodeSetConfig, DelugeNodeConfig, DelugeExperimentConfig
 from benchmarks.deluge.deluge_node import DelugeNode
 
@@ -19,22 +18,22 @@ def test_should_expand_node_sets_into_simple_nodes():
 
     assert nodeset.nodes == [
         DelugeNodeConfig(
-            address=Host(address='deluge-1.local.svc'),
+            address='deluge-1.local.svc',
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            address=Host(address='deluge-2.local.svc'),
+            address='deluge-2.local.svc',
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            address=Host(address='deluge-3.local.svc'),
+            address='deluge-3.local.svc',
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            address=Host(address='deluge-4.local.svc'),
+            address='deluge-4.local.svc',
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),

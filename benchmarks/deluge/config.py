@@ -30,7 +30,7 @@ class DelugeNodeSetConfig(BaseModel):
     def expand_nodes(self):
         self.nodes = [
             DelugeNodeConfig(
-                address=Host(address=self.address.format(node_index=str(i))),
+                address=self.address.format(node_index=str(i)),
                 daemon_port=self.daemon_port,
                 listen_ports=self.listen_ports,
             )
@@ -59,7 +59,7 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
                         name=f'deluge-{i}',
                         volume=self.shared_volume_path / f'deluge-{i}',
                         daemon_port=node.daemon_port,
-                        daemon_address=str(node.address.address),
+                        daemon_address=str(node.address),
                     )
                     for i, node in enumerate(nodes)
                 ],

@@ -18,9 +18,9 @@ def _parse_config(config: Path):
         print(f'Config file {config} does not exist.')
         sys.exit(-1)
 
-    with config.open(encoding='utf-8') as config:
+    with config.open(encoding='utf-8') as infile:
         try:
-            return parser.parse(config)
+            return parser.parse(infile)
         except ValidationError as e:
             print(f'There were errors parsing the config file.')
             for error in e.errors():
@@ -33,9 +33,9 @@ def list(config: Path):
     """
     Lists the experiments available in CONFIG.
     """
-    parsed = _parse_config(config)
+    experiments = _parse_config(config)
     print(f'Available experiments in {config}:')
-    for experiment in parsed.keys():
+    for experiment in experiments.keys():
         print(f'  - {experiment}')
 
 
@@ -44,11 +44,11 @@ def run(config: Path, experiment: str):
     """
     Runs the experiment with name EXPERIMENT.
     """
-    parsed = _parse_config(config)
-    if experiment not in parsed:
+    experiments = _parse_config(config)
+    if experiment not in experiments:
         print(f'Experiment {experiment} not found in {config}.')
         sys.exit(-1)
-    parsed[experiment].run()
+    experiments[experiment].run()
 
 
 if __name__ == '__main__':
