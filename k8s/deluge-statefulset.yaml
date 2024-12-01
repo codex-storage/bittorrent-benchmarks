@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: deluge-nodes
+  namespace: codex-benchmarks
+
+spec:
+  replicas: 5
+  serviceName: deluge-service
+  selector:
+    matchLabels:
+      app: deluge-nodes
+
+  template:
+    metadata:
+      labels:
+        app: deluge-nodes
+
+    spec:
+      containers:
+        - name: deluge
+          image: codexstorage/deluge
+          ports:
+            - containerPort: 6890
+          env:
+            - name: CLIENT_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DELUGE_RPC_PORT
+              value: "6890"
+            - name: DELUGE_LISTEN_PORTS
+              value: "6891,6892"
+
+          command: [ "/bin/bash", "--login", "-c" ]
+          args:
+            - |
+              export DELUGE_CONFIG_DIR=/var/lib/deluge/${CLIENT_POD_NAME}
+              
+              # Makes sure there's no previous garbage in there.
+              rm -rf ${DELUGE_CONFIG_DIR}
+              mkdir -p ${DELUGE_CONFIG_DIR}
+              
+              ${DELUGE_APP}/docker/bin/start.sh
+
+          volumeMounts:
+            - name: deluge-volume
+              mountPath: /var/lib/deluge
+
+      volumes:
+        - name: deluge-volume
+          persistentVolumeClaim:
+            claimName: deluge-pvc
