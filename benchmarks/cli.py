@@ -60,6 +60,10 @@ def _init_logging():
     )
 
 
-if __name__ == '__main__':
+def main():
     _init_logging()
     app()
+
+
+if __name__ == '__main__':
+    main()

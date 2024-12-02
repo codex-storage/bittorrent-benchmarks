@@ -1,11 +1,10 @@
 [tool.poetry]
-name = "bittorrent-benchmarks"
+name = "benchmarks"
 version = "0.1.0"
 description = "Harness for benchmarking Codex against BitTorrent."
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
 readme = "README.md"
-package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -32,3 +31,6 @@ ignore_missing_imports = true
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+bittorrent-benchmarks = "benchmarks.cli:main"
