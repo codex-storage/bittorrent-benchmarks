@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-import typer
 from pydantic_core import ValidationError
 
 from benchmarks.core.config import ConfigParser, ExperimentBuilder
@@ -12,8 +11,6 @@ from benchmarks.deluge.config import DelugeExperimentConfig
 
 config_parser = ConfigParser()
 config_parser.register(DelugeExperimentConfig)
-
-app = typer.Typer()
 
 
 def cmd_list(experiments: Dict[str, ExperimentBuilder[Experiment]], _):

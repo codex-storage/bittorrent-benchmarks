@@ -3,11 +3,9 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from mypy.graph_utils import TypeVar
-
 import logging
 
-from typing_extensions import Generic
+from typing_extensions import Generic, TypeVar
 
 logger = logging.getLogger(__name__)
 
