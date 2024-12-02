@@ -62,5 +62,5 @@ jobs:
           context: .
           file: ${{ env.DOCKER_FILE }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: bittorrent-benchmarks:latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
