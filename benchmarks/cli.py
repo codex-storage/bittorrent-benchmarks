@@ -29,24 +29,24 @@ def _parse_config(config: Path):
 
 
 @app.command()
-def list(config: Path):
+def list(ctx: typer.Context):
     """
     Lists the experiments available in CONFIG.
     """
-    experiments = _parse_config(config)
-    print(f'Available experiments in {config}:')
+    experiments = ctx.obj
+    print(f'Available experiments are:')
     for experiment in experiments.keys():
         print(f'  - {experiment}')
 
 
 @app.command()
-def run(config: Path, experiment: str):
+def run(ctx: typer.Context, experiment: str):
     """
     Runs the experiment with name EXPERIMENT.
     """
-    experiments = _parse_config(config)
+    experiments = ctx.obj
     if experiment not in experiments:
-        print(f'Experiment {experiment} not found in {config}.')
+        print(f'Experiment {experiment} not found.')
         sys.exit(-1)
     experiments[experiment].build().run()
 
@@ -60,10 +60,14 @@ def _init_logging():
     )
 
 
-def main():
+@app.callback()
+def main(ctx: typer.Context, config: Path):
+    if ctx.resilient_parsing:
+        return
+
+    ctx.obj = _parse_config(config)
     _init_logging()
-    app()
 
 
 if __name__ == '__main__':
-    main()
+    app()

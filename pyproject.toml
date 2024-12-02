@@ -33,4 +33,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-bittorrent-benchmarks = "benchmarks.cli:main"
+bittorrent-benchmarks = "benchmarks.cli:app"

@@ -11,5 +11,5 @@ RUN poetry install --no-root
 COPY . .
 RUN poetry install
 
-ENTRYPOINT ["/usr/local/bin/bittorrent-benchmarks", "run", "/opt/bittorrent-benchmarks/experiments.yaml"]
+ENTRYPOINT ["/usr/local/bin/bittorrent-benchmarks", "/opt/bittorrent-benchmarks/experiments.yaml"]
 
