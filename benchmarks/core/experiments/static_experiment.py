@@ -1,10 +1,11 @@
+import logging
+from typing import Sequence
+
 from typing_extensions import Generic, List, Tuple
 
 from benchmarks.core.experiments.experiments import Experiment
 from benchmarks.core.network import TInitialMetadata, TNetworkHandle, Node
 from benchmarks.core.utils import ExperimentData
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], Experiment):
     def __init__(
             self,
-            network: List[Node[TNetworkHandle, TInitialMetadata]],
+            network: Sequence[Node[TNetworkHandle, TInitialMetadata]],
             seeders: List[int],
             data: ExperimentData[TInitialMetadata],
     ):

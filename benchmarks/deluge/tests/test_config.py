@@ -64,7 +64,8 @@ def test_should_build_experiment_from_config():
         repetitions = list(experiment.experiments)
 
     assert len(repetitions) == 3
-    assert len(repetitions[0].nodes) == 10
-    assert cast(DelugeNode, repetitions[0].nodes[5]).daemon_args['port'] == 6890
+
+    assert len(repetitions[0].experiment.nodes) == 10
+    assert cast(DelugeNode, repetitions[0].experiment.nodes[5]).daemon_args['port'] == 6890
 
 

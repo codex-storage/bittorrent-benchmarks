@@ -62,11 +62,11 @@ class ExperimentEnvironment:
 
         experiment.run()
 
-    def bind(self, experiment: TExperiment) -> Experiment:
-        return _BoundExperiment(experiment, self)
+    def bind(self, experiment: TExperiment) -> 'BoundExperiment[TExperiment]':
+        return BoundExperiment(experiment, self)
 
 
-class _BoundExperiment(Experiment, ABC):
+class BoundExperiment(Experiment, Generic[TExperiment]):
     def __init__(self, experiment: Experiment, env: ExperimentEnvironment):
         self.experiment = experiment
         self.env = env
