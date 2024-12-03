@@ -1,0 +1,12 @@
+services:
+  test-runner:
+    image: bittorrent-benchmarks:test
+    container_name: test-runner
+    volumes:
+      - ./volume:/opt/bittorrent-benchmarks/volume
+    entrypoint: [ "pytest", "--exitfirst" ]
+    environment:
+      - DELUGE_NODE_1=deluge-1
+      - DELUGE_NODE_2=deluge-2
+      - DELUGE_NODE_3=deluge-3
+      - TRACKER_ANNOUNCE_URL=http://tracker:8000/announce

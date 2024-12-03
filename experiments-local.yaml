@@ -2,18 +2,18 @@
 # Docker compose environment.
 deluge_experiment:
   seeders: 1
-  tracker_announce_url: http://127.0.0.1:8000/announce
+  tracker_announce_url: ${TRACKER_ANNOUNCE_URL:-http://127.0.0.1:8000/announce}
   file_size: 52428800
   repetitions: 3
   shared_volume_path: ${PWD}/volume
 
   nodes:
-    - address: localhost
+    - address: ${DELUGE_NODE_1:-localhost}
       daemon_port: 6890
       listen_ports: [ 6891, 6892 ]
-    - address: localhost
+    - address: ${DELUGE_NODE_2:-localhost}
       daemon_port: 6893
       listen_ports: [ 6894, 6895 ]
-    - address: localhost
+    - address: ${DELUGE_NODE_3:-localhost}
       daemon_port: 6896
       listen_ports: [ 6897, 6898 ]
