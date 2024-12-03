@@ -7,6 +7,7 @@ RUN pip install poetry && poetry config virtualenvs.create false
 RUN mkdir /opt/bittorrent-benchmarks
 WORKDIR /opt/bittorrent-benchmarks
 
+
 COPY pyproject.toml poetry.lock ./
 RUN if [ "$BUILD_TYPE" = "production" ]; then \
       echo "Image is a production build"; \

@@ -1,4 +1,4 @@
-from typing_extensions import Generic, List
+from typing_extensions import Generic, List, Tuple
 
 from benchmarks.core.experiments.experiments import Experiment
 from benchmarks.core.network import TInitialMetadata, TNetworkHandle, Node
@@ -21,17 +21,7 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
         self.data = data
 
     def run(self, run: int = 0):
-        seeders, leechers = (
-            [
-                self.nodes[i]
-                for i in self.seeders
-            ],
-            [
-                self.nodes[i]
-                for i in range(0, len(self.nodes))
-                if i not in self.seeders
-            ]
-        )
+        seeders, leechers = self._split_nodes()
 
         logger.info('Running experiment with %d seeders and %d leechers',
                     len(seeders), len(leechers))
@@ -51,3 +41,16 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
             for i, download in enumerate(downloads):
                 download.await_for_completion()
                 logger.info('Download %d / %d completed', i + 1, len(downloads))
+
+    def _split_nodes(self) -> Tuple[
+        List[Node[TNetworkHandle, TInitialMetadata]],
+        List[Node[TNetworkHandle, TInitialMetadata]]
+    ]:
+        return [
+            self.nodes[i]
+            for i in self.seeders
+        ], [
+            self.nodes[i]
+            for i in range(0, len(self.nodes))
+            if i not in self.seeders
+        ]

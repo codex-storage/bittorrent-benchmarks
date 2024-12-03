@@ -5,13 +5,15 @@ import pytest
 from urllib3.util import Url, parse_url
 
 from benchmarks.core import utils
-from benchmarks.core.utils import megabytes
+from benchmarks.core.utils import megabytes, await_predicate
 from benchmarks.deluge.deluge_node import DelugeNode
+from benchmarks.deluge.tracker import Tracker
 from benchmarks.tests.utils import shared_volume
 
 
 def deluge_node(name: str, port: int) -> Generator[DelugeNode, None, None]:
     node = DelugeNode(name, volume=shared_volume(), daemon_port=port)
+    await_predicate(node.is_ready, timeout=10, polling_interval=0.5)
     node.wipe_all_torrents()
     try:
         yield node
@@ -41,5 +43,5 @@ def temp_random_file() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def tracker() -> Url:
-    return parse_url('http://127.0.0.1:8000/announce')
+def tracker() -> Tracker:
+    return Tracker(parse_url('http://127.0.0.1:8000/announce'))

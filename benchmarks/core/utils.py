@@ -5,7 +5,8 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager, AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Tuple, ContextManager, Optional
+from time import time, sleep
+from typing import Iterator, Tuple, ContextManager, Optional, Callable
 
 from typing_extensions import Generic
 
@@ -57,6 +58,16 @@ def temp_random_file(size: int, name: str = 'data.bin'):
             outfile.write(random_bytes)
 
         yield random_file
+
+
+def await_predicate(predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0) -> bool:
+    current = time()
+    while (timeout == 0) or ((time() - current) <= timeout):
+        if predicate():
+            return True
+        sleep(polling_interval)
+
+    return False
 
 
 def sample(n: int) -> Iterator[int]:

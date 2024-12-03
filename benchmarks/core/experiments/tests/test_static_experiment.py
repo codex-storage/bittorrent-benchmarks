@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, List, Tuple, Union
 
-from benchmarks.core.network import Node, DownloadHandle
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.experiments.tests.utils import MockExperimentData
+from benchmarks.core.network import Node, DownloadHandle
 
 
 @dataclass
@@ -29,6 +29,7 @@ class MockNode(Node[MockHandle, str]):
             file: Path,
             handle: Union[str, MockHandle]
     ) -> MockHandle:
+
         if isinstance(handle, MockHandle):
             self.seeding = (handle, file)
         else:
@@ -37,6 +38,7 @@ class MockNode(Node[MockHandle, str]):
         return self.seeding[0]
 
     def leech(self, handle: MockHandle):
+
         self.leeching = handle
         return MockDownloadHandle(self)
 

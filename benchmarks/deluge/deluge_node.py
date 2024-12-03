@@ -4,7 +4,6 @@ import shutil
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from time import time, sleep
 from typing import List, Union, Optional, Self, Dict, Any
 
 import pathvalidate
@@ -12,7 +11,9 @@ from deluge_client import DelugeRPCClient
 from torrentool.torrent import Torrent
 from urllib3.util import Url
 
+from benchmarks.core.experiments.experiments import ExperimentComponent
 from benchmarks.core.network import SharedFSNode, DownloadHandle
+from benchmarks.core.utils import await_predicate
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class DelugeMeta:
     announce_url: Url
 
 
-class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
+class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
     def __init__(
             self,
@@ -123,6 +124,13 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta]):
         self._rpc = client
         return self
 
+    def is_ready(self) -> bool:
+        try:
+            self.connect()
+            return True
+        except ConnectionRefusedError:
+            return False
+
     def _init_folders(self):
         self.downloads_root.mkdir(parents=True, exist_ok=True)
 
@@ -141,16 +149,13 @@ class DelugeDownloadHandle(DownloadHandle):
 
     def await_for_completion(self, timeout: float = 0) -> bool:
         name = self.torrent.name
-        current = time()
-        while (timeout == 0) or ((time() - current) <= timeout):
+
+        def _predicate():
             response = self.node.rpc.core.get_torrents_status({'name': name}, [])
             if len(response) > 1:
                 logger.warning(f'Client has multiple torrents matching name {name}. Returning the first one.')
 
             status = list(response.values())[0]
-            if status[b'is_seed']:
-                return True
+            return status[b'is_seed']
 
-            sleep(0.5)
-
-        return False
+        return await_predicate(_predicate, timeout=timeout)
