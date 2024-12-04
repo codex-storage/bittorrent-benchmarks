@@ -13,6 +13,7 @@ pathvalidate = "^3.2.1"
 torrentool = "^1.2.0"
 pydantic = "^2.10.2"
 pyyaml = "^6.0.2"
+requests = "^2.32.3"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"

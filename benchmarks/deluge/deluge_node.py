@@ -1,6 +1,7 @@
 import base64
 import logging
 import shutil
+import socket
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -128,7 +129,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
         try:
             self.connect()
             return True
-        except ConnectionRefusedError:
+        except (ConnectionRefusedError, socket.gaierror):
             return False
 
     def _init_folders(self):

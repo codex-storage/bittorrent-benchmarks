@@ -1,3 +1,5 @@
+import socket
+
 import requests
 from urllib3.util import Url
 
@@ -13,5 +15,5 @@ class Tracker(ExperimentComponent):
         try:
             requests.get(str(self.announce_url))
             return True
-        except ConnectionError:
+        except (ConnectionError, socket.gaierror):
             return False

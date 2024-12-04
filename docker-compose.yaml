@@ -1,3 +1,7 @@
+# This compose spec contains the basic setup for running integration tests with the
+# test runner outside of a container and bind mounts for data so they can be inspected.
+# This is ideal for development.
+
 # You will need [rootless Docker](https://docs.docker.com/engine/security/rootless/)
 # for this to work cause the tests rely on user-writable bind mounts.
 

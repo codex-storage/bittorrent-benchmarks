@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_FILE: bittorrent-benchmarks.Dockerfile
+  DOCKER_FILE: ./docker/bittorrent-benchmarks.Dockerfile
   DOCKER_REPO: codexstorage/bittorrent-benchmarks
 
 jobs:
@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -50,11 +53,11 @@ jobs:
 
       - name: Type Check
         run: |
-          docker run --rm --entrypoint mypy bittorrent-benchmarks:test .
+          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run mypy .
 
       - name: Run Unit Tests
         run: |
-          docker run --rm --entrypoint pytest bittorrent-benchmarks:test -m "not integration"
+          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run pytest -m "not integration"
 
       - name: Run Integration Tests
         run: |
