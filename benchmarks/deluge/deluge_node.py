@@ -68,8 +68,10 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
                 raise Exception(f'There were errors removing torrents: {errors}')
 
         # Wipe download folder to get rid of files that got uploaded but failed
-        # seeding or deletes.
-        shutil.rmtree(self.downloads_root)
+        # seeding or deletes. Check first or it may race with the remove_torrents
+        # operation above.
+        if self.downloads_root.exists():
+            shutil.rmtree(self.downloads_root)
 
         self._init_folders()
 
