@@ -7,6 +7,6 @@ deluge_experiment:
 
   nodes:
     network_size: ${NETWORK_SIZE}
-    address: 'deluge-nodes-{node_index}.codex-benchmarks.svc.cluster.local'
+    address: "${DELUGE_STATEFULSET}-{node_index}.${DELUGE_SERVICE}.${NAMESPACE}.svc.cluster.local"
     daemon_port: 6890
     listen_ports: [ 6891, 6892 ]
