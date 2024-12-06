@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: testrunner
+  namespace: codex-benchmarks
+  labels:
+    app: testrunner
+spec:
+  template:
+    metadata:
+      labels:
+        app: testrunner
+    spec:
+      containers:
+        - name: testrunner
+          image: codexstorage/bittorrent-benchmarks:latest
+          imagePullPolicy: Always
+          args: [ "run", "deluge_experiment" ]
+          env:
+            - name: NETWORK_SIZE
+              value: "5"
+            - name: SEEDERS
+              value: "1"
+            - name: REPETITIONS
+              value: "1"
+            - name: FILE_SIZE
+              value: "52428800"
+            - name: TRACKER_ANNOUNCE_URL
+              value: "http://tracker-service.codex-benchmarks.svc.cluster.local:8000/announce"
+            - name: SHARED_VOLUME_PATH
+              value: "/opt/bittorrent-benchmarks/volume"
+            - name: DELUGE_STATEFULSET
+              value: "deluge-nodes"
+            - name: DELUGE_SERVICE
+              value: "deluge-service"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: benchmark-volume
+              mountPath: /opt/bittorrent-benchmarks/volume
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+      volumes:
+        - name: benchmark-volume
+          persistentVolumeClaim:
+            claimName: deluge-pvc
+      restartPolicy: Never
+  backoffLimit: 0

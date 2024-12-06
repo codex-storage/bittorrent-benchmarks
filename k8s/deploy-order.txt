@@ -1,0 +1,7 @@
+namespace.yaml
+deluge-pvc.yaml
+deluge-service.yaml
+tracker-deployment.yaml
+tracker-service.yaml
+deluge-statefulset.yaml
+testrunner-job.yaml

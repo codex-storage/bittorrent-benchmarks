@@ -35,7 +35,12 @@ spec:
           command: [ "/bin/bash", "--login", "-c" ]
           args:
             - |
+              # Sadly we can't mount a subpath, so need add the correct prefix
+              # into all of the config directories.
               export DELUGE_CONFIG_DIR=/var/lib/deluge/${CLIENT_POD_NAME}
+              export DELUGE_DOWNLOAD_DIR=${DELUGE_CONFIG_DIR}/downloads
+              export DELUGE_TORRENTFILE_DIR=${DELUGE_CONFIG_DIR}/downloads
+              export DELUGE_PLUGINS_DIR=${DELUGE_CONFIG_DIR}/plugins
               
               # Makes sure there's no previous garbage in there.
               rm -rf ${DELUGE_CONFIG_DIR}
