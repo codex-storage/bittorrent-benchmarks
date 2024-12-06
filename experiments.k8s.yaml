@@ -8,6 +8,8 @@ deluge_experiment:
   nodes:
     network_size: ${NETWORK_SIZE}
     first_node_index: 0
+    # Setting the correct name is critical, and it has to match what's in deluge the StatefulSet.
+    name: "${DELUGE_STATEFULSET}-{node_index}"
     address: "${DELUGE_STATEFULSET}-{node_index}.${DELUGE_SERVICE}.${NAMESPACE}.svc.cluster.local"
     daemon_port: 6890
     listen_ports: [ 6891, 6892 ]

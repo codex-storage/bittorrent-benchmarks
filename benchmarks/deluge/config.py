@@ -16,6 +16,7 @@ from benchmarks.deluge.tracker import Tracker
 
 
 class DelugeNodeConfig(BaseModel):
+    name: str
     address: Host
     daemon_port: int
     listen_ports: list[int] = Field(min_length=2, max_length=2)
@@ -23,6 +24,7 @@ class DelugeNodeConfig(BaseModel):
 
 class DelugeNodeSetConfig(BaseModel):
     network_size: int = Field(gt=1)
+    name: str
     address: str
     daemon_port: int
     listen_ports: list[int] = Field(min_length=2, max_length=2)
@@ -33,6 +35,7 @@ class DelugeNodeSetConfig(BaseModel):
     def expand_nodes(self):
         self.nodes = [
             DelugeNodeConfig(
+                name=self.name.format(node_index=str(i)),
                 address=self.address.format(node_index=str(i)),
                 daemon_port=self.daemon_port,
                 listen_ports=self.listen_ports,
@@ -58,7 +61,7 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
 
         network = [
             DelugeNode(
-                name=f'deluge-{i + 1}',
+                name=node_spec.name,
                 volume=self.shared_volume_path,
                 daemon_port=node_spec.daemon_port,
                 daemon_address=str(node_spec.address),

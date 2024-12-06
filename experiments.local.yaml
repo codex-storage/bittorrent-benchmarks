@@ -8,12 +8,15 @@ deluge_experiment:
   shared_volume_path: ${PWD}/volume
 
   nodes:
-    - address: ${DELUGE_NODE_1:-localhost}
+    - name: deluge-1
+      address: ${DELUGE_NODE_1:-localhost}
       daemon_port: 6890
       listen_ports: [ 6891, 6892 ]
-    - address: ${DELUGE_NODE_2:-localhost}
+    - name: deluge-2
+      address: ${DELUGE_NODE_2:-localhost}
       daemon_port: 6893
       listen_ports: [ 6894, 6895 ]
-    - address: ${DELUGE_NODE_3:-localhost}
+    - name: deluge-2
+      address: ${DELUGE_NODE_3:-localhost}
       daemon_port: 6896
       listen_ports: [ 6897, 6898 ]
