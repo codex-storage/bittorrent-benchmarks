@@ -32,6 +32,8 @@ spec:
               value: "6890"
             - name: DELUGE_LISTEN_PORTS
               value: "6891,6892"
+            - name: DELUGE_LOG_LEVEL
+              value: "info"
 
           command: [ "/bin/bash", "--login", "-c" ]
           args:
