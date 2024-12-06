@@ -29,13 +29,13 @@ class StaticDisseminationExperiment(Generic[TNetworkHandle, TInitialMetadata], E
 
         with self.data as (meta, data):
             cid = None
-            logger.info('Seeding data')
             for node in seeders:
+                logger.info(f'Seeding data: {str(node)}')
                 cid = node.seed(data, meta if cid is None else cid)
 
             assert cid is not None  # to please mypy
 
-            logger.info('Setting up leechers')
+            logger.info(f'Setting up leechers: {str(leechers)}')
             downloads = [node.leech(cid) for node in leechers]
 
             logger.info('Now waiting for downloads to complete')

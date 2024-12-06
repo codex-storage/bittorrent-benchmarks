@@ -147,6 +147,9 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
         buffer.write(handle.to_string())
         return base64.b64encode(buffer.getvalue())
 
+    def __str__(self):
+        return f"DelugeNode({self.name}, {self.daemon_args['host']}:{self.daemon_args['port']})"
+
 
 class DelugeDownloadHandle(DownloadHandle):
 

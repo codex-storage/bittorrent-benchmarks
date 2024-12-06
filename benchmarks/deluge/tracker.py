@@ -17,3 +17,6 @@ class Tracker(ExperimentComponent):
             return True
         except (ConnectionError, socket.gaierror):
             return False
+
+    def __str__(self) -> str:
+        return f'Tracker({self.announce_url})'
