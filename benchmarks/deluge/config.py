@@ -22,10 +22,11 @@ class DelugeNodeConfig(BaseModel):
 
 
 class DelugeNodeSetConfig(BaseModel):
-    network_size: int = Field(gt=2)
+    network_size: int = Field(gte=2)
     address: str
     daemon_port: int
     listen_ports: list[int] = Field(min_length=2, max_length=2)
+    first_node_index: int = 1
     nodes: List[DelugeNodeConfig] = []
 
     @model_validator(mode='after')
@@ -36,7 +37,7 @@ class DelugeNodeSetConfig(BaseModel):
                 daemon_port=self.daemon_port,
                 listen_ports=self.listen_ports,
             )
-            for i in range(1, self.network_size + 1)
+            for i in range(self.first_node_index, self.first_node_index + self.network_size)
         ]
         return self
 

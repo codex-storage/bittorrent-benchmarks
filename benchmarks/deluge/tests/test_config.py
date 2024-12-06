@@ -39,6 +39,27 @@ def test_should_expand_node_sets_into_simple_nodes():
         ),
     ]
 
+def test_should_respect_first_node_index():
+    nodeset = DelugeNodeSetConfig(
+        address='deluge-{node_index}.local.svc',
+        network_size=2,
+        daemon_port=6080,
+        listen_ports=[6081, 6082],
+        first_node_index=5
+    )
+
+    assert nodeset.nodes == [
+        DelugeNodeConfig(
+            address='deluge-5.local.svc',
+            daemon_port=6080,
+            listen_ports=[6081, 6082],
+        ),
+        DelugeNodeConfig(
+            address='deluge-6.local.svc',
+            daemon_port=6080,
+            listen_ports=[6081, 6082],
+        ),
+    ]
 
 def test_should_build_experiment_from_config():
     config_file = StringIO("""
