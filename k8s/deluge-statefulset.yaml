@@ -5,8 +5,9 @@ metadata:
   namespace: codex-benchmarks
 
 spec:
-  replicas: 5
+  replicas: 100
   serviceName: deluge-service
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: deluge-nodes

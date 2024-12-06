@@ -21,7 +21,7 @@ while read -r resource; do
 done < deploy-order.txt
 
 echo " * Awaiting for test runner to start"
-kubectl wait --for=condition=Ready --selector=app=testrunner pod -n codex-benchmarks --timeout=30s
+kubectl wait --for=condition=Ready --selector=app=testrunner pod -n codex-benchmarks --timeout=300s
 
 echo " * Attaching to test runner logs"
 TESTRUNNER_POD=$(kubectl get pods -n codex-benchmarks -l app=testrunner -o jsonpath="{.items[0].metadata.name}")
