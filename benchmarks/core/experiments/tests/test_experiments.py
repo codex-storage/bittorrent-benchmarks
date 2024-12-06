@@ -44,10 +44,12 @@ def test_should_timeout_if_component_takes_too_long():
     ]
 
     environment = ExperimentEnvironment(components, polling_interval=0)
-    assert not environment.await_ready(0.1)
+    assert not environment.await_ready(0.09)
 
-    assert components[0].iteration == 5
-    assert components[1].iteration < 3
+    # Because ExperimentEnvironment sweeps through the components, it will
+    # iterate exactly once before timing out.
+    assert components[0].iteration == 1
+    assert components[1].iteration == 1
 
 
 class ExperimentThatReliesOnComponents(Experiment):

@@ -14,4 +14,3 @@ touch /opt/bittorrent-benchmarks/volume/.initialized
 echo "Launching tests."
 cd /opt/bittorrent-benchmarks
 poetry run pytest --exitfirst
-

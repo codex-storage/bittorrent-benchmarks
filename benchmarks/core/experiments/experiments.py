@@ -3,7 +3,8 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from typing import Optional
+from time import time, sleep
+from typing import Optional, List
 
 from typing_extensions import Generic, TypeVar
 
@@ -44,16 +45,29 @@ class ExperimentEnvironment:
 
     def await_ready(self, timeout: float = 0) -> bool:
         """Awaits for all components to be ready, or until a timeout is reached."""
-        # TODO we should probably have per-component timeouts, or at least provide feedback
-        #  as to what was the completion state of each component.
-        if not await_predicate(
-                lambda: all(component.is_ready() for component in self.components),
-                timeout=timeout,
-                polling_interval=self.polling_interval,
-        ):
-            return False
+
+        start_time = time()
+        not_ready = [component for component in self.components]
+
+        logging.info(f'Awaiting for components to be ready: {self._component_names(not_ready)}')
+        while len(not_ready) != 0:
+            for component in not_ready:
+                if component.is_ready():
+                    logger.info(f'Component {str(component)} is ready.')
+                    not_ready.remove(component)
+
+            sleep(self.polling_interval)
+
+            if (timeout != 0) and (time() - start_time > timeout):
+                print("timeout")
+                logger.info(f'Some components timed out: {self._component_names(not_ready)}')
+                return False
 
         return True
+
+    @staticmethod
+    def _component_names(components: List[ExperimentComponent]) -> str:
+        return ', '.join(str(component) for component in components)
 
     def run(self, experiment: Experiment):
         """Runs the :class:`Experiment` within this :class:`ExperimentEnvironment`."""
