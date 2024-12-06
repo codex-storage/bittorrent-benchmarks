@@ -22,7 +22,7 @@ class DelugeNodeConfig(BaseModel):
 
 
 class DelugeNodeSetConfig(BaseModel):
-    network_size: int = Field(gte=2)
+    network_size: int = Field(gt=1)
     address: str
     daemon_port: int
     listen_ports: list[int] = Field(min_length=2, max_length=2)
