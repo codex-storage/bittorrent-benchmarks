@@ -14,18 +14,12 @@ config_parser.register(DelugeExperimentConfig)
 
 
 def cmd_list(experiments: Dict[str, ExperimentBuilder[Experiment]], _):
-    """
-    Lists the experiments available in CONFIG.
-    """
     print(f'Available experiments are:')
     for experiment in experiments.keys():
         print(f'  - {experiment}')
 
 
 def cmd_run(experiments: Dict[str, ExperimentBuilder[Experiment]], args):
-    """
-    Runs the experiment with name EXPERIMENT.
-    """
     if args.experiment not in experiments:
         print(f'Experiment {args.experiment} not found.')
         sys.exit(-1)
