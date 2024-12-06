@@ -2,13 +2,13 @@ SHELL := bash
 
 .SHELLFLAGS := -eu -o pipefail -c
 
-.PHONY: test-unit-local \
-		start-local-integration-harness \
-		stop-local-integration-harness \
-		test-integration-local \
-		test-all-local \
-		test-unit-docker \
-		test-integration-docker \
+.PHONY: unit \
+		harness-start \
+		harness-stop \
+		integration \
+		tests \
+		unit-docker \
+		integration-docker \
 		clean
 
 # Runs the unit tests locally.
