@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import yaml
 
+from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.deluge.config import DelugeNodeSetConfig, DelugeNodeConfig, DelugeExperimentConfig
 from benchmarks.deluge.deluge_node import DelugeNode
 
@@ -44,6 +45,7 @@ def test_should_expand_node_sets_into_simple_nodes():
         ),
     ]
 
+
 def test_should_respect_first_node_index():
     nodeset = DelugeNodeSetConfig(
         name='deluge-{node_index}',
@@ -68,6 +70,7 @@ def test_should_respect_first_node_index():
             listen_ports=[6081, 6082],
         ),
     ]
+
 
 def test_should_build_experiment_from_config():
     config_file = StringIO("""
@@ -99,3 +102,40 @@ def test_should_build_experiment_from_config():
     assert cast(DelugeNode, repetitions[0].experiment.nodes[5]).daemon_args['port'] == 6890
 
 
+def test_should_create_n_repetitions_per_seeder_set():
+    config_file = StringIO("""
+    deluge_experiment:
+      seeder_sets: 2
+      repetitions: 3
+      seeders: 3
+      tracker_announce_url: http://localhost:2020/announce
+      file_size: 1024
+      shared_volume_path: /var/lib/deluge
+
+      nodes:
+        network_size: 100
+        name: 'deluge-{node_index}'
+        address: 'node-{node_index}.deluge.codexbenchmarks.svc.cluster.local'
+        daemon_port: 6890
+        listen_ports: [ 6891, 6892 ]
+    """)
+
+    config = DelugeExperimentConfig.model_validate(yaml.safe_load(config_file)['deluge_experiment'])
+
+    # Need to patch mkdir, or we'll try to actually create the folder when DelugeNode gets initialized.
+    with patch('pathlib.Path.mkdir'):
+        experiment = config.build()
+        repetitions = list(experiment.experiments)
+
+    assert len(repetitions) == 3 * 2
+
+    experiment_set1_1 = cast(StaticDisseminationExperiment, repetitions[0].experiment)
+    experiment_set1_2 = cast(StaticDisseminationExperiment, repetitions[2].experiment)
+    experiment_set2_1 = cast(StaticDisseminationExperiment, repetitions[3].experiment)
+
+    # FIXME Ehm... this test might actually fail with a very low probability if the seeder sets end
+    #  up being the same by chance, but the probability is very small (you're drawing 3 out of 100 twice
+    #  and the result needs to be the same). The fix would be having a deterministic sampler but I feel
+    #  lazy right now. :-)
+    assert experiment_set1_1.seeders == experiment_set1_2.seeders
+    assert experiment_set1_1.seeders != experiment_set2_1.seeders

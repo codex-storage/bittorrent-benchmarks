@@ -1,4 +1,5 @@
 deluge_experiment:
+  seeder_sets: ${SEEDER_SETS}
   seeders: ${SEEDERS}
   tracker_announce_url: ${TRACKER_ANNOUNCE_URL}
   file_size: ${FILE_SIZE}

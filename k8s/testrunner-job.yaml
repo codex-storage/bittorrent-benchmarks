@@ -5,11 +5,13 @@ metadata:
   namespace: codex-benchmarks
   labels:
     app: testrunner
+
 spec:
   template:
     metadata:
       labels:
         app: testrunner
+
     spec:
       containers:
         - name: testrunner
@@ -18,11 +20,13 @@ spec:
           args: [ "run", "deluge_experiment" ]
           env:
             - name: NETWORK_SIZE
-              value: "100"
+              value: "10"
             - name: SEEDERS
               value: "4"
             - name: REPETITIONS
               value: "10"
+            - name: SEEDER_SETS
+              value: "2"
             - name: FILE_SIZE
               value: "104857600"
             - name: TRACKER_ANNOUNCE_URL
@@ -47,9 +51,11 @@ spec:
             limits:
               cpu: "1"
               memory: "2Gi"
+
       volumes:
         - name: benchmark-volume
           persistentVolumeClaim:
             claimName: deluge-pvc
       restartPolicy: Never
+
   backoffLimit: 0
