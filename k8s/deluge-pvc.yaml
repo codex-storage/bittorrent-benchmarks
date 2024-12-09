@@ -3,6 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: deluge-pvc
   namespace: codex-benchmarks
+
 spec:
   accessModes:
     - ReadWriteMany

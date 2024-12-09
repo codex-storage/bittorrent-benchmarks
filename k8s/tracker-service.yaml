@@ -5,6 +5,7 @@ metadata:
   namespace: codex-benchmarks
   labels:
     app: tracker
+
 spec:
   type: ClusterIP  # Change to NodePort or LoadBalancer if needed
   ports:

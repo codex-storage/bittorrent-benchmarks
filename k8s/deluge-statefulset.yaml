@@ -5,7 +5,7 @@ metadata:
   namespace: codex-benchmarks
 
 spec:
-  replicas: 100
+  replicas: 10
   serviceName: deluge-service
   podManagementPolicy: Parallel
   selector:
@@ -21,6 +21,7 @@ spec:
       containers:
         - name: deluge
           image: codexstorage/deluge
+          imagePullPolicy: Always
           ports:
             - containerPort: 6890
           env:
@@ -34,7 +35,6 @@ spec:
               value: "6891,6892"
             - name: DELUGE_LOG_LEVEL
               value: "info"
-
           command: [ "/bin/bash", "--login", "-c" ]
           args:
             - |
@@ -50,7 +50,6 @@ spec:
               mkdir -p ${DELUGE_CONFIG_DIR}
               
               ${DELUGE_APP}/docker/bin/start.sh
-
           volumeMounts:
             - name: deluge-volume
               mountPath: /var/lib/deluge

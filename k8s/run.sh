@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# Simple script for running benchmark experiments on a Kubernetes cluster.
 set -e
 
 function on_interrupt () {
@@ -31,3 +33,5 @@ if [ -z "${TESTRUNNER_POD}" ]; then
 fi
 
 kubectl logs -f "${TESTRUNNER_POD}" -n codex-benchmarks
+
+echo " * Test runner has finished."
