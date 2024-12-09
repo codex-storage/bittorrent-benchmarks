@@ -89,7 +89,7 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
                         network=network,
                         seeders=seeders,
                         data=RandomTempData(size=self.file_size,
-                                            meta=DelugeMeta(f'dataset-{seeder_set}',
+                                            meta=DelugeMeta(f'dataset-{seeder_set}-{experiment_run}',
                                                             announce_url=tracker.announce_url))
                     ))
 
