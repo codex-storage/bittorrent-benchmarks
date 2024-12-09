@@ -2,3 +2,6 @@
 .idea
 /volume/deluge*
 *.timestamp
+.RData
+.Rhistory
+.Rproj.user
