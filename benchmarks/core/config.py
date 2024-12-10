@@ -57,13 +57,13 @@ class ConfigParser:
     """
 
     def __init__(self):
-        self.root_tags = {}
+        self.experiment_types = {}
 
     def register(self, root: Type[ExperimentBuilder[TExperiment]]):
         name = root.__name__
         alias = cast(Callable[[str], str],
                      root.model_config.get('alias_generator', lambda x: x))(name)
-        self.root_tags[alias] = root
+        self.experiment_types[alias] = root
 
     @overload
     def parse(self, data: dict) -> Dict[str, ExperimentBuilder[TExperiment]]:
@@ -80,6 +80,6 @@ class ConfigParser:
             entries = data
 
         return {
-            tag: self.root_tags[tag].model_validate(config)
+            tag: self.experiment_types[tag].model_validate(config)
             for tag, config in entries.items()
         }
