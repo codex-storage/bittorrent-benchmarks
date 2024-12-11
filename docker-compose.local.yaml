@@ -13,6 +13,7 @@ services:
       - DELUGE_RPC_PORT=6890
       - DELUGE_LISTEN_PORTS=6891,6892
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
+      - DELUGE_NODE_ID=deluge-1
     volumes:
       - ./volume/deluge-1:/var/lib/deluge
       - ./volume/deluge-1/downloads:/var/lib/deluge/downloads
@@ -27,6 +28,7 @@ services:
       - DELUGE_RPC_PORT=6893
       - DELUGE_LISTEN_PORTS=6894,6895
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
+      - DELUGE_NODE_ID=deluge-2
     volumes:
       - ./volume/deluge-2:/var/lib/deluge
       - ./volume/deluge-2/downloads:/var/lib/deluge/downloads
@@ -41,6 +43,7 @@ services:
       - DELUGE_RPC_PORT=6896
       - DELUGE_LISTEN_PORTS=6897,6898
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
+      - DELUGE_NODE_ID=deluge-3
     volumes:
       - ./volume/deluge-3:/var/lib/deluge
       - ./volume/deluge-3/downloads:/var/lib/deluge/downloads

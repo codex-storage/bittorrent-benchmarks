@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-kubectl logs --prefix -n codex-benchmarks -l app=deluge-nodes --tail=-1 > "${1}.log"
-grep '\[M' "${1}.log" | tr -s ' ' | cut -d ' ' -f1,7 | sed 's/ /,/' | grep -v 'metric' > "${1}.csv"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <output-folder>"
+    exit 1
+fi
+
+# TODO build auto naming for experiment folders based on metadata
+mkdir -p "${1}"
+
+echo "Collect"
+kubectl logs --prefix -n codex-benchmarks -l "app in (deluge-nodes,testrunner)" --tail=-1 > "${1}/raw-logs.log"
+
+echo "Parse"
+python -m benchmarks.cli logs "${1}/raw-logs.log" "${1}/parsed"

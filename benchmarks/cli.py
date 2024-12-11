@@ -1,14 +1,13 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict
 
-from mypy.memprofile import defaultdict
 from pydantic_core import ValidationError
 
 from benchmarks.core.config import ConfigParser, ExperimentBuilder
 from benchmarks.core.experiments.experiments import Experiment
-from benchmarks.core.logging import basic_log_parser, LogEntry, LogSplitter
+from benchmarks.core.logging import basic_log_parser, LogSplitter
 from benchmarks.deluge.config import DelugeExperimentConfig
 from benchmarks.deluge.logging import DelugeTorrentDownload
 
