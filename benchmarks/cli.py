@@ -1,16 +1,22 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Iterable
 
+from mypy.memprofile import defaultdict
 from pydantic_core import ValidationError
 
 from benchmarks.core.config import ConfigParser, ExperimentBuilder
 from benchmarks.core.experiments.experiments import Experiment
+from benchmarks.core.logging import basic_log_parser, LogEntry, LogSplitter
 from benchmarks.deluge.config import DelugeExperimentConfig
+from benchmarks.deluge.logging import DelugeTorrentDownload
 
 config_parser = ConfigParser()
 config_parser.register(DelugeExperimentConfig)
+
+log_parser = basic_log_parser()
+log_parser.register(DelugeTorrentDownload)
 
 
 def cmd_list(experiments: Dict[str, ExperimentBuilder[Experiment]], _):
@@ -34,6 +40,25 @@ def cmd_describe(args):
         return
 
     print(config_parser.experiment_types[args.type].schema_json(indent=2))
+
+
+def cmd_logs(log: Path, output: Path):
+    if not log.exists():
+        print(f'Log file {log} does not exist.')
+        sys.exit(-1)
+
+    if not output.parent.exists():
+        print(f'Folder {output.parent} does not exist.')
+        sys.exit(-1)
+
+    output.mkdir(exist_ok=True)
+
+    def output_factory(event_type: str):
+        return (output / f'{event_type}.csv').open('w', encoding='utf-8')
+
+    with (log.open('r', encoding='utf-8') as istream,
+          LogSplitter(output_factory) as splitter):
+        splitter.split(log_parser.parse(istream))
 
 
 def _parse_config(config: Path) -> Dict[str, ExperimentBuilder[Experiment]]:
@@ -81,6 +106,11 @@ def main():
                           choices=config_parser.experiment_types.keys(), nargs='?')
 
     describe.set_defaults(func=cmd_describe)
+
+    logs = commands.add_parser('logs', help='Parse logs.')
+    logs.add_argument('log', type=Path, help='Path to the log file.')
+    logs.add_argument('output_dir', type=Path, help='Path to an output folder.')
+    logs.set_defaults(func=lambda args: cmd_logs(args.log, args.output_dir))
 
     args = parser.parse_args()
 

@@ -1,9 +1,12 @@
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from typing import Optional, List, Tuple, Union
+from unittest.mock import patch
 
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.experiments.tests.utils import MockExperimentData
+from benchmarks.core.logging import LogParser, RequestEvent, RequestEventType
 from benchmarks.core.network import Node, DownloadHandle
 
 
@@ -12,17 +15,21 @@ class MockHandle:
     path: Path
     name: str
 
+    def __str__(self):
+        return self.name
+
 
 class MockNode(Node[MockHandle, str]):
 
-    def __init__(self) -> None:
+    def __init__(self, name='mock_node') -> None:
+        self._name = name
         self.seeding: Optional[Tuple[MockHandle, Path]] = None
         self.leeching: Optional[MockHandle] = None
         self.download_was_awaited = False
 
     @property
     def name(self) -> str:
-        return 'mock_node'
+        return self._name
 
     def seed(
             self,
@@ -53,7 +60,7 @@ class MockDownloadHandle(DownloadHandle):
 
 
 def mock_network(n: int) -> List[MockNode]:
-    return [MockNode() for _ in range(n)]
+    return [MockNode(f'node-{i}') for i in range(n)]
 
 
 def test_should_place_seeders():
@@ -117,3 +124,76 @@ def test_should_delete_generated_file_at_end_of_experiment():
     experiment.run()
 
     assert data.cleanup_called
+
+
+def test_should_log_requests_to_seeders_and_leechers(mock_logger):
+    logger, output = mock_logger
+    with patch('benchmarks.core.experiments.static_experiment.logger', logger):
+        network = mock_network(n=3)
+        data = MockExperimentData(meta='dataset-1', data=Path('/path/to/data'))
+        seeders = [1]
+
+        experiment = StaticDisseminationExperiment(
+            seeders=seeders,
+            network=network,
+            data=data,
+            concurrency=1,
+        )
+
+        experiment.run()
+
+    parser = LogParser()
+    parser.register(RequestEvent)
+
+    events = list(parser.parse(StringIO(output.getvalue())))
+
+    assert events == [
+        RequestEvent(
+            destination='node-1',
+            node='runner',
+            name='seed',
+            request_id='dataset-1',
+            type=RequestEventType.start,
+            timestamp=events[0].timestamp,
+        ),
+        RequestEvent(
+            destination='node-1',
+            node='runner',
+            name='seed',
+            request_id='dataset-1',
+            type=RequestEventType.end,
+            timestamp=events[1].timestamp,
+        ),
+        RequestEvent(
+            destination='node-0',
+            node='runner',
+            name='leech',
+            request_id='dataset-1',
+            type=RequestEventType.start,
+            timestamp=events[2].timestamp,
+        ),
+        RequestEvent(
+            destination='node-0',
+            node='runner',
+            name='leech',
+            request_id='dataset-1',
+            type=RequestEventType.end,
+            timestamp=events[3].timestamp,
+        ),
+        RequestEvent(
+            destination='node-2',
+            node='runner',
+            name='leech',
+            request_id='dataset-1',
+            type=RequestEventType.start,
+            timestamp=events[4].timestamp,
+        ),
+        RequestEvent(
+            destination='node-2',
+            node='runner',
+            name='leech',
+            request_id='dataset-1',
+            type=RequestEventType.end,
+            timestamp=events[5].timestamp,
+        )
+    ]

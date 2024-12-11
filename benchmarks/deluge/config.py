@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field, model_validator, HttpUrl
 from torrentool.torrent import Torrent
 from urllib3.util import parse_url
 
-from benchmarks.core.config import Host, ExperimentBuilder
-from benchmarks.core.experiments.experiments import IteratedExperiment, ExperimentEnvironment, Experiment, \
-    BoundExperiment
+from benchmarks.core.config import ExperimentBuilder
+from benchmarks.core.experiments.experiments import IteratedExperiment, ExperimentEnvironment, BoundExperiment
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
+from benchmarks.core.pydantic import Host
 from benchmarks.core.utils import sample, RandomTempData
 from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode
 from benchmarks.deluge.tracker import Tracker

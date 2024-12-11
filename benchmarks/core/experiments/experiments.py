@@ -59,7 +59,6 @@ class ExperimentEnvironment:
             sleep(self.polling_interval)
 
             if (timeout != 0) and (time() - start_time > timeout):
-                print("timeout")
                 logger.info(f'Some components timed out: {self._component_names(not_ready)}')
                 return False
 
