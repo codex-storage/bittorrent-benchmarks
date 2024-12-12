@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Dict
@@ -7,7 +8,7 @@ from pydantic_core import ValidationError
 
 from benchmarks.core.config import ConfigParser, ExperimentBuilder
 from benchmarks.core.experiments.experiments import Experiment
-from benchmarks.core.logging import basic_log_parser, LogSplitter
+from benchmarks.core.logging import basic_log_parser, LogSplitter, LogEntry
 from benchmarks.deluge.config import DelugeExperimentConfig
 from benchmarks.deluge.logging import DelugeTorrentDownload
 
@@ -16,6 +17,11 @@ config_parser.register(DelugeExperimentConfig)
 
 log_parser = basic_log_parser()
 log_parser.register(DelugeTorrentDownload)
+
+DECLogEntry = LogEntry.adapt(DelugeExperimentConfig)
+log_parser.register(DECLogEntry)
+
+logger = logging.getLogger(__name__)
 
 
 def cmd_list(experiments: Dict[str, ExperimentBuilder[Experiment]], _):
@@ -28,7 +34,10 @@ def cmd_run(experiments: Dict[str, ExperimentBuilder[Experiment]], args):
     if args.experiment not in experiments:
         print(f'Experiment {args.experiment} not found.')
         sys.exit(-1)
-    experiments[args.experiment].build().run()
+
+    experiment = experiments[args.experiment]
+    logger.info(DECLogEntry.adapt_instance(experiment))
+    experiment.build().run()
 
 
 def cmd_describe(args):

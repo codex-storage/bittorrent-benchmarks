@@ -1,10 +1,11 @@
 import datetime
 import json
 import logging
+from abc import ABC, abstractmethod
 from csv import DictWriter
 from enum import Enum
 from json import JSONDecodeError
-from typing import Type, TextIO, Iterable, Callable, Dict, Tuple
+from typing import Type, TextIO, Iterable, Callable, Dict, Tuple, cast, Any
 
 from pydantic import ValidationError, computed_field, Field
 
@@ -16,21 +17,74 @@ logger = logging.getLogger(__name__)
 
 
 class LogEntry(SnakeCaseModel):
+    """
+    Base class for log entries. Built so that structured logs are easy to produce with the standard logging module;
+    e.g.:
+
+    >> logging.getLogger(__name__)
+    >>
+    >> class DownloadEvent(LogEntry):
+    >>     file: str
+    >>     timestamp: datetime.datetime
+    >>     node: str
+    >>
+    >> logger.info(DownloadEvent(file='some_file.csv', timestamp=datetime.datetime.now(), node='node1'))
+    """
+
     def __str__(self):
         return f"{MARKER}{self.model_dump_json()}"
 
-    @computed_field # type: ignore
+    @computed_field  # type: ignore
     @property
     def entry_type(self) -> str:
         return self.alias()
 
+    @classmethod
+    def adapt(cls, model: Type[SnakeCaseModel]) -> Type['AdaptedLogEntry']:
+        """Adapts an existing Pydantic model to a LogEntry. This is useful for when you have a model
+        that you want to log and later recover from logs using :class:`LogParser` or :class:`LogSplitter`."""
+
+        def adapt_instance(cls, data: SnakeCaseModel):
+            return cls.model_validate(data.model_dump())
+
+        def recover_instance(self):
+            return model.model_validate(self.model_dump())
+
+        adapted = type(
+            f'{model.__name__}LogEntry',
+            (LogEntry,),
+            {
+                '__annotations__': model.__annotations__,
+                'adapt_instance': classmethod(adapt_instance),
+                'recover_instance': recover_instance,
+            }
+        )
+
+        return cast(Type[AdaptedLogEntry], adapted)
+
+
+class AdaptedLogEntry(LogEntry, ABC):
+
+    @classmethod
+    @abstractmethod
+    def adapt_instance(cls, data: SnakeCaseModel) -> 'AdaptedLogEntry':
+        pass
+
+    @abstractmethod
+    def recover_instance(self) -> SnakeCaseModel:
+        pass
 
 class LogParser:
+    """:class:`LogParser` will pick up log entries from a stream and parse them into :class:`LogEntry` instances.
+    It works by trying to find a special marker (>>>) in the log line, and then parsing the JSON that follows it.
+    This allows us to flexibly overlay structured logs on top of existing logging frameworks without having to
+    aggressively modify them."""
+
     def __init__(self):
         self.entry_types = {}
         self.warn_counts = 10
 
-    def register(self, entry_type: Type[SnakeCaseModel]):
+    def register(self, entry_type: Type[LogEntry]):
         self.entry_types[entry_type.alias()] = entry_type
 
     def parse(self, log: TextIO) -> Iterable[LogEntry]:
@@ -60,29 +114,55 @@ class LogParser:
                     logger.warning("Too many errors: suppressing further schema warnings.")
 
 
+class LogSplitterFormats(Enum):
+    jsonl = 'jsonl'
+    csv = 'csv'
+
+
 class LogSplitter:
+    """:class:`LogSplitter` will split parsed logs into different files based on the entry type.
+    The output format can be set for each entry type."""
+
     def __init__(self, output_factory=Callable[[str], TextIO], output_entry_type=False) -> None:
         self.output_factory = output_factory
-        self.dump = (
-            (lambda model: model.model_dump())
-            if output_entry_type
-            else (lambda model: model.model_dump(exclude={'entry_type'}))
-        )
+        self.outputs: Dict[str, Tuple[Callable[[LogEntry], None], TextIO]] = {}
+        self.formats: Dict[str, LogSplitterFormats] = {}
+        self.exclude = {'entry_type'} if not output_entry_type else set()
 
-        self.outputs: Dict[str, Tuple[DictWriter, TextIO]] = {}
+    def set_format(self, entry_type: Type[LogEntry], output_format: LogSplitterFormats):
+        self.formats[entry_type.alias()] = output_format
 
     def split(self, log: Iterable[LogEntry]):
         for entry in log:
-            writer, _ = self.outputs.get(entry.entry_type, (None, None))
-            entry_dict = self.dump(entry)
+            write, _ = self.outputs.get(entry.entry_type, (None, None))
 
-            if writer is None:
-                output = self.output_factory(entry.entry_type)
-                writer = DictWriter(output, fieldnames=entry_dict.keys())
-                self.outputs[entry.entry_type] = writer, output
-                writer.writeheader()
+            if write is None:
+                output_stream = self.output_factory(entry.entry_type)
+                output_format = self.formats.get(entry.entry_type, LogSplitterFormats.csv)
+                write = self._formatting_writer(entry, output_stream, output_format)
+                self.outputs[entry.entry_type] = write, output_stream
 
-            writer.writerow(entry_dict)
+            write(entry)
+
+    def _formatting_writer(
+            self,
+            entry: LogEntry,
+            output_stream: TextIO,
+            output_format: LogSplitterFormats
+    ) -> Callable[[LogEntry], None]:
+        if output_format == LogSplitterFormats.csv:
+            writer = DictWriter(output_stream, fieldnames=entry.model_dump(exclude=self.exclude).keys())
+            writer.writeheader()
+            return lambda x: writer.writerow(x.model_dump(exclude=self.exclude))
+
+        elif output_format == LogSplitterFormats.jsonl:
+            def write_jsonl(x: LogEntry):
+                output_stream.write(x.model_dump_json(exclude=self.exclude) + '\n')
+
+            return write_jsonl
+
+        else:
+            raise ValueError(f"Unknown output format: {output_format}")
 
     def __enter__(self):
         return self
