@@ -147,7 +147,7 @@ def test_should_split_intertwined_logs_by_entry_type():
     outputs = defaultdict(StringIO)
 
     splitter = LogSplitter(
-        output_factory=lambda entry_type: outputs[entry_type],
+        output_factory=lambda entry_type, _: outputs[entry_type],
     )
 
     splitter.split(parser.parse(log))
@@ -202,7 +202,7 @@ def test_should_store_split_logs_as_jsonl_for_requested_types():
     outputs = defaultdict(StringIO)
 
     splitter = LogSplitter(
-        output_factory=lambda entry_type: outputs[entry_type],
+        output_factory=lambda entry_type, _: outputs[entry_type],
     )
 
     splitter.set_format(SimpleEvent, LogSplitterFormats.jsonl)

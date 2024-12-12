@@ -74,6 +74,7 @@ class AdaptedLogEntry(LogEntry, ABC):
     def recover_instance(self) -> SnakeCaseModel:
         pass
 
+
 class LogParser:
     """:class:`LogParser` will pick up log entries from a stream and parse them into :class:`LogEntry` instances.
     It works by trying to find a special marker (>>>) in the log line, and then parsing the JSON that follows it.
@@ -123,7 +124,8 @@ class LogSplitter:
     """:class:`LogSplitter` will split parsed logs into different files based on the entry type.
     The output format can be set for each entry type."""
 
-    def __init__(self, output_factory=Callable[[str], TextIO], output_entry_type=False) -> None:
+    def __init__(self, output_factory=Callable[[str, LogSplitterFormats], TextIO],
+                 output_entry_type=False) -> None:
         self.output_factory = output_factory
         self.outputs: Dict[str, Tuple[Callable[[LogEntry], None], TextIO]] = {}
         self.formats: Dict[str, LogSplitterFormats] = {}
@@ -137,8 +139,9 @@ class LogSplitter:
             write, _ = self.outputs.get(entry.entry_type, (None, None))
 
             if write is None:
-                output_stream = self.output_factory(entry.entry_type)
                 output_format = self.formats.get(entry.entry_type, LogSplitterFormats.csv)
+                output_stream = self.output_factory(entry.entry_type, output_format)
+
                 write = self._formatting_writer(entry, output_stream, output_format)
                 self.outputs[entry.entry_type] = write, output_stream
 

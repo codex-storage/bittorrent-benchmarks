@@ -8,7 +8,7 @@ from pydantic_core import ValidationError
 
 from benchmarks.core.config import ConfigParser, ExperimentBuilder
 from benchmarks.core.experiments.experiments import Experiment
-from benchmarks.core.logging import basic_log_parser, LogSplitter, LogEntry
+from benchmarks.core.logging import basic_log_parser, LogSplitter, LogEntry, LogSplitterFormats
 from benchmarks.deluge.config import DelugeExperimentConfig
 from benchmarks.deluge.logging import DelugeTorrentDownload
 
@@ -61,11 +61,12 @@ def cmd_logs(log: Path, output: Path):
 
     output.mkdir(exist_ok=True)
 
-    def output_factory(event_type: str):
-        return (output / f'{event_type}.csv').open('w', encoding='utf-8')
+    def output_factory(event_type: str, format: LogSplitterFormats):
+        return (output / f'{event_type}.{format.value}').open('w', encoding='utf-8')
 
     with (log.open('r', encoding='utf-8') as istream,
           LogSplitter(output_factory) as splitter):
+        splitter.set_format(DECLogEntry, LogSplitterFormats.jsonl)
         splitter.split(log_parser.parse(istream))
 
 
