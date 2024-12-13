@@ -1,0 +1,193 @@
+---
+title: "Deluge Download Times -- Exploratory Analysis"
+output: 
+  bookdown::html_notebook2:
+    number_sections: TRUE
+    toc: TRUE
+---
+
+$$
+\newcommand{addtorrent}{\text{AddTorrent}}
+$$
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(jsonlite)
+```
+
+
+## Experiment Parameters
+
+```{r}
+EXPERIMENT <- '10-network-4-seeders-4-seeder_sets-100MB-filesize'
+experiment_file <- function(filename) file.path(EXPERIMENT, 'parsed', filename)
+```
+
+The torrent piece size is set at torrent creation time by [torrentool](https://github.com/idlesign/torrentool/blob/5f37d6dcc304758bae46d01c63e5be0f0a348bfc/torrentool/torrent.py#L354).
+```{r}
+PIECE_SIZE <- 262144
+``` 
+
+```{r}
+experiment_meta <- jsonlite::read_json(experiment_file('deluge_experiment_config_log_entry.jsonl'))
+```
+
+```{r results='asis'}
+n_pieces <- experiment_meta$file_size / PIECE_SIZE
+cat(paste0("File has ", rlang::as_bytes(experiment_meta$file_size), " and ", n_pieces, " pieces (blocks)."))
+```
+
+```{r results='asis'}
+n_leechers <- length(experiment_meta$nodes$nodes) - experiment_meta$seeders
+cat(paste0("Network has ", length(experiment_meta$nodes$nodes), " nodes with ", experiment_meta$seeders, " seeders and ", n_leechers, " leechers."))
+
+```
+
+## Logs
+
+Read and extract run id and seed set from the dataset name.
+
+```{r}
+downloads <- read_csv(
+  experiment_file('deluge_torrent_download.csv'), 
+  show_col_types = FALSE,
+) |>
+  mutate(
+    temp = str_remove(torrent_name, '^dataset-'),
+    seed_set = as.numeric(str_extract(temp, '^\\d+')),
+    run = as.numeric(str_extract(temp, '\\d+$'))
+  ) |>
+  rename(piece = value) |>
+  select(-temp, -name)
+```
+
+Since what we get are piece indices and they might be out of order, we need to actually count how many pieces were downloaded by the node up until a given instant:
+
+```{r}
+downloads <- downloads |> 
+  group_by(node, seed_set, run) |>
+  arrange(timestamp) |>
+  mutate(
+    piece_count = seq_along(timestamp)
+  ) |>
+  ungroup() |>
+  mutate(completed = piece_count / n_pieces)
+``` 
+
+We can have a brief look at the data to see that it makes sense.
+
+```{r fig.width=10, fig.height=10}
+ggplot(downloads |> 
+         filter(seed_set < 3) |> 
+         group_by(seed_set, run) |>
+         mutate(timestamp = as.numeric(timestamp - min(timestamp))) |>
+         ungroup()) +
+  geom_line(aes(x = timestamp, y = completed, col = node), lwd=0.7) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  facet_grid(run ~ seed_set, labeller = labeller(
+    run = as_labeller(function(x) paste0("run: ", x)),
+    seed_set = as_labeller(function(x) paste0("seed set: ", x)))) +
+  xlab('elapsed time (seconds)') +
+  ylab('download completion (%)') + 
+  theme_bw(base_size = 15)
+```
+
+As we can see, the data seems to make sense. To the left we see the "download times" for seeders, which is almost instantaneous, followed by the downloads for the leechers. We see some variability across experiments, with some nodes seemingly struggling to complete their downloads at times. 
+
+## Results
+
+### Sanity Checks
+
+Have any nodes failed to download the entire file?
+
+```{r}
+downloads |> 
+  group_by(node, seed_set, run) |> 
+  count() |> 
+  ungroup() |> 
+  filter(n != n_pieces)
+```
+
+Do we have as many runs and seed sets as we expect?
+
+```{r}
+downloads |> 
+  select(seed_set, node, run) |>
+  distinct() |>
+  group_by(seed_set, node) |>
+  count() |>
+  filter(n != experiment_meta$repetitions)
+```
+
+
+### Computing Download Times
+
+We define the _download time_ for a Deluge node $d$ as the time elapsed from the client's response to an $\addtorrent$ request and the time at which the client reports having received the last piece of the downloaded file. Since seeders are already in possession of the file by construction, we only measure download times at _leechers_.
+
+```{r}
+add_torrent_requests <- read_csv(
+  experiment_file('request_event.csv'), show_col_types = FALSE)
+```
+
+```{r}
+download_start <- add_torrent_requests |> 
+  select(-request_id) |>
+  filter(name == 'leech', type == 'RequestEventType.end') |> 
+   mutate(
+    # We didn't log those on the runner side so I have to reconstruct them.
+    run = rep(rep(
+      1:experiment_meta$repetitions - 1, 
+      each = n_leechers), times=experiment_meta$seeder_sets),
+    seed_set = rep(
+      1:experiment_meta$seeder_sets - 1, 
+      each = n_leechers * experiment_meta$repetitions),
+  ) |> 
+  transmute(node = destination, run, seed_set, seed_request_time = timestamp)
+```
+
+```{r}
+download_times <- downloads |> 
+  left_join(download_start, by = c('node', 'run', 'seed_set')) |>
+  mutate(
+    elapsed_download_time = as.numeric(timestamp - seed_request_time)
+  ) |> 
+  group_by(node, run, seed_set) |> 
+  mutate(lookup_time = as.numeric(min(timestamp) - seed_request_time)) |>
+  ungroup()
+```
+
+If we did this right, the elapsed download time can never be negative, and neither can the lookup time.
+
+```{r}
+download_times |> filter(elapsed_download_time < 0 | lookup_time < 0)
+```
+
+We can now actually compute statistics on the download times. We start by computing them by seed sets.
+
+```{r}
+download_time_stats <- download_times |> 
+  filter(!is.na(elapsed_download_time)) |>
+  group_by(piece_count, completed) |>
+  summarise(
+    mean = mean(elapsed_download_time),
+    median = median(elapsed_download_time),
+    max = max(elapsed_download_time),
+    min = min(elapsed_download_time),
+    p90 = quantile(elapsed_download_time, p = 0.9),
+    p10 = quantile(elapsed_download_time, p = 0.1),
+    .groups = 'drop'
+  )
+```
+
+
+```{r}
+ggplot(download_time_stats) +
+  geom_ribbon(aes(xmin = p10, xmax = p90, y = completed), 
+              fill = scales::alpha('blue', 0.5), col = 'lightgray') + 
+  geom_line(aes(x = median, y = completed)) +
+  theme_minimal() +
+  ylab("completion") +
+  xlab("time (seconds)") +
+  ggtitle(paste0('download time (Deluge, ',rlang::as_bytes(experiment_meta$file_size),' file)'))
+```
+
