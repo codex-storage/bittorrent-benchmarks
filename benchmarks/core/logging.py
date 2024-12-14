@@ -11,7 +11,7 @@ from pydantic import ValidationError, computed_field, Field
 
 from benchmarks.core.pydantic import SnakeCaseModel
 
-MARKER = '>>'
+MARKER = ">>"
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class LogEntry(SnakeCaseModel):
         return self.alias()
 
     @classmethod
-    def adapt(cls, model: Type[SnakeCaseModel]) -> Type['AdaptedLogEntry']:
+    def adapt(cls, model: Type[SnakeCaseModel]) -> Type["AdaptedLogEntry"]:
         """Adapts an existing Pydantic model to a LogEntry. This is useful for when you have a model
         that you want to log and later recover from logs using :class:`LogParser` or :class:`LogSplitter`."""
 
@@ -51,23 +51,22 @@ class LogEntry(SnakeCaseModel):
             return model.model_validate(self.model_dump())
 
         adapted = type(
-            f'{model.__name__}LogEntry',
+            f"{model.__name__}LogEntry",
             (LogEntry,),
             {
-                '__annotations__': model.__annotations__,
-                'adapt_instance': classmethod(adapt_instance),
-                'recover_instance': recover_instance,
-            }
+                "__annotations__": model.__annotations__,
+                "adapt_instance": classmethod(adapt_instance),
+                "recover_instance": recover_instance,
+            },
         )
 
         return cast(Type[AdaptedLogEntry], adapted)
 
 
 class AdaptedLogEntry(LogEntry, ABC):
-
     @classmethod
     @abstractmethod
-    def adapt_instance(cls, data: SnakeCaseModel) -> 'AdaptedLogEntry':
+    def adapt_instance(cls, data: SnakeCaseModel) -> "AdaptedLogEntry":
         pass
 
     @abstractmethod
@@ -95,11 +94,11 @@ class LogParser:
             if index == -1:
                 continue
 
-            type_tag = ''  # just to calm down mypy
+            type_tag = ""  # just to calm down mypy
             try:
                 # Should probably test this against a regex for the type tag to see which is faster.
-                json_line = json.loads(line[index + marker_len:])
-                type_tag = json_line.get('entry_type')
+                json_line = json.loads(line[index + marker_len :])
+                type_tag = json_line.get("entry_type")
                 if not type_tag or (type_tag not in self.entry_types):
                     continue
                 yield self.entry_types[type_tag].model_validate(json_line)
@@ -110,26 +109,33 @@ class LogParser:
                 # that we know, then we should probably be able to parse it.
                 self.warn_counts -= 1  # avoid flooding everything with warnings
                 if self.warn_counts > 0:
-                    logger.warning(f"Schema failed for line with known type tag {type_tag}: {err}")
+                    logger.warning(
+                        f"Schema failed for line with known type tag {type_tag}: {err}"
+                    )
                 elif self.warn_counts == 0:
-                    logger.warning("Too many errors: suppressing further schema warnings.")
+                    logger.warning(
+                        "Too many errors: suppressing further schema warnings."
+                    )
 
 
 class LogSplitterFormats(Enum):
-    jsonl = 'jsonl'
-    csv = 'csv'
+    jsonl = "jsonl"
+    csv = "csv"
 
 
 class LogSplitter:
     """:class:`LogSplitter` will split parsed logs into different files based on the entry type.
     The output format can be set for each entry type."""
 
-    def __init__(self, output_factory=Callable[[str, LogSplitterFormats], TextIO],
-                 output_entry_type=False) -> None:
+    def __init__(
+        self,
+        output_factory=Callable[[str, LogSplitterFormats], TextIO],
+        output_entry_type=False,
+    ) -> None:
         self.output_factory = output_factory
         self.outputs: Dict[str, Tuple[Callable[[LogEntry], None], TextIO]] = {}
         self.formats: Dict[str, LogSplitterFormats] = {}
-        self.exclude = {'entry_type'} if not output_entry_type else set()
+        self.exclude = {"entry_type"} if not output_entry_type else set()
 
     def set_format(self, entry_type: Type[LogEntry], output_format: LogSplitterFormats):
         self.formats[entry_type.alias()] = output_format
@@ -139,7 +145,9 @@ class LogSplitter:
             write, _ = self.outputs.get(entry.entry_type, (None, None))
 
             if write is None:
-                output_format = self.formats.get(entry.entry_type, LogSplitterFormats.csv)
+                output_format = self.formats.get(
+                    entry.entry_type, LogSplitterFormats.csv
+                )
                 output_stream = self.output_factory(entry.entry_type, output_format)
 
                 write = self._formatting_writer(entry, output_stream, output_format)
@@ -148,19 +156,19 @@ class LogSplitter:
             write(entry)
 
     def _formatting_writer(
-            self,
-            entry: LogEntry,
-            output_stream: TextIO,
-            output_format: LogSplitterFormats
+        self, entry: LogEntry, output_stream: TextIO, output_format: LogSplitterFormats
     ) -> Callable[[LogEntry], None]:
         if output_format == LogSplitterFormats.csv:
-            writer = DictWriter(output_stream, fieldnames=entry.model_dump(exclude=self.exclude).keys())
+            writer = DictWriter(
+                output_stream, fieldnames=entry.model_dump(exclude=self.exclude).keys()
+            )
             writer.writeheader()
             return lambda x: writer.writerow(x.model_dump(exclude=self.exclude))
 
         elif output_format == LogSplitterFormats.jsonl:
+
             def write_jsonl(x: LogEntry):
-                output_stream.write(x.model_dump_json(exclude=self.exclude) + '\n')
+                output_stream.write(x.model_dump_json(exclude=self.exclude) + "\n")
 
             return write_jsonl
 
@@ -181,7 +189,9 @@ type NodeId = str
 class Event(LogEntry):
     node: NodeId
     name: str  # XXX this ends up being redundant for custom event schemas... need to think of a better solution.
-    timestamp: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
+    timestamp: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+    )
 
 
 class Metric(Event):
@@ -189,8 +199,8 @@ class Metric(Event):
 
 
 class RequestEventType(Enum):
-    start = 'start'
-    end = 'end'
+    start = "start"
+    end = "end"
 
 
 class RequestEvent(Event):

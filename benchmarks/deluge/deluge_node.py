@@ -23,33 +23,33 @@ logger = logging.getLogger(__name__)
 class DelugeMeta:
     """:class:`DelugeMeta` represents the initial metadata required so that a :class:`DelugeNode`
     can introduce a file into the network, becoming its initial seeder."""
+
     name: str
     announce_url: Url
 
 
 class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
-
     def __init__(
-            self,
-            name: str,
-            volume: Path,
-            daemon_port: int,
-            daemon_address: str = 'localhost',
-            daemon_username: str = 'user',
-            daemon_password: str = 'password',
+        self,
+        name: str,
+        volume: Path,
+        daemon_port: int,
+        daemon_address: str = "localhost",
+        daemon_username: str = "user",
+        daemon_password: str = "password",
     ) -> None:
         if not pathvalidate.is_valid_filename(name):
             raise ValueError(f'Node name must be a valid filename (bad name: "{name}")')
 
         self._name = name
-        self.downloads_root = volume / name / 'downloads'
+        self.downloads_root = volume / name / "downloads"
 
         self._rpc: Optional[DelugeRPCClient] = None
         self.daemon_args = {
-            'host': daemon_address,
-            'port': daemon_port,
-            'username': daemon_username,
-            'password': daemon_password,
+            "host": daemon_address,
+            "port": daemon_port,
+            "username": daemon_username,
+            "password": daemon_password,
         }
 
         super().__init__(self.downloads_root)
@@ -65,7 +65,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
         if torrent_ids:
             errors = self.rpc.core.remove_torrents(torrent_ids, remove_data=True)
             if errors:
-                raise Exception(f'There were errors removing torrents: {errors}')
+                raise Exception(f"There were errors removing torrents: {errors}")
 
         # Wipe download folder to get rid of files that got uploaded but failed
         # seeding or deletes.
@@ -80,9 +80,9 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
         self._init_folders()
 
     def seed(
-            self,
-            file: Path,
-            handle: Union[DelugeMeta, Torrent],
+        self,
+        file: Path,
+        handle: Union[DelugeMeta, Torrent],
     ) -> Torrent:
         data_root = self.downloads_root / handle.name
         data_root.mkdir(parents=True, exist_ok=False)
@@ -97,7 +97,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             torrent = handle
 
         self.rpc.core.add_torrent_file(
-            filename=f'{handle.name}.torrent',
+            filename=f"{handle.name}.torrent",
             filedump=self._b64dump(torrent),
             options=dict(),
         )
@@ -106,7 +106,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
     def leech(self, handle: Torrent) -> DownloadHandle:
         self.rpc.core.add_torrent_file(
-            filename=f'{handle.name}.torrent',
+            filename=f"{handle.name}.torrent",
             filedump=self._b64dump(handle),
             options=dict(),
         )
@@ -117,7 +117,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
         )
 
     def torrent_info(self, name: str) -> List[Dict[bytes, Any]]:
-        return list(self.rpc.core.get_torrents_status({'name': name}, []).values())
+        return list(self.rpc.core.get_torrents_status({"name": name}, []).values())
 
     @property
     def rpc(self) -> DelugeRPCClient:
@@ -152,7 +152,6 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
 
 class DelugeDownloadHandle(DownloadHandle):
-
     def __init__(self, torrent: Torrent, node: DelugeNode) -> None:
         self.node = node
         self.torrent = torrent
@@ -161,11 +160,13 @@ class DelugeDownloadHandle(DownloadHandle):
         name = self.torrent.name
 
         def _predicate():
-            response = self.node.rpc.core.get_torrents_status({'name': name}, [])
+            response = self.node.rpc.core.get_torrents_status({"name": name}, [])
             if len(response) > 1:
-                logger.warning(f'Client has multiple torrents matching name {name}. Returning the first one.')
+                logger.warning(
+                    f"Client has multiple torrents matching name {name}. Returning the first one."
+                )
 
             status = list(response.values())[0]
-            return status[b'is_seed']
+            return status[b"is_seed"]
 
         return await_predicate(_predicate, timeout=timeout)

@@ -16,7 +16,7 @@ from benchmarks.core.network import TInitialMetadata
 @dataclass
 class ExperimentData(Generic[TInitialMetadata], AbstractContextManager, ABC):
     """:class:`ExperimentData` provides a context for providing and wiping out
-    data and metadata objects, usually within the scope of an experiment. """
+    data and metadata objects, usually within the scope of an experiment."""
 
     @abstractmethod
     def __enter__(self) -> Tuple[TInitialMetadata, Path]:
@@ -30,7 +30,6 @@ class ExperimentData(Generic[TInitialMetadata], AbstractContextManager, ABC):
 
 
 class RandomTempData(ExperimentData[TInitialMetadata]):
-
     def __init__(self, size: int, meta: TInitialMetadata):
         self.meta = meta
         self.size = size
@@ -38,9 +37,9 @@ class RandomTempData(ExperimentData[TInitialMetadata]):
 
     def __enter__(self) -> Tuple[TInitialMetadata, Path]:
         if self._context is not None:
-            raise Exception('Cannot enter context twice')
+            raise Exception("Cannot enter context twice")
 
-        self._context = temp_random_file(self.size, 'data.bin')
+        self._context = temp_random_file(self.size, "data.bin")
 
         return self.meta, self._context.__enter__()
 
@@ -49,18 +48,20 @@ class RandomTempData(ExperimentData[TInitialMetadata]):
 
 
 @contextmanager
-def temp_random_file(size: int, name: str = 'data.bin'):
+def temp_random_file(size: int, name: str = "data.bin"):
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = Path(temp_dir_str)
         random_file = temp_dir / name
         random_bytes = os.urandom(size)
-        with random_file.open('wb') as outfile:
+        with random_file.open("wb") as outfile:
             outfile.write(random_bytes)
 
         yield random_file
 
 
-def await_predicate(predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0) -> bool:
+def await_predicate(
+    predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
+) -> bool:
     current = time()
     while (timeout == 0) or ((time() - current) <= timeout):
         if predicate():

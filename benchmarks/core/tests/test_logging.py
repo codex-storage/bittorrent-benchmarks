@@ -16,17 +16,16 @@ class MetricsEvent(LogEntry):
 
 def test_log_entry_should_serialize_to_expected_format():
     event = MetricsEvent(
-        name='download',
-        timestamp=datetime.datetime(
-            2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-        ),
+        name="download",
+        timestamp=datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
         value=0.245,
-        node='node1',
+        node="node1",
     )
 
-    assert str(
-        event) == ('>>{"name":"download","timestamp":"2021-01-01T00:00:00Z","value":0.245,'
-                   '"node":"node1","entry_type":"metrics_event"}')
+    assert str(event) == (
+        '>>{"name":"download","timestamp":"2021-01-01T00:00:00Z","value":0.245,'
+        '"node":"node1","entry_type":"metrics_event"}'
+    )
 
 
 def test_should_parse_logs():
@@ -40,20 +39,20 @@ def test_should_parse_logs():
 
     assert list(parser.parse(log)) == [
         MetricsEvent(
-            name='download',
+            name="download",
             timestamp=datetime.datetime(
                 2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
             ),
             value=0.245,
-            node='node1',
+            node="node1",
         ),
         MetricsEvent(
-            name='download',
+            name="download",
             timestamp=datetime.datetime(
                 2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
             ),
             value=0.246,
-            node='node2',
+            node="node2",
         ),
     ]
 
@@ -72,20 +71,20 @@ def test_should_skip_unparseable_lines():
 
     assert list(parser.parse(log)) == [
         MetricsEvent(
-            name='download',
+            name="download",
             timestamp=datetime.datetime(
                 2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
             ),
             value=0.246,
-            node='node2',
+            node="node2",
         ),
         MetricsEvent(
-            name='download',
+            name="download",
             timestamp=datetime.datetime(
                 2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
             ),
             value=0.246,
-            node='node3',
+            node="node3",
         ),
     ]
 
@@ -99,16 +98,16 @@ def test_should_recover_logged_events_at_parsing(mock_logger):
     logger, output = mock_logger
 
     events = [
-        StateChangeEvent(old='stopped', new='started'),
+        StateChangeEvent(old="stopped", new="started"),
         MetricsEvent(
-            name='download',
+            name="download",
             timestamp=datetime.datetime(
                 2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
             ),
             value=0.246,
-            node='node3',
+            node="node3",
         ),
-        StateChangeEvent(old='started', new='stopped'),
+        StateChangeEvent(old="started", new="stopped"),
     ]
 
     for event in events:
@@ -152,21 +151,27 @@ def test_should_split_intertwined_logs_by_entry_type():
 
     splitter.split(parser.parse(log))
 
-    assert compact(outputs['metrics_event'].getvalue()) == (compact("""
+    assert compact(outputs["metrics_event"].getvalue()) == (
+        compact("""
         name,timestamp,value,node
         download,2021-01-01 00:00:00+00:00,0.246,node2
-    """))
+    """)
+    )
 
-    assert compact(outputs['simple_event'].getvalue()) == (compact("""
+    assert compact(outputs["simple_event"].getvalue()) == (
+        compact("""
         name,timestamp
         start,2021-01-01 00:00:00+00:00
         start2,2021-01-01 00:00:00+00:00
-    """))
+    """)
+    )
 
-    assert compact(outputs['person'].getvalue()) == (compact("""
+    assert compact(outputs["person"].getvalue()) == (
+        compact("""
         name,surname
         John,Doe
-    """))
+    """)
+    )
 
 
 class SomeConfig(SnakeCaseModel):
@@ -176,16 +181,20 @@ class SomeConfig(SnakeCaseModel):
 def test_should_adapt_existing_model_types_to_logging_types():
     SomeConfigLogEntry = LogEntry.adapt(SomeConfig)
 
-    assert (str(SomeConfigLogEntry(some_field='value')) ==
-            '>>{"some_field":"value","entry_type":"some_config_log_entry"}')
+    assert (
+        str(SomeConfigLogEntry(some_field="value"))
+        == '>>{"some_field":"value","entry_type":"some_config_log_entry"}'
+    )
 
 
 def test_should_adapt_existing_model_instances_to_logging_instances():
     SomeConfigLogEntry = LogEntry.adapt(SomeConfig)
-    instance = SomeConfig(some_field='value')
+    instance = SomeConfig(some_field="value")
 
-    assert (str(SomeConfigLogEntry.adapt_instance(instance)) ==
-            '>>{"some_field":"value","entry_type":"some_config_log_entry"}')
+    assert (
+        str(SomeConfigLogEntry.adapt_instance(instance))
+        == '>>{"some_field":"value","entry_type":"some_config_log_entry"}'
+    )
 
 
 def test_should_store_split_logs_as_jsonl_for_requested_types():
@@ -209,12 +218,16 @@ def test_should_store_split_logs_as_jsonl_for_requested_types():
 
     splitter.split(parser.parse(log))
 
-    assert compact(outputs['metrics_event'].getvalue()) == (compact("""
+    assert compact(outputs["metrics_event"].getvalue()) == (
+        compact("""
         name,timestamp,value,node
         download,2021-01-01 00:00:00+00:00,0.246,node2
-    """))
+    """)
+    )
 
-    assert compact(outputs['simple_event'].getvalue()) == (compact("""
+    assert compact(outputs["simple_event"].getvalue()) == (
+        compact("""
         {"name":"start","timestamp":"2021-01-01T00:00:00Z"}
         {"name":"start2","timestamp":"2021-01-01T00:00:00Z"}
-    """))
+    """)
+    )

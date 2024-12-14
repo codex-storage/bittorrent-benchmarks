@@ -5,21 +5,19 @@ from pydantic import BaseModel, AfterValidator, IPvAnyAddress
 
 
 def drop_config_suffix(name: str) -> str:
-    return name[:-6] if name.endswith('Config') else name
+    return name[:-6] if name.endswith("Config") else name
 
 
 def to_snake_case(name: str) -> str:
-    return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
 
 
 class SnakeCaseModel(BaseModel):
-    model_config = {
-        'alias_generator': lambda x: to_snake_case(drop_config_suffix(x))
-    }
+    model_config = {"alias_generator": lambda x: to_snake_case(drop_config_suffix(x))}
 
     @classmethod
     def alias(cls):
-        return cls.model_config['alias_generator'](cls.__name__)
+        return cls.model_config["alias_generator"](cls.__name__)
 
 
 # This is a simple regex which is not by any means exhaustive but should cover gross syntax errors.

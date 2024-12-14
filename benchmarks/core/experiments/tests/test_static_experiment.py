@@ -20,8 +20,7 @@ class MockHandle:
 
 
 class MockNode(Node[MockHandle, str]):
-
-    def __init__(self, name='mock_node') -> None:
+    def __init__(self, name="mock_node") -> None:
         self._name = name
         self.seeding: Optional[Tuple[MockHandle, Path]] = None
         self.leeching: Optional[MockHandle] = None
@@ -31,12 +30,7 @@ class MockNode(Node[MockHandle, str]):
     def name(self) -> str:
         return self._name
 
-    def seed(
-            self,
-            file: Path,
-            handle: Union[str, MockHandle]
-    ) -> MockHandle:
-
+    def seed(self, file: Path, handle: Union[str, MockHandle]) -> MockHandle:
         if isinstance(handle, MockHandle):
             self.seeding = (handle, file)
         else:
@@ -45,7 +39,6 @@ class MockNode(Node[MockHandle, str]):
         return self.seeding[0]
 
     def leech(self, handle: MockHandle):
-
         self.leeching = handle
         return MockDownloadHandle(self)
 
@@ -60,12 +53,12 @@ class MockDownloadHandle(DownloadHandle):
 
 
 def mock_network(n: int) -> List[MockNode]:
-    return [MockNode(f'node-{i}') for i in range(n)]
+    return [MockNode(f"node-{i}") for i in range(n)]
 
 
 def test_should_place_seeders():
     network = mock_network(n=13)
-    data = MockExperimentData(meta='data', data=Path('/path/to/data'))
+    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
     seeders = [9, 6, 3]
 
     experiment = StaticDisseminationExperiment(
@@ -87,7 +80,7 @@ def test_should_place_seeders():
 
 def test_should_download_at_remaining_nodes():
     network = mock_network(n=13)
-    data = MockExperimentData(meta='data', data=Path('/path/to/data'))
+    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
     seeders = [9, 6, 3]
 
     experiment = StaticDisseminationExperiment(
@@ -112,7 +105,7 @@ def test_should_download_at_remaining_nodes():
 
 def test_should_delete_generated_file_at_end_of_experiment():
     network = mock_network(n=2)
-    data = MockExperimentData(meta='data', data=Path('/path/to/data'))
+    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
     seeders = [1]
 
     experiment = StaticDisseminationExperiment(
@@ -128,9 +121,9 @@ def test_should_delete_generated_file_at_end_of_experiment():
 
 def test_should_log_requests_to_seeders_and_leechers(mock_logger):
     logger, output = mock_logger
-    with patch('benchmarks.core.experiments.static_experiment.logger', logger):
+    with patch("benchmarks.core.experiments.static_experiment.logger", logger):
         network = mock_network(n=3)
-        data = MockExperimentData(meta='dataset-1', data=Path('/path/to/data'))
+        data = MockExperimentData(meta="dataset-1", data=Path("/path/to/data"))
         seeders = [1]
 
         experiment = StaticDisseminationExperiment(
@@ -149,51 +142,51 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
 
     assert events == [
         RequestEvent(
-            destination='node-1',
-            node='runner',
-            name='seed',
-            request_id='dataset-1',
+            destination="node-1",
+            node="runner",
+            name="seed",
+            request_id="dataset-1",
             type=RequestEventType.start,
             timestamp=events[0].timestamp,
         ),
         RequestEvent(
-            destination='node-1',
-            node='runner',
-            name='seed',
-            request_id='dataset-1',
+            destination="node-1",
+            node="runner",
+            name="seed",
+            request_id="dataset-1",
             type=RequestEventType.end,
             timestamp=events[1].timestamp,
         ),
         RequestEvent(
-            destination='node-0',
-            node='runner',
-            name='leech',
-            request_id='dataset-1',
+            destination="node-0",
+            node="runner",
+            name="leech",
+            request_id="dataset-1",
             type=RequestEventType.start,
             timestamp=events[2].timestamp,
         ),
         RequestEvent(
-            destination='node-0',
-            node='runner',
-            name='leech',
-            request_id='dataset-1',
+            destination="node-0",
+            node="runner",
+            name="leech",
+            request_id="dataset-1",
             type=RequestEventType.end,
             timestamp=events[3].timestamp,
         ),
         RequestEvent(
-            destination='node-2',
-            node='runner',
-            name='leech',
-            request_id='dataset-1',
+            destination="node-2",
+            node="runner",
+            name="leech",
+            request_id="dataset-1",
             type=RequestEventType.start,
             timestamp=events[4].timestamp,
         ),
         RequestEvent(
-            destination='node-2',
-            node='runner',
-            name='leech',
-            request_id='dataset-1',
+            destination="node-2",
+            node="runner",
+            name="leech",
+            request_id="dataset-1",
             type=RequestEventType.end,
             timestamp=events[5].timestamp,
-        )
+        ),
     ]

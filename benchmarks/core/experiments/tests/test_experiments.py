@@ -1,11 +1,14 @@
 from time import sleep
 from typing import List
 
-from benchmarks.core.experiments.experiments import ExperimentComponent, ExperimentEnvironment, Experiment
+from benchmarks.core.experiments.experiments import (
+    ExperimentComponent,
+    ExperimentEnvironment,
+    Experiment,
+)
 
 
 class ExternalComponent(ExperimentComponent):
-
     @property
     def readiness_timeout(self) -> float:
         return 0.1

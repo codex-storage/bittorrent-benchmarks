@@ -4,8 +4,8 @@ from pathlib import Path
 
 from typing_extensions import Generic, TypeVar, Union
 
-TNetworkHandle = TypeVar('TNetworkHandle')
-TInitialMetadata = TypeVar('TInitialMetadata')
+TNetworkHandle = TypeVar("TNetworkHandle")
+TInitialMetadata = TypeVar("TInitialMetadata")
 
 
 class DownloadHandle(ABC):
@@ -31,9 +31,9 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
 
     @abstractmethod
     def seed(
-            self,
-            file: Path,
-            handle: Union[TInitialMetadata, TNetworkHandle],
+        self,
+        file: Path,
+        handle: Union[TInitialMetadata, TNetworkHandle],
     ) -> TNetworkHandle:
         """
         Makes the current :class:`Node` a seeder for the specified file.

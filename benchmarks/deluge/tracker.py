@@ -7,7 +7,6 @@ from benchmarks.core.experiments.experiments import ExperimentComponent
 
 
 class Tracker(ExperimentComponent):
-
     def __init__(self, announce_url: Url):
         self.announce_url = announce_url
 
@@ -19,4 +18,4 @@ class Tracker(ExperimentComponent):
             return False
 
     def __str__(self) -> str:
-        return f'Tracker({self.announce_url})'
+        return f"Tracker({self.announce_url})"

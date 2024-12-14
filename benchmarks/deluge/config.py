@@ -7,7 +7,11 @@ from torrentool.torrent import Torrent
 from urllib3.util import parse_url
 
 from benchmarks.core.config import ExperimentBuilder
-from benchmarks.core.experiments.experiments import IteratedExperiment, ExperimentEnvironment, BoundExperiment
+from benchmarks.core.experiments.experiments import (
+    IteratedExperiment,
+    ExperimentEnvironment,
+    BoundExperiment,
+)
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.pydantic import Host
 from benchmarks.core.utils import sample, RandomTempData
@@ -31,7 +35,7 @@ class DelugeNodeSetConfig(BaseModel):
     first_node_index: int = 1
     nodes: List[DelugeNodeConfig] = []
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def expand_nodes(self):
         self.nodes = [
             DelugeNodeConfig(
@@ -40,29 +44,46 @@ class DelugeNodeSetConfig(BaseModel):
                 daemon_port=self.daemon_port,
                 listen_ports=self.listen_ports,
             )
-            for i in range(self.first_node_index, self.first_node_index + self.network_size)
+            for i in range(
+                self.first_node_index, self.first_node_index + self.network_size
+            )
         ]
         return self
 
 
-DelugeDisseminationExperiment = IteratedExperiment[BoundExperiment[StaticDisseminationExperiment[Torrent, DelugeMeta]]]
+DelugeDisseminationExperiment = IteratedExperiment[
+    BoundExperiment[StaticDisseminationExperiment[Torrent, DelugeMeta]]
+]
 
 
 class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
-    seeder_sets: int = Field(gt=0, default=1, description='Number of distinct seeder sets to experiment with')
-    seeders: int = Field(gt=0, description='Number of seeders per seeder set')
+    seeder_sets: int = Field(
+        gt=0, default=1, description="Number of distinct seeder sets to experiment with"
+    )
+    seeders: int = Field(gt=0, description="Number of seeders per seeder set")
 
-    repetitions: int = Field(gt=0, description='How many experiment repetitions to run for each seeder set')
-    file_size: int = Field(gt=0, description='File size, in bytes')
+    repetitions: int = Field(
+        gt=0, description="How many experiment repetitions to run for each seeder set"
+    )
+    file_size: int = Field(gt=0, description="File size, in bytes")
 
-    shared_volume_path: Path = Field(description='Path to the volume shared between clients and experiment runner')
-    tracker_announce_url: HttpUrl = Field(description='URL to the tracker announce endpoint')
+    shared_volume_path: Path = Field(
+        description="Path to the volume shared between clients and experiment runner"
+    )
+    tracker_announce_url: HttpUrl = Field(
+        description="URL to the tracker announce endpoint"
+    )
 
     nodes: List[DelugeNodeConfig] | DelugeNodeSetConfig = Field(
-        description='Configuration for the nodes that make up the network')
+        description="Configuration for the nodes that make up the network"
+    )
 
     def build(self) -> DelugeDisseminationExperiment:
-        nodes_specs = self.nodes.nodes if isinstance(self.nodes, DelugeNodeSetConfig) else self.nodes
+        nodes_specs = (
+            self.nodes.nodes
+            if isinstance(self.nodes, DelugeNodeSetConfig)
+            else self.nodes
+        )
 
         network = [
             DelugeNode(
@@ -85,12 +106,18 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
             for seeder_set in range(self.seeder_sets):
                 seeders = list(islice(sample(len(network)), self.seeders))
                 for experiment_run in range(self.repetitions):
-                    yield env.bind(StaticDisseminationExperiment(
-                        network=network,
-                        seeders=seeders,
-                        data=RandomTempData(size=self.file_size,
-                                            meta=DelugeMeta(f'dataset-{seeder_set}-{experiment_run}',
-                                                            announce_url=tracker.announce_url))
-                    ))
+                    yield env.bind(
+                        StaticDisseminationExperiment(
+                            network=network,
+                            seeders=seeders,
+                            data=RandomTempData(
+                                size=self.file_size,
+                                meta=DelugeMeta(
+                                    f"dataset-{seeder_set}-{experiment_run}",
+                                    announce_url=tracker.announce_url,
+                                ),
+                            ),
+                        )
+                    )
 
         return IteratedExperiment(repetitions())

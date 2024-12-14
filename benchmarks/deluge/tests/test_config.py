@@ -5,41 +5,45 @@ from unittest.mock import patch
 import yaml
 
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
-from benchmarks.deluge.config import DelugeNodeSetConfig, DelugeNodeConfig, DelugeExperimentConfig
+from benchmarks.deluge.config import (
+    DelugeNodeSetConfig,
+    DelugeNodeConfig,
+    DelugeExperimentConfig,
+)
 from benchmarks.deluge.deluge_node import DelugeNode
 
 
 def test_should_expand_node_sets_into_simple_nodes():
     nodeset = DelugeNodeSetConfig(
-        name='custom-{node_index}',
-        address='deluge-{node_index}.local.svc',
+        name="custom-{node_index}",
+        address="deluge-{node_index}.local.svc",
         network_size=4,
         daemon_port=6080,
-        listen_ports=[6081, 6082]
+        listen_ports=[6081, 6082],
     )
 
     assert nodeset.nodes == [
         DelugeNodeConfig(
-            name='custom-1',
-            address='deluge-1.local.svc',
+            name="custom-1",
+            address="deluge-1.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            name='custom-2',
-            address='deluge-2.local.svc',
+            name="custom-2",
+            address="deluge-2.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            name='custom-3',
-            address='deluge-3.local.svc',
+            name="custom-3",
+            address="deluge-3.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            name='custom-4',
-            address='deluge-4.local.svc',
+            name="custom-4",
+            address="deluge-4.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
@@ -48,24 +52,24 @@ def test_should_expand_node_sets_into_simple_nodes():
 
 def test_should_respect_first_node_index():
     nodeset = DelugeNodeSetConfig(
-        name='deluge-{node_index}',
-        address='deluge-{node_index}.local.svc',
+        name="deluge-{node_index}",
+        address="deluge-{node_index}.local.svc",
         network_size=2,
         daemon_port=6080,
         listen_ports=[6081, 6082],
-        first_node_index=5
+        first_node_index=5,
     )
 
     assert nodeset.nodes == [
         DelugeNodeConfig(
-            name='deluge-5',
-            address='deluge-5.local.svc',
+            name="deluge-5",
+            address="deluge-5.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
         DelugeNodeConfig(
-            name='deluge-6',
-            address='deluge-6.local.svc',
+            name="deluge-6",
+            address="deluge-6.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
         ),
@@ -89,17 +93,21 @@ def test_should_build_experiment_from_config():
         listen_ports: [ 6891, 6892 ]
     """)
 
-    config = DelugeExperimentConfig.model_validate(yaml.safe_load(config_file)['deluge_experiment'])
+    config = DelugeExperimentConfig.model_validate(
+        yaml.safe_load(config_file)["deluge_experiment"]
+    )
 
     # Need to patch mkdir, or we'll try to actually create the folder when DelugeNode gets initialized.
-    with patch('pathlib.Path.mkdir'):
+    with patch("pathlib.Path.mkdir"):
         experiment = config.build()
         repetitions = list(experiment.experiments)
 
     assert len(repetitions) == 3
 
     assert len(repetitions[0].experiment.nodes) == 10
-    assert cast(DelugeNode, repetitions[0].experiment.nodes[5]).daemon_args['port'] == 6890
+    assert (
+        cast(DelugeNode, repetitions[0].experiment.nodes[5]).daemon_args["port"] == 6890
+    )
 
 
 def test_should_create_n_repetitions_per_seeder_set():
@@ -120,10 +128,12 @@ def test_should_create_n_repetitions_per_seeder_set():
         listen_ports: [ 6891, 6892 ]
     """)
 
-    config = DelugeExperimentConfig.model_validate(yaml.safe_load(config_file)['deluge_experiment'])
+    config = DelugeExperimentConfig.model_validate(
+        yaml.safe_load(config_file)["deluge_experiment"]
+    )
 
     # Need to patch mkdir, or we'll try to actually create the folder when DelugeNode gets initialized.
-    with patch('pathlib.Path.mkdir'):
+    with patch("pathlib.Path.mkdir"):
         experiment = config.build()
         repetitions = list(experiment.experiments)
 
