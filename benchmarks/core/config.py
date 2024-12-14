@@ -2,7 +2,7 @@
 import os
 from abc import abstractmethod
 from io import TextIOBase
-from typing import Type, Dict, TextIO, Callable, cast
+from typing import Type, Dict, TextIO
 
 import yaml
 from typing_extensions import Generic, overload

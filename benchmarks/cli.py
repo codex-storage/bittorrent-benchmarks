@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def cmd_list(experiments: Dict[str, ExperimentBuilder[Experiment]], _):
-    print(f'Available experiments are:')
+    print('Available experiments are:')
     for experiment in experiments.keys():
         print(f'  - {experiment}')
 
@@ -42,7 +42,7 @@ def cmd_run(experiments: Dict[str, ExperimentBuilder[Experiment]], args):
 
 def cmd_describe(args):
     if not args.type:
-        print(f'Available experiment types are:')
+        print('Available experiment types are:')
         for experiment in config_parser.experiment_types.keys():
             print(f'  - {experiment}')
         return
@@ -79,7 +79,7 @@ def _parse_config(config: Path) -> Dict[str, ExperimentBuilder[Experiment]]:
         try:
             return config_parser.parse(infile)
         except ValidationError as e:
-            print(f'There were errors parsing the config file.')
+            print('There were errors parsing the config file.')
             for error in e.errors():
                 print(f' - {error["loc"]}: {error["msg"]} {error["input"]}')
             sys.exit(-1)

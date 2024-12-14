@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from csv import DictWriter
 from enum import Enum
 from json import JSONDecodeError
-from typing import Type, TextIO, Iterable, Callable, Dict, Tuple, cast, Any
+from typing import Type, TextIO, Iterable, Callable, Dict, Tuple, cast
 
 from pydantic import ValidationError, computed_field, Field
 

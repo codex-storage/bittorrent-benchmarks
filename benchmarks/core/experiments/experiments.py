@@ -4,11 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from time import time, sleep
-from typing import Optional, List
+from typing import List
 
 from typing_extensions import Generic, TypeVar
 
-from benchmarks.core.utils import await_predicate
 
 logger = logging.getLogger(__name__)
 
