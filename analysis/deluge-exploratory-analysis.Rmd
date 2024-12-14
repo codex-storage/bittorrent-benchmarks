@@ -162,7 +162,7 @@ If we did this right, the elapsed download time can never be negative, and neith
 download_times |> filter(elapsed_download_time < 0 | lookup_time < 0)
 ```
 
-We can now actually compute statistics on the download times. We start by computing them by seed sets.
+We can now actually compute statistics on the download times.
 
 ```{r}
 download_time_stats <- download_times |> 
