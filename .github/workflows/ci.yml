@@ -51,6 +51,10 @@ jobs:
           build-args: |
             BUILD_TYPE=test
 
+      - name: Lint
+        run: |
+          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run ruff check
+
       - name: Type Check
         run: |
           docker run --rm --entrypoint poetry bittorrent-benchmarks:test run mypy .
