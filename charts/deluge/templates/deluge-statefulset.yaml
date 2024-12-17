@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: deluge-nodes
-  namespace: codex-benchmarks
+  name: deluge-nodes-{{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
 
 spec:
-  replicas: 10
-  serviceName: deluge-service
+  replicas: {{ .Values.experiment.networkSize }}
+  serviceName: deluge-nodes-{{ .Release.Name }}-service
   podManagementPolicy: Parallel
   selector:
     matchLabels:
-      app: deluge-nodes
+      app: deluge-nodes-{{ .Release.Name }}
 
   template:
     metadata:
       labels:
-        app: deluge-nodes
+        app: deluge-nodes-{{ .Release.Name }}
 
     spec:
       containers:
-        - name: deluge
+        - name: deluge-{{ .Release.Name }}
           image: codexstorage/deluge
           imagePullPolicy: Always
           ports:
@@ -52,10 +52,10 @@ spec:
               
               ${DELUGE_APP}/docker/bin/start.sh
           volumeMounts:
-            - name: deluge-volume
+            - name: deluge-{{ .Release.Name }}-volume
               mountPath: /var/lib/deluge
 
       volumes:
-        - name: deluge-volume
+        - name: deluge-{{ .Release.Name }}-volume
           persistentVolumeClaim:
-            claimName: deluge-pvc
+            claimName: {{ include "deluge.pvc" . }}

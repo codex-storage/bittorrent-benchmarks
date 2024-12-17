@@ -1,42 +1,42 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: testrunner
-  namespace: codex-benchmarks
+  name: deluge-{{ .Release.Namespace }}-testrunner
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: testrunner
+    app: deluge-{{ .Release.Namespace }}-testrunner
 
 spec:
   template:
     metadata:
       labels:
-        app: testrunner
+        app: deluge-{{ .Release.Namespace }}-testrunner
 
     spec:
       containers:
-        - name: testrunner
+        - name: deluge-{{ .Release.Namespace }}-testrunner
           image: codexstorage/bittorrent-benchmarks:latest
           imagePullPolicy: Always
           args: [ "run", "deluge_experiment" ]
           env:
             - name: NETWORK_SIZE
-              value: "10"
+              value: {{ .Values.experiment.networkSize | quote }}
             - name: SEEDERS
-              value: "4"
+              value: {{ .Values.experiment.seeders | quote }}
             - name: REPETITIONS
-              value: "10"
+              value: {{ .Values.experiment.repetitions | quote }}
             - name: SEEDER_SETS
-              value: "4"
+              value: {{ .Values.experiment.seederSets | quote }}
             - name: FILE_SIZE
-              value: "104857600"
+              value: {{ include "filesize.bytes" . | quote }}
             - name: TRACKER_ANNOUNCE_URL
-              value: "http://tracker-service.codex-benchmarks.svc.cluster.local:8000/announce"
+              value: "http://{{ include "tracker.service.name" . }}.{{ .Release.Namespace }}.svc.cluster.local:8000/announce"
             - name: SHARED_VOLUME_PATH
               value: "/opt/bittorrent-benchmarks/volume"
             - name: DELUGE_STATEFULSET
-              value: "deluge-nodes"
+              value: "deluge-nodes-{{ .Release.Name }}"
             - name: DELUGE_SERVICE
-              value: "deluge-service"
+              value: "deluge-nodes-{{ .Release.Name }}-service"
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -55,7 +55,7 @@ spec:
       volumes:
         - name: benchmark-volume
           persistentVolumeClaim:
-            claimName: deluge-pvc
+            claimName: {{ include "deluge.pvc" . }}
       restartPolicy: Never
 
   backoffLimit: 0

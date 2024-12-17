@@ -1,0 +1,5 @@
+apiVersion: v2
+name: deluge-benchmarks
+description: A Helm chart for running BitTorrent benchmarks with Deluge.
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,9 @@
+experiment:
+  networkSize: 10
+  fileSize: "100MB"
+  seeders: 4
+  seederSets: 4
+  repetitions: 10
+
+deployment:
+  pvcName: ""

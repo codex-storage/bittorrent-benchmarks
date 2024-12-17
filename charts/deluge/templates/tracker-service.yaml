@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tracker.service.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: tracker-{{ .Release.Name }}
+
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: bittorrent-tracker-{{ .Release.Name }}
