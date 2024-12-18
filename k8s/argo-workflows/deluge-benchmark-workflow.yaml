@@ -5,39 +5,68 @@ metadata:
 spec:
   serviceAccountName: codex-benchmarks-workflows
   entrypoint: deluge-benchmark-workflow
+  onExit: cleanup
+  arguments:
+    parameters:
+      - name: repetitions
+        value: 10
+      - name: fileSize
+        value: "100MB"
+      - name: networkSize
+        value: 10
+      - name: seeders
+        value: 4
+      - name: seederSets
+        value: 4
+      - name: maxExperimentDuration
+        value: "72h"
+
   templates:
     - name: deluge-benchmark-workflow
       steps:
         - - name: deploy-experiment
             template: deploy-experiment
 
-        - - name: wait-for-testrunner
-            template: wait-for-testrunner
+        - - name: wait-for-test-start
+            template: wait-for-test-start
 
-        - - name: wait-for-completion
-            template: wait-for-completion
+        - - name: wait-for-test-completion
+            template: wait-for-test-completion
 
     - name: deploy-experiment
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
-          helm install e1 k8s/charts/deluge --namespace codex-benchmarks
+          helm install e1 ./k8s/charts/deluge --namespace codex-benchmarks\
+            --set experiment.repetitions={{workflow.parameters.repetitions}}\
+            --set experiment.fileSize={{workflow.parameters.fileSize}}\
+            --set experiment.networkSize={{workflow.parameters.networkSize}}\
+            --set experiment.seeders={{workflow.parameters.seeders}}\
+            --set experiment.seederSets={{workflow.parameters.seederSets}}
 
-    - name: wait-for-testrunner
+    - name: wait-for-test-start
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
-          kubectl wait --for=condition=Ready --selector=app=testrunner pod -n codex-benchmarks --timeout=300s
+          kubectl wait -n codex-benchmarks\
+            --for=condition=Ready\
+            --selector=app=deluge-codex-benchmarks-testrunner\
+            --timeout=300s\
+            pod
 
-    - name: wait-for-completion
+    - name: wait-for-test-completion
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
           set -e
-          ./  docker/bin/kubectl-wait-job --selector=app=testrunner -n codex-benchmarks
+          
+          ./docker/bin/kubectl-wait-job\
+            --selector=app=deluge-codex-benchmarks-testrunner\
+            --timeout={{workflow.parameters.maxExperimentDuration}}\
+            -n codex-benchmarks
 
     - name: cleanup
       script:
