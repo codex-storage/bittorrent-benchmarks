@@ -1,7 +1,7 @@
 # This sets up a service account with the required permissions for running the Codex workflows. For now,
-# this needs to be manually applied to the cluster running Argo Workflows.
+# this needs to be manually applied to the cluster running Argo before submitting any benchmarking workflows.
 
-# The codex-benchmarks needs to exist, as otherwise we can't create the RoleBinding in the proper namespace.
+# The codex-benchmarks namespace needs to exist, as otherwise we can't create the RoleBinding in the proper namespace.
 apiVersion: v1
 kind: Namespace
 metadata:
