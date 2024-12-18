@@ -1,0 +1,49 @@
+# This sets up a service account with the required permissions for running the Codex workflows. For now,
+# this needs to be manually applied to the cluster running Argo Workflows.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: codex-benchmarks-workflows
+  namespace: argo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: codex-workflows-runner
+  namespace: argo
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "namespaces", "persistentvolumeclaims", "pods", "services" ]
+    verbs: [ "*" ]
+
+  - apiGroups: [ "apps" ]
+    resources: [ "deployments", "statefulsets" ]
+    verbs: [ "*" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: codex-workflows-runner
+  namespace: argo
+subjects:
+  - kind: ServiceAccount
+    name: codex-benchmarks-workflows
+    namespace: argo
+roleRef:
+  kind: Role
+  name: codex-workflows-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: codex-workflows-runner-executor
+  namespace: argo
+subjects:
+  - kind: ServiceAccount
+    name: codex-benchmarks-workflows
+    namespace: argo
+roleRef:
+  kind: Role
+  name: executor
+  apiGroup: rbac.authorization.k8s.io

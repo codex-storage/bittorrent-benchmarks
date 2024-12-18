@@ -1,4 +1,4 @@
-name: Test and Build
+name: Test and Build Experiment Runner Image
 
 on:
   push:
@@ -17,9 +17,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Use Docker in rootless mode.
-        uses: ScribeMD/rootless-docker@0.2.2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

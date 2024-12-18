@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: deluge-benchmark-
+spec:
+  serviceAccountName: codex-benchmarks-workflows
+  entrypoint: deluge-benchmark-workflow
+  templates:
+    - name: deluge-benchmark-workflow
+      steps:
+        - - name: deploy-experiment
+            template: deploy-experiment
+
+        - - name: wait-for-testrunner
+            template: wait-for-testrunner
+
+        - - name: wait-for-completion
+            template: wait-for-completion
+
+    - name: deploy-experiment
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: ["/bin/bash"]
+        source: |
+          helm install e1 k8s/charts/deluge --namespace codex-benchmarks
+
+    - name: wait-for-testrunner
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: ["/bin/bash"]
+        source: |
+          kubectl wait --for=condition=Ready --selector=app=testrunner pod -n codex-benchmarks --timeout=300s
+
+    - name: wait-for-completion
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: ["/bin/bash"]
+        source: |
+          set -e
+          ./  docker/bin/kubectl-wait-job --selector=app=testrunner -n codex-benchmarks
+
+    - name: cleanup
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: ["/bin/bash"]
+        source: |
+          helm uninstall e1 -n codex-benchmarks
+      
