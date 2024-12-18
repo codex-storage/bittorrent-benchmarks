@@ -12,5 +12,5 @@ RUN ./get_helm.sh
 
 RUN mkdir /opt/bittorrent-benchmarks
 WORKDIR /opt/bittorrent-benchmarks
-COPY ./k8s .
-COPY ./docker .
+COPY ./k8s ./k8s
+COPY ./docker ./docker
