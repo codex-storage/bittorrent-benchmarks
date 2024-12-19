@@ -15,4 +15,4 @@ WORKDIR /opt/bittorrent-benchmarks
 
 COPY ./k8s ./k8s
 COPY ./docker ./docker
-COPY ./benchmarks/k8s/parameter_matrix.py .
+COPY ./benchmarks/k8s/parameter_expander.py .
