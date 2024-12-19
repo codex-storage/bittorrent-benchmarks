@@ -1,20 +1,20 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: deluge-{{ .Release.Namespace }}-testrunner
+  name: deluge-{{ .Release.Name }}-testrunner
   namespace: {{ .Release.Namespace }}
   labels:
-    app: deluge-{{ .Release.Namespace }}-testrunner
+    app: deluge-{{ .Release.Name }}-testrunner
 
 spec:
   template:
     metadata:
       labels:
-        app: deluge-{{ .Release.Namespace }}-testrunner
+        app: deluge-{{ .Release.Name }}-testrunner
 
     spec:
       containers:
-        - name: deluge-{{ .Release.Namespace }}-testrunner
+        - name: deluge-{{ .Release.Name }}-testrunner
           image: codexstorage/bittorrent-benchmarks:latest
           imagePullPolicy: Always
           args: [ "run", "deluge_experiment" ]
