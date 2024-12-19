@@ -33,7 +33,8 @@ if __name__ == "__main__":
     try:
         matrix_str = json.loads(sys.argv[1])
     except JSONDecodeError as err:
-        print(f"Error decoding JSON: {err}")
+        print(f"Error decoding JSON: ", err)
+        print("Input:", sys.argv[1])
         sys.exit(1)
 
     print(json.dumps(ParameterMatrix(matrix_str).expand()))
