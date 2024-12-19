@@ -4,41 +4,77 @@ metadata:
   generateName: deluge-benchmark-
 spec:
   serviceAccountName: codex-benchmarks-workflows
-  entrypoint: deluge-benchmark-workflow
-  onExit: cleanup
+  entrypoint: repeat-experiment
   arguments:
     parameters:
       - name: repetitions
-        value: 10
+        value: 1
       - name: fileSize
         value: "100MB"
       - name: networkSize
-        value: 10
+        value: 5
       - name: seeders
-        value: 4
+        value: 1
       - name: seederSets
-        value: 4
+        value: 1
       - name: maxExperimentDuration
         value: "72h"
 
   templates:
+    - name: repeat-experiment
+      parallelism: 1
+      steps:
+        - - name: deluge-benchmark-workflow
+            template: deluge-benchmark-workflow
+            hooks:
+              exit:
+                template: cleanup
+                arguments:
+                  parameters:
+                    - name: runId
+                      value: "{{item}}"
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{item}}"
+            withSequence:
+              count: "2"
+
     - name: deluge-benchmark-workflow
+      inputs:
+        parameters:
+          - name: runId
       steps:
         - - name: deploy-experiment
             template: deploy-experiment
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{inputs.parameters.runId}}"
 
         - - name: wait-for-test-start
             template: wait-for-test-start
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{inputs.parameters.runId}}"
 
         - - name: wait-for-test-completion
             template: wait-for-test-completion
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{inputs.parameters.runId}}"
 
     - name: deploy-experiment
+      inputs:
+        parameters:
+          - name: runId
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
-          helm install e1 ./k8s/charts/deluge --namespace codex-benchmarks\
+          helm install e{{inputs.parameters.runId}} ./k8s/charts/deluge --namespace codex-benchmarks\
             --set experiment.repetitions={{workflow.parameters.repetitions}}\
             --set experiment.fileSize={{workflow.parameters.fileSize}}\
             --set experiment.networkSize={{workflow.parameters.networkSize}}\
@@ -46,32 +82,39 @@ spec:
             --set experiment.seederSets={{workflow.parameters.seederSets}}
 
     - name: wait-for-test-start
+      inputs:
+        parameters:
+          - name: runId
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
           kubectl wait -n codex-benchmarks\
             --for=condition=Ready\
-            --selector=app=deluge-codex-benchmarks-testrunner\
+            --selector=app=deluge-e{{inputs.parameters.runId}}-testrunner\
             --timeout=300s\
             pod
 
     - name: wait-for-test-completion
+      inputs:
+        parameters:
+          - name: runId
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
-          set -e
-          
           ./docker/bin/kubectl-wait-job\
-            --selector=app=deluge-codex-benchmarks-testrunner\
+            --selector=app=deluge-e{{inputs.parameters.runId}}-testrunner\
             --timeout={{workflow.parameters.maxExperimentDuration}}\
             -n codex-benchmarks
 
     - name: cleanup
+      inputs:
+        parameters:
+          - name: runId
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: ["/bin/bash"]
         source: |
-          helm uninstall e1 -n codex-benchmarks
+          helm uninstall e{{inputs.parameters.runId}} -n codex-benchmarks
       
