@@ -48,7 +48,7 @@ class RandomTempData(ExperimentData[TInitialMetadata]):
 
 
 def await_predicate(
-        predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
+    predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
 ) -> bool:
     current = time()
     while (timeout == 0) or ((time() - current) <= timeout):
@@ -79,7 +79,9 @@ def megabytes(n: int) -> int:
 
 
 @contextmanager
-def temp_random_file(size: int, name: str = "data.bin", batch_size: int = megabytes(50)):
+def temp_random_file(
+    size: int, name: str = "data.bin", batch_size: int = megabytes(50)
+):
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = Path(temp_dir_str)
         random_file = temp_dir / name
