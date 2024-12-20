@@ -1,5 +1,5 @@
-from benchmarks.core.tests.test_logging import MetricsEvent
+from benchmarks.core.logging import Metric
 
 
-class DelugeTorrentDownload(MetricsEvent):
+class DelugeTorrentDownload(Metric):
     torrent_name: str
