@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: deluge-nodes-{{ .Release.Name }}
+    {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 spec:
   clusterIP: None
   selector:

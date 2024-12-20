@@ -5,12 +5,14 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: deluge-{{ .Release.Name }}-testrunner
+    {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 
 spec:
   template:
     metadata:
       labels:
         app: deluge-{{ .Release.Name }}-testrunner
+        {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
       containers:

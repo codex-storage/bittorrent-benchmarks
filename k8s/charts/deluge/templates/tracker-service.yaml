@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: tracker-{{ .Release.Name }}
+    {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 
 spec:
   type: ClusterIP
@@ -14,3 +15,4 @@ spec:
       protocol: TCP
   selector:
     app: bittorrent-tracker-{{ .Release.Name }}
+    {{- include "deluge-benchmarks.selectorLabels" . | nindent 4 }}

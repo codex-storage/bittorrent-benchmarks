@@ -5,17 +5,20 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: bittorrent-tracker-{{ .Release.Name }}
+    {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: bittorrent-tracker-{{ .Release.Name }}
+      {{- include "deluge-benchmarks.selectorLabels" . | nindent 6 }}
 
   template:
     metadata:
       labels:
         app: bittorrent-tracker-{{ .Release.Name }}
+        {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
       containers:
