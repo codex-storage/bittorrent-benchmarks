@@ -14,22 +14,20 @@ def expand(parameters: Dict[str, Any], run_id: bool = False) -> List[Dict[str, A
         if not isinstance(v, list):
             fixed[k] = v
             continue
-
         if k.startswith("constrained__"):
             constrained[k] = v
         else:
             simple[k] = v
 
-    simple_expansion = _expand_simple(simple)
-    constrained_expansion = _expand_constrained(constrained)
-
-    if not constrained_expansion:
-        final_expansion = [dict(item, **fixed) for item in simple_expansion]
+    if not constrained:
+        expanded_items = _expand_simple(simple)
     else:
-        final_expansion = [
-            dict(simple + constrained, **fixed) for simple, constrained in
-            itertools.product(simple_expansion, constrained_expansion)
+        expanded_items = [
+            simple + constrained for simple, constrained in
+            itertools.product(_expand_simple(simple), _expand_constrained(constrained))
         ]
+
+    final_expansion = [dict(item, **fixed) for item in expanded_items]
 
     if run_id:
         for i, item in enumerate(final_expansion, start=1):
