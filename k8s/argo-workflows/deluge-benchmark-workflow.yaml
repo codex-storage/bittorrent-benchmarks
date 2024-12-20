@@ -8,15 +8,15 @@ spec:
   arguments:
     parameters:
       - name: repetitions
-        value: 1
-      - name: fileSize
-        value: '["100MB", "200MB"]'
-      - name: constrained__networkSize_seeders
-        value: "[[5, [1, 2]], [10, [1, 3, 5]], [20, [1, 6, 10]]]"
+        value: 5
       - name: seederSets
-        value: 1
+        value: 2
+      - name: fileSize
+        value: '["100MB", "1GB", "5GB"]'
+      - name: constrained__networkSize_seeders
+        value: "[[2, 1], [8, [1, 2, 4]], [16, [1, 2, 4, 8]], [32, [1, 2, 4, 8, 16]]]"
       - name: maxExperimentDuration
-        value: 72h
+        value: 144h
 
   templates:
     - name: benchmark-workflow
@@ -26,14 +26,7 @@ spec:
             template: expand-parameter-matrix
 
         - - name: benchmark-experiment
-            template: benchmark-experiment
-            hooks:
-              exit:
-                template: cleanup
-                arguments:
-                  parameters:
-                    - name: runId
-                      value: "{{item.runId}}"
+            template: wrapped-benchmark-experiment
             arguments:
               parameters:
                 - name: runId
@@ -50,6 +43,50 @@ spec:
                   value: "{{item.repetitions}}"
 
             withParam: "{{steps.expand-parameter-matrix.outputs.result}}"
+
+    - name: expand-parameter-matrix
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: [ "python", "-m", "parameter_expander" ]
+        args:
+          - "{{ workflow.parameters.json }}"
+
+    # We "wrap" the benchmark workflow with a dummy workflow so exit handlers behave properly. If we
+    # were to call benchmark-experiment directly from the main flow, the exit handlers would be run
+    # only when the entire set of experiments is done, not when each individual experiment is done.
+    - name: wrapped-benchmark-experiment
+      inputs:
+        parameters:
+          - name: runId
+          - name: fileSize
+          - name: seederSets
+          - name: networkSize
+          - name: seeders
+          - name: repetitions
+      steps:
+        - - name: benchmark-experiment
+            template: benchmark-experiment
+            hooks:
+              exit:
+                template: cleanup
+                arguments:
+                  parameters:
+                    - name: runId
+                      value: "{{inputs.parameters.runId}}"
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{inputs.parameters.runId}}"
+                - name: fileSize
+                  value: "{{inputs.parameters.fileSize}}"
+                - name: seederSets
+                  value: "{{inputs.parameters.seederSets}}"
+                - name: networkSize
+                  value: "{{inputs.parameters.networkSize}}"
+                - name: seeders
+                  value: "{{inputs.parameters.seeders}}"
+                - name: repetitions
+                  value: "{{inputs.parameters.repetitions}}"
 
     - name: benchmark-experiment
       inputs:
@@ -92,13 +129,6 @@ spec:
               parameters:
                 - name: runId
                   value: "{{inputs.parameters.runId}}"
-
-    - name: expand-parameter-matrix
-      script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
-        command: [ "python", "-m", "parameter_expander" ]
-        args:
-          - "{{ workflow.parameters.json }}"
 
     - name: deploy-experiment
       inputs:
