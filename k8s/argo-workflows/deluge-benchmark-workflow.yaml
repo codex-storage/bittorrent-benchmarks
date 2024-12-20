@@ -116,15 +116,8 @@ spec:
                 - name: repetitions
                   value: "{{inputs.parameters.repetitions}}"
 
-        - - name: wait-for-test-start
-            template: wait-for-test-start
-            arguments:
-              parameters:
-                - name: runId
-                  value: "{{inputs.parameters.runId}}"
-
-        - - name: wait-for-test-completion
-            template: wait-for-test-completion
+        - - name: wait-for-experiment
+            template: wait-for-experiment
             arguments:
               parameters:
                 - name: runId
@@ -152,21 +145,7 @@ spec:
             --set experiment.seeders={{inputs.parameters.seeders}}\
             --set experiment.seederSets={{inputs.parameters.seederSets}}
 
-    - name: wait-for-test-start
-      inputs:
-        parameters:
-          - name: runId
-      script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
-        command: [ "/bin/bash" ]
-        source: |
-          kubectl wait -n codex-benchmarks\
-            --for=condition=Ready\
-            --selector=app=deluge-e{{inputs.parameters.runId}}-testrunner\
-            --timeout=300s\
-            pod
-
-    - name: wait-for-test-completion
+    - name: wait-for-experiment
       inputs:
         parameters:
           - name: runId
