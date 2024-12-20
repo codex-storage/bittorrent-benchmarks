@@ -23,8 +23,10 @@ def expand(parameters: Dict[str, Any], run_id: bool = False) -> List[Dict[str, A
         expanded_items = _expand_simple(simple)
     else:
         expanded_items = [
-            simple + constrained for simple, constrained in
-            itertools.product(_expand_simple(simple), _expand_constrained(constrained))
+            simple + constrained
+            for simple, constrained in itertools.product(
+                _expand_simple(simple), _expand_constrained(constrained)
+            )
         ]
 
     final_expansion = [dict(item, **fixed) for item in expanded_items]
@@ -36,7 +38,9 @@ def expand(parameters: Dict[str, Any], run_id: bool = False) -> List[Dict[str, A
     return final_expansion
 
 
-def _expand_simple(expandable: Dict[str, List[Any]]) -> List[List[Tuple[str, List[Any]]]]:
+def _expand_simple(
+    expandable: Dict[str, List[Any]],
+) -> List[List[Tuple[str, List[Any]]]]:
     keys = expandable.keys()
     return [
         list(zip(keys, list(value_set)))
@@ -44,7 +48,9 @@ def _expand_simple(expandable: Dict[str, List[Any]]) -> List[List[Tuple[str, Lis
     ]
 
 
-def _expand_constrained(constrained: Dict[str, List[Any]]) -> List[List[Tuple[str, List[Any]]]]:
+def _expand_constrained(
+    constrained: Dict[str, List[Any]],
+) -> List[List[Tuple[str, List[Any]]]]:
     return [
         expansion
         for k, v in constrained.items()
@@ -52,11 +58,12 @@ def _expand_constrained(constrained: Dict[str, List[Any]]) -> List[List[Tuple[st
     ]
 
 
-def _expand_single_constraint(combined_key: str,
-                              values: List[List[Any]]) -> List[List[Tuple[str, List[Any]]]]:
-    keys = combined_key[len('constrained__'):].split('_')
+def _expand_single_constraint(
+    combined_key: str, values: List[List[Any]]
+) -> List[List[Tuple[str, List[Any]]]]:
+    keys = combined_key[len("constrained__") :].split("_")
     if len(keys) < 2:
-        raise ValueError(f'Invalid combined key {combined_key}')
+        raise ValueError(f"Invalid combined key {combined_key}")
 
     normalized_values = [_normalize_values(value_set) for value_set in values]
 
@@ -68,10 +75,7 @@ def _expand_single_constraint(combined_key: str,
 
 
 def _normalize_values(values: List[Any | List[Any]]) -> List[List[Any]]:
-    return [
-        value if isinstance(value, list) else [value]
-        for value in values
-    ]
+    return [value if isinstance(value, list) else [value] for value in values]
 
 
 def normalize_argo_params(argo_params: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -85,7 +89,6 @@ def normalize_argo_params(argo_params: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} '<json_string>'")
         sys.exit(1)

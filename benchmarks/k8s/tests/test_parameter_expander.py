@@ -5,12 +5,7 @@ from benchmarks.k8s.parameter_expander import normalize_argo_params
 
 
 def test_should_expand_simple_parameter_lists():
-    matrix = {
-        "a": [1, 2],
-        "b": [3, 4],
-        "c": "foo",
-        "d": 5
-    }
+    matrix = {"a": [1, 2], "b": [3, 4], "c": "foo", "d": 5}
 
     assert expander.expand(matrix) == [
         {"a": 1, "b": 3, "c": "foo", "d": 5},
@@ -21,12 +16,7 @@ def test_should_expand_simple_parameter_lists():
 
 
 def test_should_add_run_id_when_requested():
-    matrix = {
-        "a": [1, 2],
-        "b": [3, 4],
-        "c": "foo",
-        "d": 5
-    }
+    matrix = {"a": [1, 2], "b": [3, 4], "c": "foo", "d": 5}
 
     assert expander.expand(matrix, run_id=True) == [
         {"a": 1, "b": 3, "c": "foo", "d": 5, "runId": 1},
@@ -37,13 +27,7 @@ def test_should_add_run_id_when_requested():
 
 
 def test_should_expand_constrained_parameter_pairs():
-    matrix = {
-        "constrained__att1_att2": [
-            [1, [2, 3]],
-            [[4, 5], 6]
-        ],
-        "b": [1, 2]
-    }
+    matrix = {"constrained__att1_att2": [[1, [2, 3]], [[4, 5], 6]], "b": [1, 2]}
 
     assert expander.expand(matrix) == [
         {"att1": 1, "att2": 2, "b": 1},
@@ -58,9 +42,11 @@ def test_should_expand_constrained_parameter_pairs():
 
 
 def test_should_normalize_simple_argo_parameter_list():
-    argo_params = json.loads('[{"name":"repetitions","value":"1"},{"name":"fileSize","value":"100MB"},'
-                             '{"name":"networkSize","value":"5"},{"name":"seeders","value":"1"},'
-                             '{"name":"seederSets","value":"1"},{"name":"maxExperimentDuration","value":"72h"}]')
+    argo_params = json.loads(
+        '[{"name":"repetitions","value":"1"},{"name":"fileSize","value":"100MB"},'
+        '{"name":"networkSize","value":"5"},{"name":"seeders","value":"1"},'
+        '{"name":"seederSets","value":"1"},{"name":"maxExperimentDuration","value":"72h"}]'
+    )
 
     assert normalize_argo_params(argo_params) == {
         "repetitions": 1,
