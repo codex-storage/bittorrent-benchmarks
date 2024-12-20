@@ -47,20 +47,8 @@ class RandomTempData(ExperimentData[TInitialMetadata]):
         self._context.__exit__(exc_type, exc_val, exc_tb)
 
 
-@contextmanager
-def temp_random_file(size: int, name: str = "data.bin"):
-    with tempfile.TemporaryDirectory() as temp_dir_str:
-        temp_dir = Path(temp_dir_str)
-        random_file = temp_dir / name
-        random_bytes = os.urandom(size)
-        with random_file.open("wb") as outfile:
-            outfile.write(random_bytes)
-
-        yield random_file
-
-
 def await_predicate(
-    predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
+        predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
 ) -> bool:
     current = time()
     while (timeout == 0) or ((time() - current) <= timeout):
@@ -88,3 +76,19 @@ def kilobytes(n: int) -> int:
 
 def megabytes(n: int) -> int:
     return kilobytes(n) * 1024
+
+
+@contextmanager
+def temp_random_file(size: int, name: str = "data.bin", batch_size: int = megabytes(50)):
+    with tempfile.TemporaryDirectory() as temp_dir_str:
+        temp_dir = Path(temp_dir_str)
+        random_file = temp_dir / name
+
+        with random_file.open("wb") as outfile:
+            while size > 0:
+                batch = min(size, batch_size)
+                random_bytes = os.urandom(batch)
+                outfile.write(random_bytes)
+                size -= batch
+
+        yield random_file
