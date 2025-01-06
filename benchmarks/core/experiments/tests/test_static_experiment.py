@@ -44,8 +44,13 @@ class MockNode(Node[MockHandle, str]):
         return MockDownloadHandle(self)
 
     def remove(self, handle: MockHandle):
-        assert self.seeding is not None
-        assert self.leeching == handle or self.seeding[0] == handle
+        if self.leeching is not None:
+            assert self.leeching == handle
+        elif self.seeding is not None:
+            assert self.seeding[0] == handle
+        else:
+            raise Exception('Either leech or seed must be called before attempting a remove')
+
         self.remove_was_called = True
 
 
