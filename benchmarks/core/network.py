@@ -58,6 +58,13 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         """
         pass
 
+    @abstractmethod
+    def remove(self, handle: TNetworkHandle):
+        """Removes the file associated with the handle from this node. For seeders, this means the node will stop
+        seeding it. For leechers, it will stop downloading it. In both cases, the file will be removed from the node's
+        storage."""
+        pass
+
 
 class SharedFSNode(Node[TNetworkHandle, TInitialMetadata], ABC):
     """A `SharedFSNode` is a :class:`Node` which shares a network volume with us. This means

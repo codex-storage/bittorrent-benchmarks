@@ -17,22 +17,25 @@ def test_should_run_with_a_single_seeder(
         polling_interval=0.5,
     )
 
-    experiment = env.bind(
-        StaticDisseminationExperiment(
-            network=[deluge_node1, deluge_node2, deluge_node3],
-            seeders=[1],
-            data=RandomTempData(
-                size=size,
-                meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
-            ),
-        )
+    experiment = StaticDisseminationExperiment(
+        network=[deluge_node1, deluge_node2, deluge_node3],
+        seeders=[1],
+        data=RandomTempData(
+            size=size,
+            meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
+        ),
     )
 
-    experiment.run()
+    env.await_ready()
+    try:
+        experiment.setup()
+        experiment.do_run()
 
-    assert_is_seed(deluge_node1, "dataset-1", size)
-    assert_is_seed(deluge_node2, "dataset-1", size)
-    assert_is_seed(deluge_node3, "dataset-1", size)
+        assert_is_seed(deluge_node1, "dataset-1", size)
+        assert_is_seed(deluge_node2, "dataset-1", size)
+        assert_is_seed(deluge_node3, "dataset-1", size)
+    finally:
+        experiment.teardown()
 
 
 @pytest.mark.integration
@@ -45,19 +48,22 @@ def test_should_run_with_multiple_seeders(
         polling_interval=0.5,
     )
 
-    experiment = env.bind(
-        StaticDisseminationExperiment(
-            network=[deluge_node1, deluge_node2, deluge_node3],
-            seeders=[1, 2],
-            data=RandomTempData(
-                size=size,
-                meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
-            ),
-        )
+    experiment = StaticDisseminationExperiment(
+        network=[deluge_node1, deluge_node2, deluge_node3],
+        seeders=[1, 2],
+        data=RandomTempData(
+            size=size,
+            meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
+        ),
     )
 
-    experiment.run()
+    env.await_ready()
+    try:
+        experiment.setup()
+        experiment.do_run()
 
-    assert_is_seed(deluge_node1, "dataset-1", size)
-    assert_is_seed(deluge_node2, "dataset-1", size)
-    assert_is_seed(deluge_node3, "dataset-1", size)
+        assert_is_seed(deluge_node1, "dataset-1", size)
+        assert_is_seed(deluge_node2, "dataset-1", size)
+        assert_is_seed(deluge_node3, "dataset-1", size)
+    finally:
+        experiment.teardown()

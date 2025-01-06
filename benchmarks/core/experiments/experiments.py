@@ -4,10 +4,9 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from time import time, sleep
-from typing import List
+from typing import List, Optional
 
 from typing_extensions import Generic, TypeVar
-
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +21,32 @@ class Experiment(ABC):
 
 
 TExperiment = TypeVar("TExperiment", bound=Experiment)
+
+
+class ExperimentWithLifecycle(Experiment):
+    """An :class:`ExperimentWithLifecycle` is a basic implementation of an :class:`Experiment` with overridable
+    lifecycle hooks."""
+
+    def setup(self):
+        """Hook that runs before the experiment."""
+        pass
+
+    def run(self):
+        try:
+            self.setup()
+            self.do_run()
+            self.teardown()
+        except Exception as ex:
+            self.teardown(ex)
+            raise ex
+
+    def do_run(self):
+        """The main body of the experiment."""
+        pass
+
+    def teardown(self, exception: Optional[Exception] = None):
+        """Hook that runs after the experiment."""
+        pass
 
 
 class ExperimentComponent(ABC):

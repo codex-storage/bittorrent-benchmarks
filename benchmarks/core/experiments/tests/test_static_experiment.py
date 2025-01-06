@@ -25,6 +25,7 @@ class MockNode(Node[MockHandle, str]):
         self.seeding: Optional[Tuple[MockHandle, Path]] = None
         self.leeching: Optional[MockHandle] = None
         self.download_was_awaited = False
+        self.cleanup_was_called = False
 
     @property
     def name(self) -> str:
@@ -41,6 +42,11 @@ class MockNode(Node[MockHandle, str]):
     def leech(self, handle: MockHandle):
         self.leeching = handle
         return MockDownloadHandle(self)
+
+    def remove(self, handle: MockHandle):
+        assert self.seeding is not None
+        assert self.leeching == handle or self.seeding[0] == handle
+        self.remove_was_called = True
 
 
 class MockDownloadHandle(DownloadHandle):
@@ -190,3 +196,20 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             timestamp=events[5].timestamp,
         ),
     ]
+
+
+def test_should_delete_file_from_nodes_at_the_end_of_the_experiment():
+    network = mock_network(n=2)
+    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
+    seeders = [1]
+
+    experiment = StaticDisseminationExperiment(
+        seeders=seeders,
+        network=network,
+        data=data,
+    )
+
+    experiment.run()
+
+    assert network[0].remove_was_called
+    assert network[1].remove_was_called

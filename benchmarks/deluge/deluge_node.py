@@ -116,6 +116,9 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             torrent=handle,
         )
 
+    def remove(self, handle: Torrent):
+        self.rpc.core.remove_torrent(handle.info_hash, remove_data=True)
+
     def torrent_info(self, name: str) -> List[Dict[bytes, Any]]:
         return list(self.rpc.core.get_torrents_status({"name": name}, []).values())
 
