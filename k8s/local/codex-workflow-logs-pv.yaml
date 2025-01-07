@@ -1,0 +1,25 @@
+# We need a persistent volume for Vector to collec the logs, which will then be accessible 
+# to the log parser.
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: codex-workflow-logs-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /mnt/codex-workflow-logs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: codex-workflow-logs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi

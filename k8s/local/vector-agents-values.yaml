@@ -1,0 +1,38 @@
+role: "Agent"
+service:
+  enabled: false
+
+extraVolumes:
+  - name: vector-logs
+    persistentVolumeClaim:
+      claimName: codex-workflow-logs-pvc
+
+extraVolumeMounts:
+  - name: vector-logs
+    mountPath: /vector-logs
+
+customConfig:
+  data_dir: /var/lib/vector
+  sources:
+    benchmark-experiments-source:
+      type: kubernetes_logs
+      extra_label_selector: "app.kubernetes.io/name=codex-benchmarks"
+      node_annotation_fields:
+        node_labels: ""
+      pod_annotation_fields:
+        container_id: ""
+        container_image: ""
+        container_image_id: ""
+        pod_node_name: ""
+        pod_owner: ""
+        pod_uid: ""
+        pod_ip: ""
+        pod_ips: ""
+
+  sinks:
+    output:
+      type: file
+      inputs: [benchmark-experiments-source]
+      path: "/vector-logs/benchmarks-%Y-%m-%d.jsonl"
+      encoding:
+        codec: json
