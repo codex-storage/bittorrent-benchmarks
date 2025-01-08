@@ -1,4 +1,4 @@
-name: Test and Build Experiment Runner Image
+name: Build Argo Workflows Runner Image
 
 on:
   push:
@@ -9,10 +9,8 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_FILE: ./docker/bittorrent-benchmarks.Dockerfile
-  DOCKER_REPO: codexstorage/bittorrent-benchmarks
-  BUILD_ARGS: |
-    BUILD_TYPE=test
+  DOCKER_FILE: ./docker/bittorrent-benchmarks-workflows.Dockerfile
+  DOCKER_REPO: codexstorage/bittorrent-benchmarks-workflows
 
 jobs:
   build-and-test:
@@ -31,26 +29,6 @@ jobs:
           context: .
           file: ${{ env.DOCKER_FILE }}
           push: false
-          load: true
-          tags: bittorrent-benchmarks:test
-          build-args: |
-            ${{ env.BUILD_ARGS }}
-
-      - name: Lint
-        run: |
-          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run ruff check
-
-      - name: Type Check
-        run: |
-          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run mypy .
-
-      - name: Run Unit Tests
-        run: |
-          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run pytest -m "not integration"
-
-      - name: Run Integration Tests
-        run: |
-          docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml up --abort-on-container-exit --exit-code-from test-runner
 
   variables:
     name: Compute outputs
@@ -59,7 +37,6 @@ jobs:
     outputs:
       docker_file: ${{ env.DOCKER_FILE }}
       dockerhub_repo: ${{ env.DOCKER_REPO }}
-      build_args: ${{ env.BUILD_ARGS }}
     steps:
       - name: Dummy job
         if: false
@@ -72,6 +49,4 @@ jobs:
     with:
       docker_file: ${{ needs.variables.outputs.docker_file }}
       dockerhub_repo: ${{ needs.variables.outputs.dockerhub_repo }}
-      build_args: |
-        ${{ needs.variables.outputs.build_args }}
     secrets: inherit
