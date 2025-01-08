@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bittorrent-tracker-{{ .Release.Name }}
+  name: bittorrent-tracker-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: bittorrent-tracker-{{ .Release.Name }}
+    app.kubernetes.io/name: bittorrent-tracker
     {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: bittorrent-tracker-{{ .Release.Name }}
+      app.kubernetes.io/name: bittorrent-tracker
       {{- include "deluge-benchmarks.selectorLabels" . | nindent 6 }}
 
   template:
     metadata:
       labels:
-        app: bittorrent-tracker-{{ .Release.Name }}
+        app.kubernetes.io/name: bittorrent-tracker
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
       containers:
-        - name: bittorrent-tracker-{{ .Release.Name }}
+        - name: bittorrent-tracker
           image: codexstorage/bittorrent-tracker
           ports:
             - containerPort: 8000

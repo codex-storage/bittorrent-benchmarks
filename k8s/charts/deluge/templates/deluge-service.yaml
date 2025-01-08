@@ -1,15 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: deluge-nodes-{{ .Release.Name }}-service
+  name: deluge-nodes-service-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: deluge-nodes-{{ .Release.Name }}
-    {{- include "deluge-benchmarks.labels" . | nindent 4 }}
+    app.kubernetes.io/name: deluge-nodes-service
+    {{- include "deluge-benchmarks.labels" . | nindent 4}}
 spec:
   clusterIP: None
   selector:
-    app: deluge-nodes-{{ .Release.Name }}
+    app.kubernetes.io/name: deluge-node
+    {{- include "deluge-benchmarks.selectorLabels" . | nindent 4}}
   ports:
     - port: 6890
       name: rpc

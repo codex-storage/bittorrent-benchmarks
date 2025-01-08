@@ -1,22 +1,22 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: deluge-{{ .Release.Name }}-testrunner
+  name: deluge-experiment-runner-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: deluge-{{ .Release.Name }}-testrunner
+    app.kubernetes.io/name: deluge-experiment-runner
     {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 
 spec:
   template:
     metadata:
       labels:
-        app: deluge-{{ .Release.Name }}-testrunner
+        app.kubernetes.io/name: deluge-experiment-runner
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
       containers:
-        - name: deluge-{{ .Release.Name }}-testrunner
+        - name: deluge-experiment-runner
           image: codexstorage/bittorrent-benchmarks:latest
           imagePullPolicy: Always
           args: [ "run", "deluge_experiment" ]
@@ -32,13 +32,13 @@ spec:
             - name: FILE_SIZE
               value: {{ include "filesize.bytes" . | quote }}
             - name: TRACKER_ANNOUNCE_URL
-              value: "http://{{ include "tracker.service.name" . }}.{{ .Release.Namespace }}.svc.cluster.local:8000/announce"
+              value: "http://bittorrent-tracker-service-{{ include "experiment.fullId" . }}.{{ .Release.Namespace }}.svc.cluster.local:8000/announce"
             - name: SHARED_VOLUME_PATH
               value: "/opt/bittorrent-benchmarks/volume"
             - name: DELUGE_STATEFULSET
-              value: "deluge-nodes-{{ .Release.Name }}"
+              value: "deluge-nodes-{{ include "experiment.fullId" . }}"
             - name: DELUGE_SERVICE
-              value: "deluge-nodes-{{ .Release.Name }}-service"
+              value: "deluge-nodes-service-{{ include "experiment.fullId" . }}"
             - name: NAMESPACE
               valueFrom:
                 fieldRef:

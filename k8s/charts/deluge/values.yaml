@@ -5,6 +5,14 @@ experiment:
   seederSets: 4
   repetitions: 10
 
+  # Experiments are ran as part of groups which may entail several invocations for this Helm chart.
+  # We therefore identify both the experiment within a group, and the group itself.
+
+  # Identifies the experiment within the group. If left empty, defaults to the release name.
+  id: ""
+  # Identifies the experiment group. Needs to be defined by the user.
+  groupId: ""
+
 deployment:
   pvcName: ""
   appName: ""

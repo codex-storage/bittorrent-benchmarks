@@ -1,32 +1,34 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: deluge-nodes-{{ .Release.Name }}
+  name: deluge-nodes-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
 
 spec:
   replicas: {{ .Values.experiment.networkSize }}
-  serviceName: deluge-nodes-{{ .Release.Name }}-service
+  serviceName: deluge-nodes-service-{{ include "experiment.fullId" . }}
   podManagementPolicy: Parallel
   selector:
     matchLabels:
-      app: deluge-nodes-{{ .Release.Name }}
+      app.kubernetes.io/name: deluge-node
       {{- include "deluge-benchmarks.selectorLabels" . | nindent 6 }}
 
   template:
     metadata:
       labels:
-        app: deluge-nodes-{{ .Release.Name }}
+        app.kubernetes.io/name: deluge-node
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
       containers:
-        - name: deluge-{{ .Release.Name }}
+        - name: deluge-node
           image: codexstorage/deluge
           imagePullPolicy: Always
           ports:
             - containerPort: 6890
           env:
+            - name: EXPERIMENT_GROUP_ID
+              value: {{ include "experiment.groupId" . }}
             - name: CLIENT_POD_NAME
               valueFrom:
                 fieldRef:
@@ -40,7 +42,7 @@ spec:
           command: [ "/bin/bash", "--login", "-c" ]
           args:
             - |
-              export DELUGE_NODE_ID=${CLIENT_POD_NAME}
+              export DELUGE_NODE_ID=${CLIENT_POD_NAME}-${EXPERIMENT_GROUP_ID}
               # Sadly we can't mount a subpath, so need add the correct prefix
               # into all of the config directories.
               export DELUGE_CONFIG_DIR=/var/lib/deluge/${CLIENT_POD_NAME}

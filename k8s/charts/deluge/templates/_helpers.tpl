@@ -15,12 +15,20 @@ Expand the name of the chart.
 {{- end -}}
 
 {{- define "deluge.pvc" }}
-{{- default (printf "deluge-%s-pvc" .Release.Name) .Values.deployment.pvcName }}
+{{- default (printf "deluge-%s-pvc" (include "experiment.fullId" .)) .Values.deployment.pvcName }}
 {{- end -}}
 
-{{- define "tracker.service.name" }}
-{{- printf "bittorrent-tracker-%s" .Release.Name -}}
-{{- end -}}
+{{- define "experiment.groupId" -}}
+{{- required "A valid .Values.experiment.groupId is required!" .Values.experiment.groupId }}
+{{- end }}
+
+{{- define "experiment.id"  -}}
+{{- default .Release.Name .Values.experiment.id }}
+{{- end }}
+
+{{- define "experiment.fullId" -}}
+{{- printf "%s-%s" (include "experiment.id" .) (include "experiment.groupId" .) }}
+{{- end }}
 
 {{/*
 Common and selector labels.
@@ -43,6 +51,6 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{- define "deluge-benchmarks.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "app.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ include "experiment.id" . }}
+app.kubernetes.io/part-of: {{ include "experiment.groupId" . }}
 {{- end }}
