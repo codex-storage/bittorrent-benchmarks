@@ -22,6 +22,9 @@ spec:
     - name: benchmark-workflow
       parallelism: 1
       steps:
+        - - name: generate-group-id
+            template: generate-group-id
+
         - - name: expand-parameter-matrix
             template: expand-parameter-matrix
 
@@ -29,6 +32,8 @@ spec:
             template: wrapped-benchmark-experiment
             arguments:
               parameters:
+                - name: groupId
+                  value: "{{steps.generate-group-id.outputs.result}}"
                 - name: runId
                   value: "{{item.runId}}"
                 - name: fileSize
@@ -51,12 +56,20 @@ spec:
         args:
           - "{{ workflow.parameters.json }}"
 
+    - name: generate-group-id
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: [ "/bin/bash" ]
+        source: |
+          echo "$(date +%s)"
+
     # We "wrap" the benchmark workflow with a dummy workflow so exit handlers behave properly. If we
     # were to call benchmark-experiment directly from the main flow, the exit handlers would be run
     # only when the entire set of experiments is done, not when each individual experiment is done.
     - name: wrapped-benchmark-experiment
       inputs:
         parameters:
+          - name: groupId
           - name: runId
           - name: fileSize
           - name: seederSets
@@ -75,6 +88,8 @@ spec:
                       value: "{{inputs.parameters.runId}}"
             arguments:
               parameters:
+                - name: groupId
+                  value: "{{inputs.parameters.groupId}}"
                 - name: runId
                   value: "{{inputs.parameters.runId}}"
                 - name: fileSize
@@ -91,6 +106,7 @@ spec:
     - name: benchmark-experiment
       inputs:
         parameters:
+          - name: groupId
           - name: runId
           - name: fileSize
           - name: seederSets
@@ -103,6 +119,8 @@ spec:
             template: deploy-experiment
             arguments:
               parameters:
+                - name: groupId
+                  value: "{{inputs.parameters.groupId}}"
                 - name: runId
                   value: "{{inputs.parameters.runId}}"
                 - name: fileSize
@@ -120,12 +138,15 @@ spec:
             template: wait-for-experiment
             arguments:
               parameters:
+                - name: groupId
+                  value: "{{inputs.parameters.groupId}}"
                 - name: runId
                   value: "{{inputs.parameters.runId}}"
 
     - name: deploy-experiment
       inputs:
         parameters:
+          - name: groupId
           - name: runId
           - name: fileSize
           - name: seederSets
@@ -139,6 +160,7 @@ spec:
         source: |
           helm install e{{inputs.parameters.runId}} ./k8s/charts/deluge\
             --namespace codex-benchmarks\
+            --set experiment.groupId=g{{inputs.parameters.groupId}}\
             --set experiment.repetitions={{inputs.parameters.repetitions}}\
             --set experiment.fileSize={{inputs.parameters.fileSize}}\
             --set experiment.networkSize={{inputs.parameters.networkSize}}\
@@ -148,13 +170,16 @@ spec:
     - name: wait-for-experiment
       inputs:
         parameters:
+          - name: groupId
           - name: runId
       script:
         image: codexstorage/bittorrent-benchmarks-workflows:latest
         command: [ "/bin/bash" ]
         source: |
           ./docker/bin/kubectl-wait-job\
-            --selector=app=deluge-e{{inputs.parameters.runId}}-testrunner\
+            --selector=app.kubernetes.io/name=deluge-experiment-runner,\
+          app.kubernetes.io/instance=e{{inputs.parameters.runId}},\
+          app.kubernetes.io/part-of=g{{inputs.parameters.groupId}}\
             --timeout={{workflow.parameters.maxExperimentDuration}}\
             -n codex-benchmarks
 
