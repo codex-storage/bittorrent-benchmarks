@@ -1,3 +1,5 @@
+"""Simple, self-contained utility for expanding Argo Workflows parameter matrices."""
+
 import itertools
 import json
 import sys
