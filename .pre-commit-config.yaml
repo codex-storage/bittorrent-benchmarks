@@ -1,0 +1,16 @@
+repos:
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+    -   id: ruff # linter
+    -   id: ruff-format # formatter
+
+-   repo: local
+    hooks:
+    -   id: mypy
+        name: mypy
+        entry: poetry run mypy .
+        language: system
+        types: [python]
+        require_serial: true
+        pass_filenames: false

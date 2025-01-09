@@ -12,7 +12,7 @@ the [Argo Workflows Quickstart Guide](https://argo-workflows.readthedocs.io/en/l
 Workflows running.
 
 For remote clusters, it's best to consult the Argo
-Workflows (Operator Manual)[https://argo-workflows.readthedocs.io/en/latest/installation/].
+Workflows [Operator Manual](https://argo-workflows.readthedocs.io/en/latest/installation/).
 
 **Argo CLI Tool.** You will also need to install the
 [Argo CLI tool](https://argo-workflows.readthedocs.io/en/latest/walk-through/argo-cli/) to submit workflows.
