@@ -1,4 +1,4 @@
-from benchmarks.core.logging import Metric
+from benchmarks.logging.logging import Metric
 
 
 class DelugeTorrentDownload(Metric):

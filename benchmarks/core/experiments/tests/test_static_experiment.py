@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.experiments.tests.utils import MockExperimentData
-from benchmarks.core.logging import LogParser, RequestEvent, RequestEventType
+from benchmarks.logging.logging import LogParser, RequestEvent, RequestEventType
 from benchmarks.core.network import Node, DownloadHandle
 
 
@@ -49,7 +49,9 @@ class MockNode(Node[MockHandle, str]):
         elif self.seeding is not None:
             assert self.seeding[0] == handle
         else:
-            raise Exception('Either leech or seed must be called before attempting a remove')
+            raise Exception(
+                "Either leech or seed must be called before attempting a remove"
+            )
 
         self.remove_was_called = True
 

@@ -5,7 +5,7 @@ from typing import Sequence, Optional
 from typing_extensions import Generic, List, Tuple
 
 from benchmarks.core.experiments.experiments import ExperimentWithLifecycle
-from benchmarks.core.logging import RequestEvent, RequestEventType
+from benchmarks.logging.logging import RequestEvent, RequestEventType
 from benchmarks.core.network import (
     TInitialMetadata,
     TNetworkHandle,
@@ -82,7 +82,6 @@ class StaticDisseminationExperiment(
                 logger.info("Download %d / %d completed", i + 1, len(downloads))
 
     def teardown(self, exception: Optional[Exception] = None):
-
         def _remove(element: Tuple[int, Node[TNetworkHandle, TInitialMetadata]]):
             index, node = element
             assert self._cid is not None  # to please mypy

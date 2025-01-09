@@ -8,7 +8,7 @@ from pydantic_core import ValidationError
 
 from benchmarks.core.config import ConfigParser, ExperimentBuilder
 from benchmarks.core.experiments.experiments import Experiment
-from benchmarks.core.logging import (
+from benchmarks.logging.logging import (
     basic_log_parser,
     LogSplitter,
     LogEntry,
