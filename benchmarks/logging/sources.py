@@ -18,8 +18,8 @@ NodeId = str
 
 
 class LogSource(ABC):
-    """:class:`LogSource` knows how to retrieve logs for :class:`Identifiable` experiments, and can answer queries
-    about which experiments are present within it."""
+    """:class:`LogSource` knows how to retrieve logs for experiments within experiment groups, and can answer queries
+    about which experiment ids make up a given group."""
 
     @abstractmethod
     def experiments(self, group_id: str) -> Iterator[str]:
@@ -135,4 +135,4 @@ def split_logs_in_source(
 
         parsed = log_parser.parse_single(raw_line)
         if parsed:
-            splitter.process_single(parsed)
+            splitter.split_single(parsed)

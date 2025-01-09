@@ -151,9 +151,9 @@ class LogSplitter:
 
     def split(self, log: Iterable[LogEntry]):
         for entry in log:
-            self.process_single(entry)
+            self.split_single(entry)
 
-    def process_single(self, entry: LogEntry):
+    def split_single(self, entry: LogEntry):
         write, _ = self.outputs.get(entry.entry_type, (None, None))
 
         if write is None:
