@@ -5,7 +5,7 @@ service:
 extraVolumes:
   - name: vector-logs
     persistentVolumeClaim:
-      claimName: codex-workflow-logs-pvc
+      claimName: vector-logs-pvc
 
 extraVolumeMounts:
   - name: vector-logs

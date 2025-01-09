@@ -4,12 +4,12 @@ metadata:
   name: deluge-nodes-service-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: deluge-nodes-service
+    app.kubernetes.io/component: deluge-nodes-service
     {{- include "deluge-benchmarks.labels" . | nindent 4}}
 spec:
   clusterIP: None
   selector:
-    app.kubernetes.io/name: deluge-node
+    app.kubernetes.io/component: deluge-node
     {{- include "deluge-benchmarks.selectorLabels" . | nindent 4}}
   ports:
     - port: 6890

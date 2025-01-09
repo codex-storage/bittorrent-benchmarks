@@ -4,7 +4,7 @@ metadata:
   name: bittorrent-tracker-service-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: bittorrent-tracker-service
+    app.kubernetes.io/component: bittorrent-tracker-service
     {{- include "deluge-benchmarks.labels" . | nindent 4 }}
 
 spec:
@@ -14,5 +14,5 @@ spec:
       targetPort: 8000
       protocol: TCP
   selector:
-    app.kubernetes.io/name: bittorrent-tracker
+    app.kubernetes.io/component: bittorrent-tracker
     {{- include "deluge-benchmarks.selectorLabels" . | nindent 4 }}

@@ -177,7 +177,7 @@ spec:
         command: [ "/bin/bash" ]
         source: |
           ./docker/bin/kubectl-wait-job\
-            --selector=app.kubernetes.io/name=deluge-experiment-runner,\
+            --selector=app.kubernetes.io/component=deluge-experiment-runner,\
           app.kubernetes.io/instance=e{{inputs.parameters.runId}},\
           app.kubernetes.io/part-of=g{{inputs.parameters.groupId}}\
             --timeout={{workflow.parameters.maxExperimentDuration}}\

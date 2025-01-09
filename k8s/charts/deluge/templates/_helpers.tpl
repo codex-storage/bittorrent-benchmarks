@@ -43,6 +43,7 @@ Common and selector labels.
 
 {{- define "deluge-benchmarks.labels" -}}
 helm.sh/chart: {{ include "deluge-benchmarks.chart" . }}
+app.kubernetes.io/name: {{ include "app.name" . }}
 {{ include "deluge-benchmarks.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
