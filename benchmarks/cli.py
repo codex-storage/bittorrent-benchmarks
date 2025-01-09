@@ -16,6 +16,11 @@ from benchmarks.logging.logging import (
 )
 from benchmarks.deluge.config import DelugeExperimentConfig
 from benchmarks.deluge.logging import DelugeTorrentDownload
+from benchmarks.logging.sources import (
+    VectorFlatFileSource,
+    FSOutputManager,
+    split_logs_in_source,
+)
 
 config_parser = ConfigParser()
 config_parser.register(DelugeExperimentConfig)
@@ -55,7 +60,7 @@ def cmd_describe(args):
     print(config_parser.experiment_types[args.type].schema_json(indent=2))
 
 
-def cmd_logs(log: Path, output: Path):
+def cmd_parse_single_log(log: Path, output: Path):
     if not log.exists():
         print(f"Log file {log} does not exist.")
         sys.exit(-1)
@@ -75,6 +80,31 @@ def cmd_logs(log: Path, output: Path):
     ):
         splitter.set_format(DECLogEntry, LogSplitterFormats.jsonl)
         splitter.split(log_parser.parse(istream))
+
+
+def cmd_parse_log_source(group_id: str, source_file: Path, output_dir: Path):
+    if not source_file.exists():
+        print(f"Log source file {source_file} does not exist.")
+        sys.exit(-1)
+
+    if not output_dir.parent.exists():
+        print(f"Folder {output_dir.parent} does not exist.")
+        sys.exit(-1)
+
+    output_dir.mkdir(exist_ok=True)
+
+    with (
+        source_file.open("r", encoding="utf-8") as istream,
+        FSOutputManager(output_dir) as output_manager,
+    ):
+        log_source = VectorFlatFileSource(app_name="codex-benchmarks", file=istream)
+        split_logs_in_source(
+            log_source,
+            log_parser,
+            output_manager,
+            group_id,
+            formats=[(DECLogEntry, LogSplitterFormats.jsonl)],
+        )
 
 
 def _parse_config(config: Path) -> Dict[str, ExperimentBuilder[Experiment]]:
@@ -123,10 +153,10 @@ def main():
     run_cmd.add_argument("experiment", type=str, help="Name of the experiment to run.")
     run_cmd.set_defaults(func=lambda args: cmd_run(_parse_config(args.config), args))
 
-    describe = commands.add_parser(
+    describe_cmd = commands.add_parser(
         "describe", help="Shows the JSON schema for the various experiment types."
     )
-    describe.add_argument(
+    describe_cmd.add_argument(
         "type",
         type=str,
         help="Type of the experiment to describe.",
@@ -134,12 +164,39 @@ def main():
         nargs="?",
     )
 
-    describe.set_defaults(func=cmd_describe)
+    describe_cmd.set_defaults(func=cmd_describe)
 
-    logs = commands.add_parser("logs", help="Parse logs.")
-    logs.add_argument("log", type=Path, help="Path to the log file.")
-    logs.add_argument("output_dir", type=Path, help="Path to an output folder.")
-    logs.set_defaults(func=lambda args: cmd_logs(args.log, args.output_dir))
+    logs_cmd = commands.add_parser("logs", help="Parse logs.")
+    log_subcommands = logs_cmd.add_subparsers(required=True)
+
+    single_log_cmd = log_subcommands.add_parser(
+        "single", help="Parse a single log file."
+    )
+    single_log_cmd.add_argument("log", type=Path, help="Path to the log file.")
+    single_log_cmd.add_argument(
+        "output_dir", type=Path, help="Path to an output folder."
+    )
+    single_log_cmd.set_defaults(
+        func=lambda args: cmd_parse_single_log(args.log, args.output_dir)
+    )
+
+    log_source_cmd = log_subcommands.add_parser(
+        "source", help="Parse logs from a log source."
+    )
+    log_source_cmd.add_argument(
+        "source_file", type=Path, help="Vector log file to parse from."
+    )
+    log_source_cmd.add_argument(
+        "output_dir", type=Path, help="Path to an output folder."
+    )
+    log_source_cmd.add_argument(
+        "group_id", type=str, help="ID of experiment group to parse."
+    )
+    log_source_cmd.set_defaults(
+        func=lambda args: cmd_parse_log_source(
+            args.group_id, args.source_file, args.output_dir
+        )
+    )
 
     args = parser.parse_args()
 
