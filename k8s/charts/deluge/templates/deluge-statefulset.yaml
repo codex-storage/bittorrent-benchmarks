@@ -27,8 +27,6 @@ spec:
           ports:
             - containerPort: 6890
           env:
-            - name: EXPERIMENT_GROUP_ID
-              value: {{ include "experiment.groupId" . }}
             - name: CLIENT_POD_NAME
               valueFrom:
                 fieldRef:
@@ -42,7 +40,7 @@ spec:
           command: [ "/bin/bash", "--login", "-c" ]
           args:
             - |
-              export DELUGE_NODE_ID=${CLIENT_POD_NAME}-${EXPERIMENT_GROUP_ID}
+              export DELUGE_NODE_ID=${CLIENT_POD_NAME}
               # Sadly we can't mount a subpath, so need add the correct prefix
               # into all of the config directories.
               export DELUGE_CONFIG_DIR=/var/lib/deluge/${CLIENT_POD_NAME}
