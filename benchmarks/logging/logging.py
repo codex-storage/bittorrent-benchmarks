@@ -64,6 +64,9 @@ class LogEntry(SnakeCaseModel):
 
 
 class AdaptedLogEntry(LogEntry, ABC):
+    """Interface extension to adapted :class:`LogEntry`es which allows converting instances from the original model
+    into the adapted model and vice-versa."""
+
     @classmethod
     @abstractmethod
     def adapt_instance(cls, data: SnakeCaseModel) -> "AdaptedLogEntry":
@@ -220,6 +223,7 @@ class RequestEvent(Event):
 
 
 def basic_log_parser() -> LogParser:
+    """Constructs a basic log parser which can understand some common log entry types."""
     parser = LogParser()
     parser.register(Event)
     parser.register(Metric)
