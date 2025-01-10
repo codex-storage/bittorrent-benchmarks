@@ -2,9 +2,11 @@
 that stores logs. Such infrastructure might be a simple file system, a service like Logstash, or a database."""
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import AbstractContextManager
+from json import JSONDecodeError
 from pathlib import Path
 from typing import TextIO, Optional, Tuple, List, Dict, Type
 
@@ -18,6 +20,8 @@ from benchmarks.logging.logging import (
 RawLine = str
 ExperimentId = str
 NodeId = str
+
+logger = logging.getLogger(__name__)
 
 
 class LogSource(ABC):
@@ -131,13 +135,23 @@ class VectorFlatFileSource(LogSource):
             if app_label in line and group_label in line:
                 if experiment_id is not None and experiment_label not in line:
                     continue
-                parsed = json.loads(line)
+                try:
+                    parsed = json.loads(line)
+                except JSONDecodeError as err:
+                    logger.error(
+                        f"Failed to parse line from vector from source {line}", err
+                    )
+                    continue
+
                 k8s = parsed["kubernetes"]
                 yield (
                     k8s["pod_labels"]["app.kubernetes.io/instance"],
                     k8s["pod_name"],
                     parsed["message"],
                 )
+
+    def __str__(self):
+        return f"VectorFlatFileSource({self.app_name})"
 
 
 def split_logs_in_source(
@@ -160,9 +174,12 @@ def split_logs_in_source(
     splitters: Dict[str, LogSplitter] = {}
     formats = formats if formats else []
 
+    logger.info(f'Processing logs for group "{group_id} from source "{log_source}"')
+
     for experiment_id, node_id, raw_line in log_source.logs(group_id):
         splitter = splitters.get(experiment_id)
         if splitter is None:
+            logger.info(f"Found experiment {experiment_id}")
             splitter = LogSplitter(
                 lambda event_type, ext: output_manager.open(
                     Path(experiment_id) / f"{event_type}.{ext.value}"
