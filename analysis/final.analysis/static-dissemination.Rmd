@@ -1,0 +1,109 @@
+---
+title: "static-dissemination.Rmd"
+output: html_document
+date: "2025-01-10"
+---
+
+```{r}
+library(tidyverse)
+
+devtools::load_all()
+```
+
+```{r}
+group_id <- 'g1736505161'
+```
+
+
+```{r}
+deluge <- read_all_experiments('./data/deluge')
+```
+
+The torrent piece size is set at torrent creation time by [torrentool](https://github.com/idlesign/torrentool/blob/5f37d6dcc304758bae46d01c63e5be0f0a348bfc/torrentool/torrent.py#L354).
+```{r}
+PIECE_SIZE <- 262144
+``` 
+
+```{r}
+piece_count <- function(experiment) {
+  experiment$meta$file_size / PIECE_SIZE
+}
+```
+
+```{r}
+compute_download_time_stats <- function(experiment) {
+  meta <- experiment$meta
+  pieces <- experiment |> piece_count()
+  downloads <- experiment$deluge_torrent_download |> 
+    extract_repetitions() |>
+    compute_pieces(pieces)
+
+  if (!check_incomplete_downloads(downloads, pieces)) {
+    warning(glue::glue('Discard experiment {experiment$experiment_id} ',
+                       'due to incomplete downloads'))
+    return(NULL)
+  }
+
+  if (!check_mismatching_repetitions(downloads, meta$repetitions)) {
+    warning(glue::glue('Discard experiment {experiment$experiment_id} ',
+                       'due to mismatching repetitions'))
+    return(NULL)
+  }
+
+  download_times <- compute_download_times(
+    meta, 
+    experiment$request_event, 
+    downloads, 
+    group_id
+  )
+
+  if (!check_seeder_count(download_times, meta$seeders)) {
+    warning(glue::glue('Undefined download times do not match seeder count'))
+    return(NULL)
+  }
+  
+  network_size <- meta$nodes$network_size
+  
+  download_times |> 
+    download_time_stats() |>
+    mutate(
+      network_size = network_size,
+      seeders = meta$seeders,
+      leechers = network_size - meta$seeders,
+      file_size = meta$file_size
+    )
+}
+
+
+compute_compact_summary <- function(download_ecdf) {
+  lapply(c(0.05, 0.5, 0.95), function(p)
+    download_ecdf |>
+      filter(completed >= p) |>
+      slice_min(completed)
+    ) |>
+    bind_rows() |>
+    select(completed, network_size, file_size, seeders, leechers, median) |>
+    pivot_wider(id_cols = c('file_size', 'network_size', 'seeders', 'leechers'),
+                names_from = completed, values_from = median)
+}
+
+```
+
+```{r}
+lapply(deluge, function(experiment) {
+  print(glue::glue('Process {experiment$experiment_id}'))
+  download_time_stats <- tryCatch(compute_download_time_stats(experiment), error = function(e) NULL)
+  if (is.null(download_time_stats)) {
+    NULL
+  } else {
+    compute_compact_summary(download_time_stats)
+  }
+}) |> 
+  drop_nulls() |>
+  bind_rows() |>
+  arrange(seeders) |>
+  arrange(network_size) |>
+  arrange(file_size)
+```
+
+

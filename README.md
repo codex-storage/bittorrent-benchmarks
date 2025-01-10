@@ -9,9 +9,9 @@ locally, however, using [Minikube](https://minikube.sigs.k8s.io/) (or Kind, or D
 
 ## Limits
 
-When running experiments locally in a Linux machine, you will bump onto a number of
-limitations. I have documented those here. I won't go into how to make those changes
-permanent within your system as there's significant variation across distributions.
+When running experiments locally in a Linux machine, you will likely need to adjust several
+of the default OS limits. I won't go into how to make those changes permanent within your
+system as there's significant variation across distributions.
 
 **ARP Cache.** The default size for the ARP cache is too small. You should bump it
 significantly, e.g.:
@@ -22,7 +22,7 @@ echo 8192 | sudo tee /proc/sys/net/ipv4/neigh/default/gc_thresh2
 echo 16384 | sudo tee /proc/sys/net/ipv4/neigh/default/gc_thresh3
 ``` 
 
-**Inotify.** Kubernetes seems to enjoy watching the filesystem, so 
+**inotify.** Kubernetes seems to enjoy watching the filesystem, so
 you should increase inotify limits across the board:
 
 ```bash
@@ -31,7 +31,7 @@ sudo sysctl -w fs.inotify.max_queued_events=2099999999
 sudo sysctl -w fs.inotify.max_user_watches=2099999999
 ``` 
 
-**Kernel key retention service.* Kubernetes also places a large number of keys 
+**Kernel key retention service.** Kubernetes also places a large number of keys
 within the kernel. Make sure you have enough room:
 
 ```bash
