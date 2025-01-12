@@ -123,9 +123,12 @@ class BoundExperiment(Experiment, Generic[TExperiment]):
 class IteratedExperiment(Experiment, Generic[TExperiment]):
     """An :class:`IteratedExperiment` will run a sequence of :class:`Experiment`s."""
 
-    def __init__(self, experiments: Iterable[TExperiment]):
+    def __init__(
+        self, experiments: Iterable[TExperiment], raise_when_failures: bool = True
+    ):
         self.successful_runs = 0
         self.failed_runs = 0
+        self.raise_when_failures = raise_when_failures
         self.experiments = experiments
 
     def run(self):
@@ -136,3 +139,8 @@ class IteratedExperiment(Experiment, Generic[TExperiment]):
             except Exception as ex:
                 self.failed_runs += 1
                 logger.error(ex)
+
+        if self.failed_runs > 0 and self.raise_when_failures:
+            raise RuntimeError(
+                "One or more experiments with an iterated experiment have failed."
+            )

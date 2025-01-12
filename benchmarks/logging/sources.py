@@ -193,3 +193,5 @@ def split_logs_in_source(
         parsed = log_parser.parse_single(raw_line)
         if parsed:
             splitter.split_single(parsed)
+
+    logger.info("Finished processing logs.")
