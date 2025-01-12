@@ -136,9 +136,9 @@ class IteratedExperiment(Experiment, Generic[TExperiment]):
             try:
                 experiment.run()
                 self.successful_runs += 1
-            except Exception as ex:
+            except Exception:
                 self.failed_runs += 1
-                logger.error(ex)
+                logger.exception("Error running experiment repetition")
 
         if self.failed_runs > 0 and self.raise_when_failures:
             raise RuntimeError(
