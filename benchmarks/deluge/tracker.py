@@ -1,7 +1,7 @@
 import socket
 
 import requests
-from urllib3.exceptions import RequestError
+from requests.exceptions import ConnectionError
 from urllib3.util import Url
 
 from benchmarks.core.experiments.experiments import ExperimentComponent
@@ -15,7 +15,7 @@ class Tracker(ExperimentComponent):
         try:
             requests.get(str(self.announce_url))
             return True
-        except (ConnectionError, RequestError, socket.gaierror):
+        except (ConnectionError, socket.gaierror):
             return False
 
     def __str__(self) -> str:
