@@ -9,6 +9,7 @@ from typing import List, Union, Optional, Self, Dict, Any
 
 import pathvalidate
 from deluge_client import DelugeRPCClient
+from tenacity import retry, wait_exponential
 from torrentool.torrent import Torrent
 from urllib3.util import Url
 
@@ -128,6 +129,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             self.connect()
         return self._rpc
 
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=16))
     def connect(self) -> Self:
         client = DelugeRPCClient(**self.daemon_args)
         client.connect()

@@ -1,5 +1,6 @@
 import logging
 from multiprocessing.pool import ThreadPool
+from time import sleep
 from typing import Sequence, Optional
 
 from typing_extensions import Generic, List, Tuple
@@ -26,6 +27,7 @@ class StaticDisseminationExperiment(
         seeders: List[int],
         data: ExperimentData[TInitialMetadata],
         concurrency: Optional[int] = None,
+        logging_cooldown: int = 0,
     ) -> None:
         self.nodes = network
         self.seeders = seeders
@@ -36,6 +38,7 @@ class StaticDisseminationExperiment(
             else concurrency
         )
         self._cid: Optional[TNetworkHandle] = None
+        self.logging_cooldown = logging_cooldown
 
     def setup(self):
         pass
@@ -73,13 +76,23 @@ class StaticDisseminationExperiment(
 
             def _await_for_download(element: Tuple[int, DownloadHandle]) -> int:
                 index, download = element
-                download.await_for_completion()
+                if not download.await_for_completion():
+                    raise Exception(
+                        f"Download ({index}, {str(download)}) did not complete in time."
+                    )
                 return index
 
             for i in self._pool.imap_unordered(
                 _await_for_download, enumerate(downloads)
             ):
                 logger.info("Download %d / %d completed", i + 1, len(downloads))
+
+            # FIXME this is a hack to ensure that nodes get a chance to log their data before we
+            #   run the teardown hook and remove the torrents.
+            logger.info(
+                f"Waiting for {self.logging_cooldown} seconds before teardown..."
+            )
+            sleep(self.logging_cooldown)
 
     def teardown(self, exception: Optional[Exception] = None):
         def _remove(element: Tuple[int, Node[TNetworkHandle, TInitialMetadata]]):

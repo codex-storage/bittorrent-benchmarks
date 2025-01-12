@@ -78,6 +78,12 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
         description="Configuration for the nodes that make up the network"
     )
 
+    logging_cooldown: int = Field(
+        gt=0,
+        default=0,
+        description="Time to wait after the last download completes before tearing down the experiment.",
+    )
+
     def build(self) -> DelugeDisseminationExperiment:
         nodes_specs = (
             self.nodes.nodes
@@ -117,6 +123,7 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
                                     announce_url=tracker.announce_url,
                                 ),
                             ),
+                            logging_cooldown=self.logging_cooldown,
                         )
                     )
 

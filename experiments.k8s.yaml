@@ -5,6 +5,7 @@ deluge_experiment:
   file_size: ${FILE_SIZE}
   repetitions: ${REPETITIONS}
   shared_volume_path: ${SHARED_VOLUME_PATH}
+  logging_cooldown: 10
 
   nodes:
     network_size: ${NETWORK_SIZE}

@@ -16,11 +16,14 @@ def assert_is_seed(node: DelugeNode, name: str, size: int):
         assert len(response) == 1
         info = response[0]
 
+        if not info[b"is_seed"]:
+            return False
+
         assert info[b"name"] == name.encode(
             "utf-8"
         )  # not sure that this works for ANY name...
         assert info[b"total_size"] == size
-        assert info[b"is_seed"]
+
         return True
 
     assert await_predicate(_is_seed, timeout=5)
