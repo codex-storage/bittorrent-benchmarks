@@ -131,6 +131,9 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
     @retry(wait=wait_exponential(multiplier=1, min=4, max=16))
     def connect(self) -> Self:
+        return self._raw_connect()
+
+    def _raw_connect(self):
         client = DelugeRPCClient(**self.daemon_args)
         client.connect()
         self._rpc = client
@@ -138,7 +141,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
     def is_ready(self) -> bool:
         try:
-            self.connect()
+            self._raw_connect()
             return True
         except (ConnectionRefusedError, socket.gaierror):
             return False
