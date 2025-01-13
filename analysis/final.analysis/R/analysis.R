@@ -1,3 +1,9 @@
+PIECE_SIZE <- 262144
+
+piece_count <- function(experiment) {
+  experiment$meta$file_size / PIECE_SIZE
+}
+
 extract_repetitions <- function(deluge_torrent_download) {
   deluge_torrent_download |>
     mutate(
@@ -102,5 +108,61 @@ download_time_stats <- function(download_times) {
       p10 = quantile(elapsed_download_time, p = 0.05),
       .groups = 'drop'
     )
+}
+
+compute_download_time_stats <- function(experiment) {
+  meta <- experiment$meta
+  pieces <- experiment |> piece_count()
+  downloads <- experiment$deluge_torrent_download |>
+    extract_repetitions() |>
+    compute_pieces(pieces)
+
+  if (!check_incomplete_downloads(downloads, pieces)) {
+    warning(glue::glue('Discard experiment {experiment$experiment_id} ',
+                       'due to incomplete downloads'))
+    return(NULL)
+  }
+
+  if (!check_mismatching_repetitions(downloads, meta$repetitions)) {
+    warning(glue::glue('Discard experiment {experiment$experiment_id} ',
+                       'due to mismatching repetitions'))
+    return(NULL)
+  }
+
+  download_times <- compute_download_times(
+    meta,
+    experiment$request_event,
+    downloads,
+    group_id
+  )
+
+  if (!check_seeder_count(download_times, meta$seeders)) {
+    warning(glue::glue('Undefined download times do not match seeder count'))
+    return(NULL)
+  }
+
+  network_size <- meta$nodes$network_size
+
+  download_times |>
+    download_time_stats() |>
+    mutate(
+      network_size = network_size,
+      seeders = meta$seeders,
+      leechers = network_size - meta$seeders,
+      file_size = meta$file_size
+    )
+}
+
+
+compute_compact_summary <- function(download_ecdf) {
+  lapply(c(0.05, 0.5, 0.95), function(p)
+    download_ecdf |>
+      filter(completed >= p) |>
+      slice_min(completed)
+  ) |>
+    bind_rows() |>
+    select(completed, network_size, file_size, seeders, leechers, median) |>
+    pivot_wider(id_cols = c('file_size', 'network_size', 'seeders', 'leechers'),
+                names_from = completed, values_from = median)
 }
 
