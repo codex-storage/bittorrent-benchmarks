@@ -9,8 +9,11 @@ from typing import List, Union, Optional, Self, Dict, Any
 
 import pathvalidate
 from deluge_client import DelugeRPCClient
-from tenacity import retry, wait_exponential
+from tenacity import retry, wait_exponential, stop_after_attempt
+from tenacity.stop import stop_base
+from tenacity.wait import wait_base
 from torrentool.torrent import Torrent
+from typing_extensions import Generic, TypeVar
 from urllib3.util import Url
 
 from benchmarks.core.experiments.experiments import ExperimentComponent
@@ -129,14 +132,20 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             self.connect()
         return self._rpc
 
-    @retry(wait=wait_exponential(multiplier=1, min=4, max=16))
+    @retry(
+        stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=16)
+    )
     def connect(self) -> Self:
         return self._raw_connect()
 
     def _raw_connect(self):
         client = DelugeRPCClient(**self.daemon_args)
         client.connect()
-        self._rpc = client
+        self._rpc = ResilientCallWrapper(
+            client,
+            wait_policy=wait_exponential(multiplier=1, min=4, max=16),
+            stop_policy=stop_after_attempt(5),
+        )
         return self
 
     def is_ready(self) -> bool:
@@ -157,6 +166,23 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
     def __str__(self):
         return f"DelugeNode({self.name}, {self.daemon_args['host']}:{self.daemon_args['port']})"
+
+
+T = TypeVar("T")
+
+
+class ResilientCallWrapper(Generic[T]):
+    def __init__(self, client: T, wait_policy: wait_base, stop_policy: stop_base):
+        self.client = client
+        self.wait_policy = wait_policy
+        self.stop_policy = stop_policy
+
+    def __getattr__(self, item):
+        @retry(wait=self.wait_policy, stop=self.stop_policy)
+        def _resilient_wrapper(*args, **kwargs):
+            return getattr(self.client, item)(*args, **kwargs)
+
+        return _resilient_wrapper
 
 
 class DelugeDownloadHandle(DownloadHandle):

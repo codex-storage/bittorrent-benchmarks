@@ -1,9 +1,10 @@
 from pathlib import Path
 
 import pytest
+from tenacity import wait_incrementing, stop_after_attempt, RetryError
 
 from benchmarks.core.utils import megabytes, await_predicate
-from benchmarks.deluge.deluge_node import DelugeNode, DelugeMeta
+from benchmarks.deluge.deluge_node import DelugeNode, DelugeMeta, ResilientCallWrapper
 from benchmarks.deluge.tracker import Tracker
 
 
@@ -74,3 +75,34 @@ def test_should_remove_files(
 
     deluge_node1.remove(torrent)
     assert not deluge_node1.torrent_info(name="dataset1")
+
+
+class FlakyClient:
+    def __init__(self):
+        self.count = 0
+
+    def flaky(self):
+        self.count += 1
+        if self.count == 1:
+            raise IOError("Connection refused")
+        return 1
+
+
+def test_should_retry_operations_when_they_fail():
+    wrapper = ResilientCallWrapper(
+        FlakyClient(),
+        wait_policy=wait_incrementing(start=0, increment=0),
+        stop_policy=stop_after_attempt(2),
+    )
+    assert wrapper.flaky() == 1
+
+
+def test_should_give_up_on_operations_when_stop_policy_is_met():
+    wrapper = ResilientCallWrapper(
+        FlakyClient(),
+        wait_policy=wait_incrementing(start=0, increment=0),
+        stop_policy=stop_after_attempt(1),
+    )
+
+    with pytest.raises(RetryError):
+        wrapper.flaky()
