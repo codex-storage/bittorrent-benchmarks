@@ -106,3 +106,18 @@ def test_should_give_up_on_operations_when_stop_policy_is_met():
 
     with pytest.raises(RetryError):
         wrapper.flaky()
+
+
+class NestedFlaky:
+    def __init__(self):
+        self.client = FlakyClient()
+
+
+def test_should_resolve_nested_objects():
+    wrapper = ResilientCallWrapper(
+        NestedFlaky(),
+        wait_policy=wait_incrementing(start=0, increment=0),
+        stop_policy=stop_after_attempt(2),
+    )
+
+    assert wrapper.client.flaky() == 1

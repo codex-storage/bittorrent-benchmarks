@@ -13,7 +13,7 @@ from tenacity import retry, wait_exponential, stop_after_attempt
 from tenacity.stop import stop_base
 from tenacity.wait import wait_base
 from torrentool.torrent import Torrent
-from typing_extensions import Generic, TypeVar
+from typing_extensions import TypeVar
 from urllib3.util import Url
 
 from benchmarks.core.experiments.experiments import ExperimentComponent
@@ -171,18 +171,25 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 T = TypeVar("T")
 
 
-class ResilientCallWrapper(Generic[T]):
-    def __init__(self, client: T, wait_policy: wait_base, stop_policy: stop_base):
-        self.client = client
+class ResilientCallWrapper:
+    def __init__(self, node: Any, wait_policy: wait_base, stop_policy: stop_base):
+        self.node = node
         self.wait_policy = wait_policy
         self.stop_policy = stop_policy
 
-    def __getattr__(self, item):
+    def __call__(self, *args, **kwargs):
         @retry(wait=self.wait_policy, stop=self.stop_policy)
-        def _resilient_wrapper(*args, **kwargs):
-            return getattr(self.client, item)(*args, **kwargs)
+        def _resilient_wrapper():
+            return self.node(*args, **kwargs)
 
-        return _resilient_wrapper
+        return _resilient_wrapper()
+
+    def __getattr__(self, item):
+        return ResilientCallWrapper(
+            getattr(self.node, item),
+            wait_policy=self.wait_policy,
+            stop_policy=self.stop_policy,
+        )
 
 
 class DelugeDownloadHandle(DownloadHandle):
