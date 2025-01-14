@@ -27,7 +27,7 @@ compute_pieces <- function(deluge_torrent_download, n_pieces) {
 }
 
 check_incomplete_downloads <- function(deluge_torrent_download, n_pieces) {
-  incomplete_downloads <- downloads |>
+  incomplete_downloads <- deluge_torrent_download |>
     group_by(node, seed_set, run) |>
     count() |>
     ungroup() |>
@@ -52,7 +52,7 @@ compute_download_times <- function(meta, request_event, deluge_torrent_download,
 
   download_start <- request_event |>
     select(-request_id) |>
-    filter(name == 'leech', type == 'RequestEventType.end') |>
+    filter(name == 'leech', type == 'RequestEventType.start') |>
     mutate(
       # We didn't log those on the runner side so I have to reconstruct them.
       run = rep(rep(
@@ -65,14 +65,15 @@ compute_download_times <- function(meta, request_event, deluge_torrent_download,
     transmute(node = destination, run, seed_set, seed_request_time = timestamp)
 
   download_times <- deluge_torrent_download |>
-    # FIXME remove this once we fix the chart
-    mutate(node = sub(pattern = glue::glue('-{group_id}$'), replacement = '', x = node)) |>
     left_join(download_start, by = c('node', 'run', 'seed_set')) |>
     mutate(
       elapsed_download_time = as.numeric(timestamp - seed_request_time)
     ) |>
     group_by(node, run, seed_set) |>
-    mutate(lookup_time = as.numeric(min(timestamp) - seed_request_time)) |>
+    mutate(
+      time_to_first_byte = min(timestamp),
+      lookup_time = as.numeric(time_to_first_byte - seed_request_time)
+    ) |>
     ungroup()
 
   if (nrow(download_times |>
@@ -95,7 +96,7 @@ check_seeder_count <- function(download_times, seeders) {
   nrow(mismatching_seeders) == 0
 }
 
-download_time_stats <- function(download_times) {
+download_stats <- function(download_times) {
   download_times |>
     filter(!is.na(elapsed_download_time)) |>
     group_by(piece_count, completed) |>
@@ -110,7 +111,26 @@ download_time_stats <- function(download_times) {
     )
 }
 
-compute_download_time_stats <- function(experiment) {
+completion_time_stats <- function(download_times) {
+  completion_times <- download_times |>
+    filter(!is.na(elapsed_download_time)) |>
+    pull(elapsed_download_time)
+
+
+  tibble(
+    min = min(completion_times),
+    p05 = quantile(completion_times, p = 0.05),
+    p10 = quantile(completion_times, p = 0.10),
+    p20 = quantile(completion_times, p = 0.20),
+    median = median(completion_times),
+    p80 = quantile(completion_times, p = 0.80),
+    p90 = quantile(completion_times, p = 0.90),
+    p95 = quantile(completion_times, p = 0.95),
+    max = max(completion_times)
+  )
+}
+
+download_times <- function(experiment) {
   meta <- experiment$meta
   pieces <- experiment |> piece_count()
   downloads <- experiment$deluge_torrent_download |>
@@ -141,16 +161,7 @@ compute_download_time_stats <- function(experiment) {
     return(NULL)
   }
 
-  network_size <- meta$nodes$network_size
-
-  download_times |>
-    download_time_stats() |>
-    mutate(
-      network_size = network_size,
-      seeders = meta$seeders,
-      leechers = network_size - meta$seeders,
-      file_size = meta$file_size
-    )
+  download_times
 }
 
 

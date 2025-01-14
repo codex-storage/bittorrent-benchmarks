@@ -11,27 +11,52 @@ devtools::load_all()
 ```
 
 ```{r}
-group_id <- 'g1736505161'
-```
-
-
-```{r}
 deluge <- read_all_experiments('./data/deluge')
 ```
 
 ```{r}
-lapply(deluge, function(experiment) {
+benchmarks <- lapply(deluge, function(experiment) {
   print(glue::glue('Process {experiment$experiment_id}'))
-  download_time_stats <- tryCatch(compute_download_time_stats(experiment), error = function(e) { print(e); NULL })
-  if (is.null(download_time_stats)) {
-    NULL
-  } else {
-    compute_compact_summary(download_time_stats)
-  }
+  download_time_stats <- tryCatch({
+    meta <- experiment$meta
+    completion <- experiment |>
+      download_times() |>
+      completion_time_stats()
+    
+    if (is.null(completion)) {
+      NULL
+    } else {
+      completion |> mutate(
+        network_size = meta$nodes$network_size,
+        seeders = meta$seeders,
+        leechers = network_size - meta$seeders,
+        file_size = meta$file_size
+      )
+    }
+  }, error = function(e) { print(e); NULL })
 }) |> 
   drop_nulls() |>
   bind_rows() |>
-  arrange(file_size, network_size, seeders, leechers)
+  arrange(file_size, network_size, seeders, leechers) |>
+  mutate(
+    file_size = as.character(rlang::parse_bytes(as.character(file_size))),
+    seeder_ratio = seeders/network_size
+  ) |>
+  relocate(file_size, network_size, seeders, leechers)
 ```
 
+```{r}
+benchmarks
+```
+
+
+```{r}
+ggplot(benchmarks |> filter(file_size == '104.86 MB')) +
+  geom_line(aes(x = network_size, y = median)) +
+  geom_point(aes(x = network_size, y = median)) +
+  ylab('median download time (seconds)') +
+  xlab('network size') +
+  theme_minimal() +
+  facet_wrap(seeder_ratio ~ file_size)
+```
 
