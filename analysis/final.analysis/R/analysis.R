@@ -37,7 +37,7 @@ check_incomplete_downloads <- function(deluge_torrent_download, n_pieces) {
 }
 
 check_mismatching_repetitions <- function(deluge_torrent_download, repetitions) {
-  mismatching_repetitions <- downloads |>
+  mismatching_repetitions <- deluge_torrent_download |>
     select(seed_set, node, run) |>
     distinct() |>
     group_by(seed_set, node) |>

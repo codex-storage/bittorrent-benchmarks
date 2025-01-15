@@ -1,18 +1,28 @@
 ---
-title: "static-dissemination.Rmd"
-output: html_document
-date: "2025-01-10"
+title: "Analysis for Deluge Benchmarks - Static Network Dissemination Experiment"
+output:
+  bookdown::html_notebook2:
+    number_sections: TRUE
+    toc: TRUE
+date: "2025-01-15"
 ---
 
-```{r}
+This document contains the analysis for the Deluge benchmarks.
+
+```{r message=FALSE}
 library(tidyverse)
 
 devtools::load_all()
 ```
 
+# Parse/Load Data
+
+This is data that's been pre-parsed from an experiment [log source](https://github.com/codex-storage/bittorrent-benchmarks/blob/1ee8ea8a35a2c0fccea6e7c955183c4ed03eebb3/benchmarks/logging/sources.py#L27).
+
 ```{r}
 deluge <- read_all_experiments('./data/deluge')
 ```
+Computes the benchmark statistics from raw download logs.
 
 ```{r}
 benchmarks <- lapply(deluge, function(experiment) {
@@ -45,18 +55,32 @@ benchmarks <- lapply(deluge, function(experiment) {
   relocate(file_size, network_size, seeders, leechers)
 ```
 
+# Results
+
+First, we present the raw data in tabular format:
+
 ```{r}
 benchmarks
 ```
 
+We then plot the median by network size, and facet it by seeder ratio and file size to see if looks sane:
 
-```{r}
-ggplot(benchmarks |> filter(file_size == '104.86 MB')) +
+```{r fig.width = 10, warning=FALSE, message=FALSE}
+ggplot(benchmarks) +
   geom_line(aes(x = network_size, y = median)) +
   geom_point(aes(x = network_size, y = median)) +
   ylab('median download time (seconds)') +
   xlab('network size') +
-  theme_minimal() +
-  facet_wrap(seeder_ratio ~ file_size)
+  theme_minimal(base_size=15) +
+  facet_grid(
+    file_size ~ seeder_ratio,
+    scales = 'free_y',
+    labeller = labeller(
+      file_size = as_labeller(function(x) x),
+      seeder_ratio = as_labeller(function(x) {
+        paste0("seeder ratio: ", scales::percent(as.numeric(x)))
+      }))
+  ) +
+  ylim(c(0,NA))
 ```
-
+The data looks largely sane: a larger seeder ratio makes performance somewhat better; though not nearly as consistently as one would hope, at least in this data, and there is a linear performance degradation trend as the network grows larger. Also, the $100\text{MB}$ file seems to generate much better-behaved data than the $1\text{GB}$ case with those trends; i.e., larger seeder ratio improving performance, and network size linearly degrading it, being more pronounced.
