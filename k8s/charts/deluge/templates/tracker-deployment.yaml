@@ -21,6 +21,10 @@ spec:
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
+      {{- with .Values.deployment.trackerNodePool }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: bittorrent-tracker
           image: codexstorage/bittorrent-tracker

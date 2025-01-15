@@ -12,3 +12,6 @@ spec:
   resources:
     requests:
       storage: {{ include "storage.size" . }}
+  {{- if .Values.deployment.storageClass }}
+  storageClassName: {{ .Values.deployment.storageClass }}
+  {{- end }}

@@ -20,6 +20,22 @@ spec:
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
+      {{- if not .Values.experiment.allowColocation }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - deluge-node
+              topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+      {{- with .Values.deployment.delugeNodePool }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: deluge-node
           image: codexstorage/deluge

@@ -16,3 +16,17 @@ experiment:
 deployment:
   pvcName: ""
   appName: ""
+
+  # If false, Deluge nodes will not be allowed to run on the same node.
+  allowColocation: true
+
+  # Labels for setting Deluge, tracker, and experiment runner node affinity towards pools.
+  # Example:
+  #   delugeNodePool:
+  #     workload: benchmarks
+  delugeNodePool: {}
+  trackerNodePool: {}
+  runnerNodePool: {}
+
+  # Storage class for persistent volume claims.
+  storageClass: ""
