@@ -6,8 +6,8 @@ from typing import Dict
 
 from pydantic_core import ValidationError
 
-from benchmarks.core.config import ConfigParser, ExperimentBuilder
-from benchmarks.core.experiments.experiments import Experiment
+from benchmarks.core.config import ConfigParser
+from benchmarks.core.experiments.experiments import Experiment, ExperimentBuilder
 from benchmarks.logging.logging import (
     basic_log_parser,
     LogSplitter,
@@ -22,7 +22,7 @@ from benchmarks.logging.sources import (
     split_logs_in_source,
 )
 
-config_parser = ConfigParser()
+config_parser = ConfigParser[ExperimentBuilder]()
 config_parser.register(DelugeExperimentConfig)
 
 log_parser = basic_log_parser()

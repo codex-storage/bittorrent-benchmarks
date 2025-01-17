@@ -13,7 +13,6 @@ from tenacity import retry, wait_exponential, stop_after_attempt
 from tenacity.stop import stop_base
 from tenacity.wait import wait_base
 from torrentool.torrent import Torrent
-from typing_extensions import TypeVar
 from urllib3.util import Url
 
 from benchmarks.core.experiments.experiments import ExperimentComponent
@@ -166,9 +165,6 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
 
     def __str__(self):
         return f"DelugeNode({self.name}, {self.daemon_args['host']}:{self.daemon_args['port']})"
-
-
-T = TypeVar("T")
 
 
 class ResilientCallWrapper:

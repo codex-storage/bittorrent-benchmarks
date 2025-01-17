@@ -6,39 +6,43 @@ from io import TextIOBase
 from typing import Type, Dict, TextIO
 
 import yaml
-from typing_extensions import Generic, overload
+from typing_extensions import Generic, overload, TypeVar
 
-from benchmarks.core.experiments.experiments import TExperiment
 from benchmarks.core.pydantic import SnakeCaseModel
 
+T = TypeVar("T")
 
-class ExperimentBuilder(SnakeCaseModel, Generic[TExperiment]):
-    """:class:`ExperimentBuilders` can build real :class:`Experiment`s out of :class:`ConfigModel`s."""
+
+class Builder(SnakeCaseModel, Generic[T]):
+    """:class:`Builder` is a configuration model that can build useful objects."""
 
     @abstractmethod
-    def build(self) -> TExperiment:
+    def build(self) -> T:
         pass
 
 
-class ConfigParser:
+TBuilder = TypeVar("TBuilder", bound=Builder)
+
+
+class ConfigParser(Generic[TBuilder]):
     """
-    :class:`ConfigParser` is a utility class to parse configuration files into :class:`ExperimentBuilder`s.
-    Currently, each :class:`ExperimentBuilder` can appear at most once in the config file.
+    :class:`ConfigParser` is a utility class to parse configuration files into :class:`Builder`s.
+    Currently, each :class:`Builder` type can appear at most once in the config file.
     """
 
     def __init__(self):
         self.experiment_types = {}
 
-    def register(self, root: Type[ExperimentBuilder[TExperiment]]):
+    def register(self, root: Type[TBuilder]):
         self.experiment_types[root.alias()] = root
 
     @overload
-    def parse(self, data: dict) -> Dict[str, ExperimentBuilder[TExperiment]]: ...
+    def parse(self, data: dict) -> Dict[str, TBuilder]: ...
 
     @overload
-    def parse(self, data: TextIO) -> Dict[str, ExperimentBuilder[TExperiment]]: ...
+    def parse(self, data: TextIO) -> Dict[str, TBuilder]: ...
 
-    def parse(self, data: dict | TextIO) -> Dict[str, ExperimentBuilder[TExperiment]]:
+    def parse(self, data: dict | TextIO) -> Dict[str, TBuilder]:
         if isinstance(data, TextIOBase):
             entries = yaml.safe_load(os.path.expandvars(data.read()))
         else:

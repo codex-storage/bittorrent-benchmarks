@@ -8,6 +8,8 @@ from typing import List, Optional
 
 from typing_extensions import Generic, TypeVar
 
+from benchmarks.core.config import Builder
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +23,8 @@ class Experiment(ABC):
 
 
 TExperiment = TypeVar("TExperiment", bound=Experiment)
+
+ExperimentBuilder = Builder[TExperiment]
 
 
 class ExperimentWithLifecycle(Experiment):

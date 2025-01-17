@@ -6,11 +6,11 @@ from pydantic import BaseModel, Field, model_validator, HttpUrl
 from torrentool.torrent import Torrent
 from urllib3.util import parse_url
 
-from benchmarks.core.config import ExperimentBuilder
 from benchmarks.core.experiments.experiments import (
     IteratedExperiment,
     ExperimentEnvironment,
     BoundExperiment,
+    ExperimentBuilder,
 )
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.pydantic import Host
