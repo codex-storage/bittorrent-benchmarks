@@ -9,6 +9,8 @@ SHELL := bash
 		tests \
 		unit-docker \
 		integration-docker \
+		image-test \
+		image-release \
 		clean
 
 # Runs the unit tests locally.
@@ -31,18 +33,13 @@ integration:
 
 tests: unit integration
 
-docker/.lastbuilt-test.timestamp: docker/bittorrent-benchmarks.Dockerfile
+# Builds the test image required for local dockerized integration tests.
+image-test:
 	docker build -t bittorrent-benchmarks:test -f ./docker/bittorrent-benchmarks.Dockerfile .
-	touch docker/.lastbuilt-test.timestamp
 
-docker/.lastbuilt-release.timestamp: docker/bittorrent-benchmarks.Dockerfile
+image-release:
 	docker build -t bittorrent-benchmarks:test --build-arg BUILD_TYPE="release" \
 		-f ./docker/bittorrent-benchmarks.Dockerfile .
-	touch docker/.lastbuilt-release.timestamp
-
-# Builds the test image required for local dockerized integration tests.
-image-test: docker/.lastbuilt-test.timestamp
-image-release: docker/.lastbuilt-release.timestamp
 
 # Runs the unit tests in a docker container.
 unit-docker: image-test
