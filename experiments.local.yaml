@@ -12,11 +12,17 @@ deluge_experiment:
       address: ${DELUGE_NODE_1:-localhost}
       daemon_port: 6890
       listen_ports: [ 6891, 6892 ]
+      agent_url: http://${DELUGE_AGENT_1:-localhost}:9001/
     - name: deluge-2
       address: ${DELUGE_NODE_2:-localhost}
       daemon_port: 6893
       listen_ports: [ 6894, 6895 ]
-    - name: deluge-2
+      agent_url: http://${DELUGE_AGENT_2:-localhost}:9002/
+    - name: deluge-3
       address: ${DELUGE_NODE_3:-localhost}
       daemon_port: 6896
       listen_ports: [ 6897, 6898 ]
+      agent_url: http://${DELUGE_AGENT_3:-localhost}:9003/
+
+deluge_agent:
+  torrents_path: /var/lib/deluge/downloads

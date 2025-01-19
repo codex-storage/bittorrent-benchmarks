@@ -6,14 +6,13 @@ from typing import Sequence, Optional
 from typing_extensions import Generic, List, Tuple
 
 from benchmarks.core.experiments.experiments import ExperimentWithLifecycle
-from benchmarks.logging.logging import RequestEvent, RequestEventType
 from benchmarks.core.network import (
     TInitialMetadata,
     TNetworkHandle,
     Node,
     DownloadHandle,
 )
-from benchmarks.core.utils import ExperimentData
+from benchmarks.logging.logging import RequestEvent, RequestEventType
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +24,18 @@ class StaticDisseminationExperiment(
         self,
         network: Sequence[Node[TNetworkHandle, TInitialMetadata]],
         seeders: List[int],
-        data: ExperimentData[TInitialMetadata],
+        meta: TInitialMetadata,
+        file_size: int,
+        seed: int,
         concurrency: Optional[int] = None,
         logging_cooldown: int = 0,
     ) -> None:
         self.nodes = network
         self.seeders = seeders
-        self.data = data
+        self.meta = meta
+        self.file_size = file_size
+        self.seed = seed
+
         self._pool = ThreadPool(
             processes=len(network) - len(seeders)
             if concurrency is None
@@ -52,47 +56,40 @@ class StaticDisseminationExperiment(
             len(leechers),
         )
 
-        with self.data as (meta, data):
-            for node in seeders:
-                _log_request(node, "seed", str(meta), RequestEventType.start)
-                self._cid = node.seed(data, meta if self._cid is None else self._cid)
-                _log_request(node, "seed", str(meta), RequestEventType.end)
+        for node in seeders:
+            _log_request(node, "genseed", str(self.meta), RequestEventType.start)
+            self._cid = node.genseed(self.file_size, self.seed, self.meta)
+            _log_request(node, "genseed", str(self.meta), RequestEventType.end)
 
-            assert self._cid is not None  # to please mypy
+        assert self._cid is not None  # to please mypy
 
-            logger.info(
-                f"Setting up leechers: {[str(leecher) for leecher in leechers]}"
-            )
+        logger.info(f"Setting up leechers: {[str(leecher) for leecher in leechers]}")
 
-            def _leech(leecher):
-                _log_request(leecher, "leech", str(meta), RequestEventType.start)
-                download = leecher.leech(self._cid)
-                _log_request(leecher, "leech", str(meta), RequestEventType.end)
-                return download
+        def _leech(leecher):
+            _log_request(leecher, "leech", str(self.meta), RequestEventType.start)
+            download = leecher.leech(self._cid)
+            _log_request(leecher, "leech", str(self.meta), RequestEventType.end)
+            return download
 
-            downloads = list(self._pool.imap_unordered(_leech, leechers))
+        downloads = list(self._pool.imap_unordered(_leech, leechers))
 
-            logger.info("Now waiting for downloads to complete")
+        logger.info("Now waiting for downloads to complete")
 
-            def _await_for_download(element: Tuple[int, DownloadHandle]) -> int:
-                index, download = element
-                if not download.await_for_completion():
-                    raise Exception(
-                        f"Download ({index}, {str(download)}) did not complete in time."
-                    )
-                return index
+        def _await_for_download(element: Tuple[int, DownloadHandle]) -> int:
+            index, download = element
+            if not download.await_for_completion():
+                raise Exception(
+                    f"Download ({index}, {str(download)}) did not complete in time."
+                )
+            return index
 
-            for i in self._pool.imap_unordered(
-                _await_for_download, enumerate(downloads)
-            ):
-                logger.info("Download %d / %d completed", i + 1, len(downloads))
+        for i in self._pool.imap_unordered(_await_for_download, enumerate(downloads)):
+            logger.info("Download %d / %d completed", i + 1, len(downloads))
 
-            # FIXME this is a hack to ensure that nodes get a chance to log their data before we
-            #   run the teardown hook and remove the torrents.
-            logger.info(
-                f"Waiting for {self.logging_cooldown} seconds before teardown..."
-            )
-            sleep(self.logging_cooldown)
+        # FIXME this is a hack to ensure that nodes get a chance to log their data before we
+        #   run the teardown hook and remove the torrents.
+        logger.info(f"Waiting for {self.logging_cooldown} seconds before teardown...")
+        sleep(self.logging_cooldown)
 
     def teardown(self, exception: Optional[Exception] = None):
         def _remove(element: Tuple[int, Node[TNetworkHandle, TInitialMetadata]]):

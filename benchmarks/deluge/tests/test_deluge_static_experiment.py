@@ -2,7 +2,7 @@ import pytest
 
 from benchmarks.core.experiments.experiments import ExperimentEnvironment
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
-from benchmarks.core.utils import RandomTempData, megabytes
+from benchmarks.core.utils import megabytes
 from benchmarks.deluge.deluge_node import DelugeMeta
 from benchmarks.deluge.tests.test_deluge_node import assert_is_seed
 
@@ -20,10 +20,9 @@ def test_should_run_with_a_single_seeder(
     experiment = StaticDisseminationExperiment(
         network=[deluge_node1, deluge_node2, deluge_node3],
         seeders=[1],
-        data=RandomTempData(
-            size=size,
-            meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
-        ),
+        file_size=size,
+        seed=1234,
+        meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
     )
 
     env.await_ready()
@@ -51,10 +50,9 @@ def test_should_run_with_multiple_seeders(
     experiment = StaticDisseminationExperiment(
         network=[deluge_node1, deluge_node2, deluge_node3],
         seeders=[1, 2],
-        data=RandomTempData(
-            size=size,
-            meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
-        ),
+        file_size=size,
+        seed=1234,
+        meta=DelugeMeta("dataset-1", announce_url=tracker.announce_url),
     )
 
     env.await_ready()

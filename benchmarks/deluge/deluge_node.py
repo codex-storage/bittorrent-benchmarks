@@ -5,7 +5,7 @@ import socket
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import List, Union, Optional, Self, Dict, Any
+from typing import List, Optional, Self, Dict, Any
 
 import pathvalidate
 from deluge_client import DelugeRPCClient
@@ -16,8 +16,9 @@ from torrentool.torrent import Torrent
 from urllib3.util import Url
 
 from benchmarks.core.experiments.experiments import ExperimentComponent
-from benchmarks.core.network import SharedFSNode, DownloadHandle
+from benchmarks.core.network import DownloadHandle
 from benchmarks.core.utils import await_predicate
+from benchmarks.deluge.agent.client import DelugeAgentClient
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,13 @@ class DelugeMeta:
     announce_url: Url
 
 
-class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
+class DelugeNode(ExperimentComponent):
     def __init__(
         self,
         name: str,
         volume: Path,
         daemon_port: int,
+        agent_url: Url = Url(scheme="http", host="localhost", port=8000),
         daemon_address: str = "localhost",
         daemon_username: str = "user",
         daemon_password: str = "password",
@@ -45,7 +47,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             raise ValueError(f'Node name must be a valid filename (bad name: "{name}")')
 
         self._name = name
-        self.downloads_root = volume / name / "downloads"
+        self.downloads_root = volume / "downloads"
 
         self._rpc: Optional[DelugeRPCClient] = None
         self.daemon_args = {
@@ -55,9 +57,7 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             "password": daemon_password,
         }
 
-        super().__init__(self.downloads_root)
-
-        self._init_folders()
+        self.agent = DelugeAgentClient(agent_url)
 
     @property
     def name(self) -> str:
@@ -80,27 +80,17 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             # folder after your check, so this is the only sane way to do it.
             pass
 
-        self._init_folders()
-
-    def seed(
+    def genseed(
         self,
-        file: Path,
-        handle: Union[DelugeMeta, Torrent],
+        size: int,
+        seed: int,
+        meta: DelugeMeta,
     ) -> Torrent:
-        data_root = self.downloads_root / handle.name
-        data_root.mkdir(parents=True, exist_ok=False)
-
-        target = self.upload(local=file, name=handle.name)
-
-        if isinstance(handle, DelugeMeta):
-            torrent = Torrent.create_from(target.parent)
-            torrent.announce_urls = handle.announce_url.url
-            torrent.name = handle.name
-        else:
-            torrent = handle
+        torrent = self.agent.generate(size, seed, meta.name)
+        torrent.announce_urls = [str(meta.announce_url)]
 
         self.rpc.core.add_torrent_file(
-            filename=f"{handle.name}.torrent",
+            filename=f"{meta.name}.torrent",
             filedump=self._b64dump(torrent),
             options=dict(),
         )
@@ -153,9 +143,6 @@ class DelugeNode(SharedFSNode[Torrent, DelugeMeta], ExperimentComponent):
             return True
         except (ConnectionRefusedError, socket.gaierror):
             return False
-
-    def _init_folders(self):
-        self.downloads_root.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def _b64dump(handle: Torrent) -> bytes:

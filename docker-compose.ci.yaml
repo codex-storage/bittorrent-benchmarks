@@ -3,47 +3,15 @@ services:
   test-runner:
     image: bittorrent-benchmarks:test
     container_name: test-runner
-    volumes:
-      - shared-volume:/opt/bittorrent-benchmarks/volume
-    entrypoint: [ "bash", "-c", "/opt/bittorrent-benchmarks/docker/bin/run-tests.sh" ]
-    healthcheck:
-      test: stat /opt/bittorrent-benchmarks/volume/.initialized
-      interval: 1s
-      timeout: 5s
-      retries: 150
-
-  deluge-1:
-    volumes: !override
-      - type: volume
-        source: shared-volume
-        target: /var/lib/deluge
-        volume:
-          subpath: deluge-1
+    entrypoint: [ "poetry", "run", "pytest", "--exitfirst" ]
+    environment:
+      - DELUGE_NODE_1=deluge-1
+      - DELUGE_NODE_2=deluge-2
+      - DELUGE_NODE_3=deluge-3
+      - DELUGE_AGENT_1=http://agent-1:9001/
+      - DELUGE_AGENT_2=http://agent-2:9002/
+      - DELUGE_AGENT_3=http://agent-3:9003/
+      - TRACKER_ANNOUNCE_URL=http://tracker:8000/announce
     depends_on:
-      test-runner:
+      clean-volumes:
         condition: service_healthy
-
-  deluge-2:
-    volumes: !override
-      - type: volume
-        source: shared-volume
-        target: /var/lib/deluge
-        volume:
-          subpath: deluge-2
-    depends_on:
-      test-runner:
-        condition: service_healthy
-
-  deluge-3:
-    volumes: !override
-      - type: volume
-        source: shared-volume
-        target: /var/lib/deluge
-        volume:
-          subpath: deluge-3
-    depends_on:
-      test-runner:
-        condition: service_healthy
-
-volumes:
-  shared-volume:

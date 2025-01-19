@@ -30,8 +30,9 @@ class ConfigParser(Generic[TBuilder]):
     Currently, each :class:`Builder` type can appear at most once in the config file.
     """
 
-    def __init__(self):
-        self.experiment_types = {}
+    def __init__(self, ignore_unknown: bool = True) -> None:
+        self.experiment_types: Dict[str, Type[TBuilder]] = {}
+        self.ignore_unknown = ignore_unknown
 
     def register(self, root: Type[TBuilder]):
         self.experiment_types[root.alias()] = root
@@ -51,4 +52,5 @@ class ConfigParser(Generic[TBuilder]):
         return {
             tag: self.experiment_types[tag].model_validate(config)
             for tag, config in entries.items()
+            if tag in self.experiment_types or not self.ignore_unknown
         }

@@ -1,8 +1,6 @@
-import shutil
 from abc import abstractmethod, ABC
-from pathlib import Path
 
-from typing_extensions import Generic, TypeVar, Union
+from typing_extensions import Generic, TypeVar
 
 TNetworkHandle = TypeVar("TNetworkHandle")
 TInitialMetadata = TypeVar("TInitialMetadata")
@@ -30,20 +28,20 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         pass
 
     @abstractmethod
-    def seed(
+    def genseed(
         self,
-        file: Path,
-        handle: Union[TInitialMetadata, TNetworkHandle],
+        size: int,
+        seed: int,
+        meta: TInitialMetadata,
     ) -> TNetworkHandle:
         """
-        Makes the current :class:`Node` a seeder for the specified file.
+        Generates a random file of given size and makes the current node a seeder for it. Identical seeds,
+        metadata, and sizes should result in identical network handles.
 
-        :param file: local path to the file to seed.
-        :param handle: file sharing typically requires some initial metadata when a file is first uploaded into the
-            network, and this will typically then result into a compact representation such as a manifest CID (Codex)
-            or a Torrent file (Bittorrent) which other nodes can then use to identify and locate both the file and its
-            metadata within the network. When doing an initial seed, this method should be called with the initial
-            metadata (TInitialMetadata). Subsequent calls should use the network handle (TNetworkHandle).
+        :param size: The size of the file to be seeded.
+        :param seed: The seed for the random number generator producing the file.
+        :param meta: Additional, client-specific metadata relevant to the seeding process. For torrents,
+            this could be the name of the torrent.
 
         :return: The network handle (TNetworkHandle) for this file. This handle should be used for subsequent calls to
             :meth:`seed`.
@@ -64,22 +62,3 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         seeding it. For leechers, it will stop downloading it. In both cases, the file will be removed from the node's
         storage."""
         pass
-
-
-class SharedFSNode(Node[TNetworkHandle, TInitialMetadata], ABC):
-    """A `SharedFSNode` is a :class:`Node` which shares a network volume with us. This means
-    we are able to upload files to it by means of simple file copies."""
-
-    def __init__(self, volume: Path):
-        self.volume = volume
-
-    def upload(self, local: Path, name: str) -> Path:
-        target_path = self.volume / name
-        target_path.mkdir(parents=True, exist_ok=True)
-        target = target_path / local.name
-        if local.is_dir():
-            shutil.copytree(local, target)
-        else:
-            shutil.copy(local, target)
-
-        return target

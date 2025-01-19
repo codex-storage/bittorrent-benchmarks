@@ -10,7 +10,7 @@ WORKDIR /opt/bittorrent-benchmarks
 COPY pyproject.toml poetry.lock ./
 RUN if [ "$BUILD_TYPE" = "release" ]; then \
       echo "Image is a release build"; \
-      poetry install --only main --no-root; \
+      poetry install --without dev --no-root; \
     else \
       echo "Image is a test build";  \
       poetry install --no-root;  \

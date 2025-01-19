@@ -2,7 +2,6 @@
 .idea
 .vscode
 /volume/deluge*
-*.timestamp
 .RData
 .Rhistory
 .Rproj.user
