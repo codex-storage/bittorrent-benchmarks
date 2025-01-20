@@ -143,6 +143,10 @@ spec:
                   parameters:
                     - name: runId
                       value: "{{inputs.parameters.runId}}"
+                    - name: runnerImage
+                      value: "{{inputs.parameters.runnerImage}}"
+                    - name: imagePullPolicy
+                      value: "{{inputs.parameters.imagePullPolicy}}"
             arguments:
               parameters:
                 - name: groupId
