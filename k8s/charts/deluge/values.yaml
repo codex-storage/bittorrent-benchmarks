@@ -17,7 +17,6 @@ experiment:
   testRunner: true
 
 deployment:
-  pvcName: ""
   appName: ""
 
   # If false, Deluge nodes will not be allowed to run on the same node.
@@ -33,6 +32,3 @@ deployment:
   delugeNodePool: {}
   trackerNodePool: {}
   runnerNodePool: {}
-
-  # Storage class for persistent volume claims.
-  storageClass: ""
