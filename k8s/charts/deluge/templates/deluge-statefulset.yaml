@@ -20,7 +20,7 @@ spec:
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
 
     spec:
-      {{- if not .Values.experiment.allowColocation }}
+      {{- if not .Values.deployment.allowColocation }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -57,23 +57,26 @@ spec:
           args:
             - |
               export DELUGE_NODE_ID=${CLIENT_POD_NAME}
-              # Sadly we can't mount a subpath, so need add the correct prefix
-              # into all of the config directories.
-              export DELUGE_CONFIG_DIR=/var/lib/deluge/${CLIENT_POD_NAME}
-              export DELUGE_DOWNLOAD_DIR=${DELUGE_CONFIG_DIR}/downloads
-              export DELUGE_TORRENTFILE_DIR=${DELUGE_CONFIG_DIR}/downloads
-              export DELUGE_PLUGINS_DIR=${DELUGE_CONFIG_DIR}/plugins
-              
-              # Makes sure there's no previous garbage in there.
-              rm -rf ${DELUGE_CONFIG_DIR}
-              mkdir -p ${DELUGE_CONFIG_DIR}
-              
+              # Makes sure there's no previous garbage in the config dir.
+              rm -rf ${DELUGE_CONFIG_DIR}/*
               ${DELUGE_APP}/docker/bin/start.sh
           volumeMounts:
-            - name: deluge-{{ .Release.Name }}-volume
+            - name: deluge-node-storage
+              mountPath: /var/lib/deluge
+
+        - name: deluge-agent
+          image: {{ include "benchmark.harness.image" . }}
+          imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
+          command: [
+            "poetry", "run", "bittorrent-benchmarks",
+            "agent", "experiments.k8s.yaml", "deluge_agent", "--port", "9001"
+          ]
+          ports:
+            - containerPort: 9001
+          volumeMounts:
+            - name: deluge-node-storage
               mountPath: /var/lib/deluge
 
       volumes:
-        - name: deluge-{{ .Release.Name }}-volume
-          persistentVolumeClaim:
-            claimName: {{ include "deluge.pvc" . }}
+        - name: deluge-node-storage
+          emptyDir: { }

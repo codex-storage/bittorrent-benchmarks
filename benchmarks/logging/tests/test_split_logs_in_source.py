@@ -1,13 +1,12 @@
 import datetime
 from io import StringIO
 
+from benchmarks.logging.logging import LogEntry, LogParser
 from benchmarks.logging.sources import (
     VectorFlatFileSource,
-    OutputManager,
     split_logs_in_source,
 )
-
-from benchmarks.logging.logging import LogEntry, LogParser
+from benchmarks.logging.tests.utils import InMemoryOutputManager
 from benchmarks.tests.utils import make_jsonl, compact
 
 EXPERIMENT_LOG = [
@@ -62,27 +61,6 @@ EXPERIMENT_LOG = [
         '"value":0.246,"node":"node3","entry_type":"metrics_event"}',
     },
 ]
-
-
-class InMemoryOutputManager(OutputManager):
-    def __init__(self):
-        self.fs = {}
-
-    def _open(self, relative_path):
-        root = self.fs
-        for element in relative_path.parts[:-1]:
-            subtree = root.get(element)
-            if subtree is None:
-                subtree = {}
-                root[element] = subtree
-            root = subtree
-
-        output = StringIO()
-        root[relative_path.parts[-1]] = output
-        return output
-
-    def __exit__(self, exc_type, exc_value, traceback, /):
-        pass
 
 
 class MetricsEvent(LogEntry):

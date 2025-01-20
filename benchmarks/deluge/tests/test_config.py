@@ -20,6 +20,7 @@ def test_should_expand_node_sets_into_simple_nodes():
         network_size=4,
         daemon_port=6080,
         listen_ports=[6081, 6082],
+        agent_url="http://deluge-{node_index}.local.svc:8000",
     )
 
     assert nodeset.nodes == [
@@ -28,24 +29,28 @@ def test_should_expand_node_sets_into_simple_nodes():
             address="deluge-1.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
+            agent_url="http://deluge-1.local.svc:8000",
         ),
         DelugeNodeConfig(
             name="custom-2",
             address="deluge-2.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
+            agent_url="http://deluge-2.local.svc:8000",
         ),
         DelugeNodeConfig(
             name="custom-3",
             address="deluge-3.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
+            agent_url="http://deluge-3.local.svc:8000",
         ),
         DelugeNodeConfig(
             name="custom-4",
             address="deluge-4.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
+            agent_url="http://deluge-4.local.svc:8000",
         ),
     ]
 
@@ -58,6 +63,7 @@ def test_should_respect_first_node_index():
         daemon_port=6080,
         listen_ports=[6081, 6082],
         first_node_index=5,
+        agent_url="http://localhost:8000",
     )
 
     assert nodeset.nodes == [
@@ -66,12 +72,14 @@ def test_should_respect_first_node_index():
             address="deluge-5.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
+            agent_url="http://localhost:8000",
         ),
         DelugeNodeConfig(
             name="deluge-6",
             address="deluge-6.local.svc",
             daemon_port=6080,
             listen_ports=[6081, 6082],
+            agent_url="http://localhost:8000",
         ),
     ]
 
@@ -91,6 +99,7 @@ def test_should_build_experiment_from_config():
         address: 'node-{node_index}.deluge.codexbenchmarks.svc.cluster.local'
         daemon_port: 6890
         listen_ports: [ 6891, 6892 ]
+        agent_url: 'http://node-{node_index}.deluge.codexbenchmarks.svc.cluster.local:8080'
     """)
 
     config = DelugeExperimentConfig.model_validate(
@@ -126,6 +135,7 @@ def test_should_create_n_repetitions_per_seeder_set():
         address: 'node-{node_index}.deluge.codexbenchmarks.svc.cluster.local'
         daemon_port: 6890
         listen_ports: [ 6891, 6892 ]
+        agent_url: 'http://node-{node_index}.deluge.codexbenchmarks.svc.cluster.local:8080'
     """)
 
     config = DelugeExperimentConfig.model_validate(

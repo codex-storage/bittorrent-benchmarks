@@ -1,3 +1,4 @@
+import random
 from itertools import islice
 from pathlib import Path
 from typing import List
@@ -14,7 +15,8 @@ from benchmarks.core.experiments.experiments import (
 )
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.pydantic import Host
-from benchmarks.core.utils import sample, RandomTempData
+from benchmarks.core.utils import sample
+from benchmarks.deluge.agent.client import DelugeAgentClient
 from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode
 from benchmarks.deluge.tracker import Tracker
 
@@ -24,6 +26,7 @@ class DelugeNodeConfig(BaseModel):
     address: Host
     daemon_port: int
     listen_ports: list[int] = Field(min_length=2, max_length=2)
+    agent_url: HttpUrl
 
 
 class DelugeNodeSetConfig(BaseModel):
@@ -34,6 +37,7 @@ class DelugeNodeSetConfig(BaseModel):
     listen_ports: list[int] = Field(min_length=2, max_length=2)
     first_node_index: int = 1
     nodes: List[DelugeNodeConfig] = []
+    agent_url: str
 
     @model_validator(mode="after")
     def expand_nodes(self):
@@ -43,6 +47,7 @@ class DelugeNodeSetConfig(BaseModel):
                 address=self.address.format(node_index=str(i)),
                 daemon_port=self.daemon_port,
                 listen_ports=self.listen_ports,
+                agent_url=self.agent_url.format(node_index=str(i)),
             )
             for i in range(
                 self.first_node_index, self.first_node_index + self.network_size
@@ -91,12 +96,18 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
             else self.nodes
         )
 
+        agents = [
+            DelugeAgentClient(parse_url(str(node_spec.agent_url)))
+            for node_spec in nodes_specs
+        ]
+
         network = [
             DelugeNode(
                 name=node_spec.name,
                 volume=self.shared_volume_path,
                 daemon_port=node_spec.daemon_port,
                 daemon_address=str(node_spec.address),
+                agent=agents[i],
             )
             for i, node_spec in enumerate(nodes_specs)
         ]
@@ -104,7 +115,8 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
         tracker = Tracker(parse_url(str(self.tracker_announce_url)))
 
         env = ExperimentEnvironment(
-            components=network + [tracker],
+            components=network + agents + [tracker],
+            ping_max=10,
             polling_interval=0.5,
         )
 
@@ -116,12 +128,11 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
                         StaticDisseminationExperiment(
                             network=network,
                             seeders=seeders,
-                            data=RandomTempData(
-                                size=self.file_size,
-                                meta=DelugeMeta(
-                                    f"dataset-{seeder_set}-{experiment_run}",
-                                    announce_url=tracker.announce_url,
-                                ),
+                            file_size=self.file_size,
+                            seed=random.randint(0, 2**16),
+                            meta=DelugeMeta(
+                                f"dataset-{seeder_set}-{experiment_run}",
+                                announce_url=tracker.announce_url,
                             ),
                             logging_cooldown=self.logging_cooldown,
                         )

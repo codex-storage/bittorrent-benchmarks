@@ -12,9 +12,11 @@ spec:
       - name: seederSets
         value: 2
       - name: fileSize
-        value: '["100MB", "1GB", "5GB"]'
+        value: '["100MB", "1GB"]'
       - name: constrained__networkSize_seeders
         value: "[[2, 1], [8, [1, 2, 4]], [16, [1, 2, 4, 8]], [32, [1, 2, 4, 8, 16]]]"
+      - name: minikubeEnv
+        value: "true"
       - name: maxExperimentDuration
         value: 144h
 
@@ -22,11 +24,26 @@ spec:
     - name: benchmark-workflow
       parallelism: 1
       steps:
+        - - name: define-image-settings
+            template: define-image-settings
+
         - - name: generate-group-id
             template: generate-group-id
+            arguments:
+              parameters:
+                - name: runnerImage
+                  value: "{{steps.define-image-settings.outputs.parameters.image}}"
+                - name: imagePullPolicy
+                  value: "{{steps.define-image-settings.outputs.parameters.imagePullPolicy}}"
 
         - - name: expand-parameter-matrix
             template: expand-parameter-matrix
+            arguments:
+              parameters:
+                - name: runnerImage
+                  value: "{{steps.define-image-settings.outputs.parameters.image}}"
+                - name: imagePullPolicy
+                  value: "{{steps.define-image-settings.outputs.parameters.imagePullPolicy}}"
 
         - - name: benchmark-experiment
             template: wrapped-benchmark-experiment
@@ -46,19 +63,57 @@ spec:
                   value: "{{item.seeders}}"
                 - name: repetitions
                   value: "{{item.repetitions}}"
+                - name: runnerImage
+                  value: "{{steps.define-image-settings.outputs.parameters.image}}"
+                - name: imagePullPolicy
+                  value: "{{steps.define-image-settings.outputs.parameters.imagePullPolicy}}"
 
             withParam: "{{steps.expand-parameter-matrix.outputs.result}}"
 
-    - name: expand-parameter-matrix
+
+    - name: define-image-settings
+      # I think this goes to show just how clumsy Argo Workflows is. If I want to select
+      # an image name and a pull policy from a workflow parameter, I need this. Sad.
       script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        image: busybox:latest
+        command: ["sh", "-c"]
+        source: |
+          if [ "{{workflow.parameters.minikubeEnv}}" == "true"]; then
+            echo "codexstorage/bittorrent-benchmarks-workflows:latest" > /tmp/image.txt
+            echo "Always" > /tmp/imagePullPolicy.txt
+          else
+            echo "bittorrent-benchmarks-workflows:minikube" > /tmp/image.txt
+            echo "Never" > /tmp/imagePullPolicy.txt
+          fi
+      outputs:
+        parameters:
+          - name: image
+            valueFrom:
+              path: /tmp/image.txt
+          - name: imagePullPolicy
+            valueFrom:
+              path: /tmp/imagePullPolicy.txt
+
+    - name: expand-parameter-matrix
+      inputs:
+        parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
+      script:
+        image: '{{inputs.parameters.runnerImage}}'
+        imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "python", "-m", "parameter_expander" ]
         args:
           - "{{ workflow.parameters.json }}"
 
     - name: generate-group-id
+      inputs:
+        parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
       script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        image: '{{inputs.parameters.runnerImage}}'
+        imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "/bin/bash" ]
         source: |
           echo "$(date +%s)"
@@ -69,6 +124,8 @@ spec:
     - name: wrapped-benchmark-experiment
       inputs:
         parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
           - name: groupId
           - name: runId
           - name: fileSize
@@ -86,6 +143,10 @@ spec:
                   parameters:
                     - name: runId
                       value: "{{inputs.parameters.runId}}"
+                    - name: runnerImage
+                      value: "{{inputs.parameters.runnerImage}}"
+                    - name: imagePullPolicy
+                      value: "{{inputs.parameters.imagePullPolicy}}"
             arguments:
               parameters:
                 - name: groupId
@@ -102,10 +163,17 @@ spec:
                   value: "{{inputs.parameters.seeders}}"
                 - name: repetitions
                   value: "{{inputs.parameters.repetitions}}"
+                - name: runnerImage
+                  value: "{{inputs.parameters.runnerImage}}"
+                - name: imagePullPolicy
+                  value: "{{inputs.parameters.imagePullPolicy}}"
+
 
     - name: benchmark-experiment
       inputs:
         parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
           - name: groupId
           - name: runId
           - name: fileSize
@@ -119,6 +187,10 @@ spec:
             template: deploy-experiment
             arguments:
               parameters:
+                - name: runnerImage
+                  value: "{{inputs.parameters.runnerImage}}"
+                - name: imagePullPolicy
+                  value: "{{inputs.parameters.imagePullPolicy}}"
                 - name: groupId
                   value: "{{inputs.parameters.groupId}}"
                 - name: runId
@@ -138,6 +210,10 @@ spec:
             template: wait-for-experiment
             arguments:
               parameters:
+                - name: runnerImage
+                  value: "{{inputs.parameters.runnerImage}}"
+                - name: imagePullPolicy
+                  value: "{{inputs.parameters.imagePullPolicy}}"
                 - name: groupId
                   value: "{{inputs.parameters.groupId}}"
                 - name: runId
@@ -153,9 +229,12 @@ spec:
           - name: networkSize
           - name: seeders
           - name: repetitions
+          - name: runnerImage
+          - name: imagePullPolicy
 
       script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        image: '{{inputs.parameters.runnerImage}}'
+        imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "/bin/bash" ]
         source: |
           helm install e{{inputs.parameters.runId}} ./k8s/charts/deluge\
@@ -165,15 +244,19 @@ spec:
             --set experiment.fileSize={{inputs.parameters.fileSize}}\
             --set experiment.networkSize={{inputs.parameters.networkSize}}\
             --set experiment.seeders={{inputs.parameters.seeders}}\
-            --set experiment.seederSets={{inputs.parameters.seederSets}}
+            --set experiment.seederSets={{inputs.parameters.seederSets}}\
+            --set deployment.minikubeEnv={{workflow.parameters.minikubeEnv}}
 
     - name: wait-for-experiment
       inputs:
         parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
           - name: groupId
           - name: runId
       script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        image: '{{inputs.parameters.runnerImage}}'
+        imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "/bin/bash" ]
         source: |
           ./docker/bin/kubectl-wait-job\
@@ -186,9 +269,12 @@ spec:
     - name: cleanup
       inputs:
         parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
           - name: runId
       script:
-        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        image: '{{inputs.parameters.runnerImage}}'
+        imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "/bin/bash" ]
         source: |
           helm uninstall e{{inputs.parameters.runId}} -n codex-benchmarks

@@ -1,29 +1,28 @@
 from dataclasses import dataclass
 from io import StringIO
-from pathlib import Path
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List
 from unittest.mock import patch
 
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
-from benchmarks.core.experiments.tests.utils import MockExperimentData
-from benchmarks.logging.logging import LogParser, RequestEvent, RequestEventType
 from benchmarks.core.network import Node, DownloadHandle
+from benchmarks.logging.logging import LogParser, RequestEvent, RequestEventType
 
 
 @dataclass
-class MockHandle:
-    path: Path
+class MockGenData:
+    size: int
+    seed: int
     name: str
 
     def __str__(self):
         return self.name
 
 
-class MockNode(Node[MockHandle, str]):
+class MockNode(Node[MockGenData, str]):
     def __init__(self, name="mock_node") -> None:
         self._name = name
-        self.seeding: Optional[Tuple[MockHandle, Path]] = None
-        self.leeching: Optional[MockHandle] = None
+        self.seeding: Optional[MockGenData] = None
+        self.leeching: Optional[MockGenData] = None
         self.download_was_awaited = False
         self.cleanup_was_called = False
 
@@ -31,23 +30,19 @@ class MockNode(Node[MockHandle, str]):
     def name(self) -> str:
         return self._name
 
-    def seed(self, file: Path, handle: Union[str, MockHandle]) -> MockHandle:
-        if isinstance(handle, MockHandle):
-            self.seeding = (handle, file)
-        else:
-            self.seeding = (MockHandle(name=handle, path=file), file)
+    def genseed(self, size: int, seed: int, meta: str) -> MockGenData:
+        self.seeding = MockGenData(size=size, seed=seed, name=meta)
+        return self.seeding
 
-        return self.seeding[0]
-
-    def leech(self, handle: MockHandle):
+    def leech(self, handle: MockGenData):
         self.leeching = handle
         return MockDownloadHandle(self)
 
-    def remove(self, handle: MockHandle):
+    def remove(self, handle: MockGenData):
         if self.leeching is not None:
             assert self.leeching == handle
         elif self.seeding is not None:
-            assert self.seeding[0] == handle
+            assert self.seeding == handle
         else:
             raise Exception(
                 "Either leech or seed must be called before attempting a remove"
@@ -69,15 +64,13 @@ def mock_network(n: int) -> List[MockNode]:
     return [MockNode(f"node-{i}") for i in range(n)]
 
 
-def test_should_place_seeders():
+def test_should_generate_correct_data_and_seed():
     network = mock_network(n=13)
-    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
+    gendata = MockGenData(size=1000, seed=12, name="dataset1")
     seeders = [9, 6, 3]
 
     experiment = StaticDisseminationExperiment(
-        seeders=seeders,
-        network=network,
-        data=data,
+        seeders=seeders, network=network, meta="dataset1", file_size=1000, seed=12
     )
 
     experiment.run()
@@ -86,20 +79,22 @@ def test_should_place_seeders():
     for index, node in enumerate(network):
         if node.seeding is not None:
             actual_seeders.add(index)
-            assert node.seeding[0] == MockHandle(name=data.meta, path=data.data)
+            assert node.seeding == gendata
 
     assert actual_seeders == set(seeders)
 
 
 def test_should_download_at_remaining_nodes():
     network = mock_network(n=13)
-    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
+    gendata = MockGenData(size=1000, seed=12, name="dataset1")
     seeders = [9, 6, 3]
 
     experiment = StaticDisseminationExperiment(
         seeders=seeders,
         network=network,
-        data=data,
+        meta="dataset1",
+        file_size=1000,
+        seed=12,
     )
 
     experiment.run()
@@ -107,8 +102,7 @@ def test_should_download_at_remaining_nodes():
     actual_leechers = set()
     for index, node in enumerate(network):
         if node.leeching is not None:
-            assert node.leeching.path == data.data
-            assert node.leeching.name == data.meta
+            assert node.leeching == gendata
             assert node.seeding is None
             assert node.download_was_awaited
             actual_leechers.add(index)
@@ -116,34 +110,18 @@ def test_should_download_at_remaining_nodes():
     assert actual_leechers == set(range(13)) - set(seeders)
 
 
-def test_should_delete_generated_file_at_end_of_experiment():
-    network = mock_network(n=2)
-    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
-    seeders = [1]
-
-    experiment = StaticDisseminationExperiment(
-        seeders=seeders,
-        network=network,
-        data=data,
-    )
-
-    experiment.run()
-
-    assert data.cleanup_called
-
-
 def test_should_log_requests_to_seeders_and_leechers(mock_logger):
     logger, output = mock_logger
     with patch("benchmarks.core.experiments.static_experiment.logger", logger):
         network = mock_network(n=3)
-        data = MockExperimentData(meta="dataset-1", data=Path("/path/to/data"))
         seeders = [1]
 
         experiment = StaticDisseminationExperiment(
             seeders=seeders,
             network=network,
-            data=data,
-            concurrency=1,
+            meta="dataset-1",
+            file_size=1000,
+            seed=12,
         )
 
         experiment.run()
@@ -157,7 +135,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
         RequestEvent(
             destination="node-1",
             node="runner",
-            name="seed",
+            name="genseed",
             request_id="dataset-1",
             type=RequestEventType.start,
             timestamp=events[0].timestamp,
@@ -165,7 +143,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
         RequestEvent(
             destination="node-1",
             node="runner",
-            name="seed",
+            name="genseed",
             request_id="dataset-1",
             type=RequestEventType.end,
             timestamp=events[1].timestamp,
@@ -207,13 +185,14 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
 
 def test_should_delete_file_from_nodes_at_the_end_of_the_experiment():
     network = mock_network(n=2)
-    data = MockExperimentData(meta="data", data=Path("/path/to/data"))
     seeders = [1]
 
     experiment = StaticDisseminationExperiment(
         seeders=seeders,
         network=network,
-        data=data,
+        meta="dataset-1",
+        file_size=1000,
+        seed=12,
     )
 
     experiment.run()

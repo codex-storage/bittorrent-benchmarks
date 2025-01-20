@@ -1,11 +1,27 @@
 # This compose spec contains the basic setup for running integration tests with the
-# test runner outside of a container and bind mounts for data so they can be inspected.
-# This is ideal for development.
-
-# You will need [rootless Docker](https://docs.docker.com/engine/security/rootless/)
-# for this to work cause the tests rely on user-writable bind mounts.
+# test runner outside of a container. This is ideal for local development.
 
 services:
+  clean-volumes:
+    image: alpine
+    container_name: clean-volumes
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        rm -rf /var/lib/deluge1/* /var/lib/deluge2/* /var/lib/deluge3/*
+        touch /.done
+        sleep infinity
+    volumes:
+      - shared-volume-1:/var/lib/deluge1
+      - shared-volume-2:/var/lib/deluge2
+      - shared-volume-3:/var/lib/deluge3
+    healthcheck:
+      timeout: 10s
+      test: [ "CMD", "test", "-f", "/.done" ]
+      retries: 10
+      interval: 1s
+
   deluge-1:
     image: codexstorage/deluge
     container_name: deluge-1
@@ -15,11 +31,25 @@ services:
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
       - DELUGE_NODE_ID=deluge-1
     volumes:
-      - ./volume/deluge-1:/var/lib/deluge
-      - ./volume/deluge-1/downloads:/var/lib/deluge/downloads
+      - shared-volume-1:/var/lib/deluge
     ports:
       - "6890:6890"
       - "6891-6892:6891-6892"
+    depends_on:
+      clean-volumes:
+        condition: service_healthy
+
+  agent-1:
+    image: bittorrent-benchmarks:test
+    container_name: agent-1
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
+                  "agent", "experiments.local.yaml", "deluge_agent", "--port", "9001" ]
+    environment:
+      - TORRENTS_ROOT=/var/lib/deluge/downloads
+    volumes:
+      - shared-volume-1:/var/lib/deluge
+    ports:
+      - "9001:9001"
 
   deluge-2:
     image: codexstorage/deluge
@@ -30,11 +60,25 @@ services:
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
       - DELUGE_NODE_ID=deluge-2
     volumes:
-      - ./volume/deluge-2:/var/lib/deluge
-      - ./volume/deluge-2/downloads:/var/lib/deluge/downloads
+      - shared-volume-2:/var/lib/deluge
     ports:
       - "6893:6893"
       - "6894-6895:6894-6895"
+    depends_on:
+      clean-volumes:
+        condition: service_healthy
+
+  agent-2:
+    image: bittorrent-benchmarks:test
+    container_name: agent-2
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent",
+                  "experiments.local.yaml", "deluge_agent", "--port", "9002" ]
+    environment:
+      - TORRENTS_ROOT=/var/lib/deluge/downloads
+    volumes:
+      - shared-volume-2:/var/lib/deluge
+    ports:
+      - "9002:9002"
 
   deluge-3:
     image: codexstorage/deluge
@@ -45,14 +89,33 @@ services:
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
       - DELUGE_NODE_ID=deluge-3
     volumes:
-      - ./volume/deluge-3:/var/lib/deluge
-      - ./volume/deluge-3/downloads:/var/lib/deluge/downloads
+      - shared-volume-3:/var/lib/deluge
     ports:
       - "6896:6896"
       - "6897-6898:6897-6898"
+    depends_on:
+      clean-volumes:
+        condition: service_healthy
+
+  agent-3:
+    image: bittorrent-benchmarks:test
+    container_name: agent-3
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent", "experiments.local.yaml",
+                  "deluge_agent", "--port", "9003" ]
+    environment:
+      - TORRENTS_ROOT=/var/lib/deluge/downloads
+    volumes:
+      - shared-volume-3:/var/lib/deluge
+    ports:
+      - "9003:9003"
 
   tracker:
     image: codexstorage/bittorrent-tracker
     container_name: tracker
     ports:
       - "8000:8000"
+
+volumes:
+  shared-volume-1:
+  shared-volume-2:
+  shared-volume-3:

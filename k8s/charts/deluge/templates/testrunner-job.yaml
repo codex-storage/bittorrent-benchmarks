@@ -1,3 +1,4 @@
+{{- if .Values.experiment.testRunner }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,8 +22,8 @@ spec:
       {{- end }}
       containers:
         - name: deluge-experiment-runner
-          image: codexstorage/bittorrent-benchmarks:latest
-          imagePullPolicy: Always
+          image: {{ include "benchmark.harness.image" . }}
+          imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
           args: [ "run", "deluge_experiment" ]
           env:
             - name: NETWORK_SIZE
@@ -47,9 +48,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          volumeMounts:
-            - name: benchmark-volume
-              mountPath: /opt/bittorrent-benchmarks/volume
+
           resources:
             requests:
               cpu: "1"
@@ -58,10 +57,7 @@ spec:
               cpu: "1"
               memory: "2Gi"
 
-      volumes:
-        - name: benchmark-volume
-          persistentVolumeClaim:
-            claimName: {{ include "deluge.pvc" . }}
       restartPolicy: Never
 
   backoffLimit: 0
+{{- end }}

@@ -4,26 +4,34 @@ import sys
 from pathlib import Path
 from typing import Dict
 
+import uvicorn
+from pydantic import IPvAnyAddress
 from pydantic_core import ValidationError
+from typing_extensions import TypeVar
 
-from benchmarks.core.config import ConfigParser
+from benchmarks.core.agent import AgentBuilder
+from benchmarks.core.config import ConfigParser, Builder
 from benchmarks.core.experiments.experiments import Experiment, ExperimentBuilder
+from benchmarks.deluge.agent.api import DelugeAgentConfig
+from benchmarks.deluge.config import DelugeExperimentConfig
+from benchmarks.deluge.logging import DelugeTorrentDownload
 from benchmarks.logging.logging import (
     basic_log_parser,
     LogSplitter,
     LogEntry,
     LogSplitterFormats,
 )
-from benchmarks.deluge.config import DelugeExperimentConfig
-from benchmarks.deluge.logging import DelugeTorrentDownload
 from benchmarks.logging.sources import (
     VectorFlatFileSource,
     FSOutputManager,
     split_logs_in_source,
 )
 
-config_parser = ConfigParser[ExperimentBuilder]()
-config_parser.register(DelugeExperimentConfig)
+experiment_config_parser = ConfigParser[ExperimentBuilder]()
+experiment_config_parser.register(DelugeExperimentConfig)
+
+agent_config_parser = ConfigParser[AgentBuilder]()
+agent_config_parser.register(DelugeAgentConfig)
 
 log_parser = basic_log_parser()
 log_parser.register(DelugeTorrentDownload)
@@ -34,13 +42,13 @@ log_parser.register(DECLogEntry)
 logger = logging.getLogger(__name__)
 
 
-def cmd_list(experiments: Dict[str, ExperimentBuilder[Experiment]], _):
+def cmd_list_experiment(experiments: Dict[str, ExperimentBuilder[Experiment]], _):
     print("Available experiments are:")
     for experiment in experiments.keys():
         print(f"  - {experiment}")
 
 
-def cmd_run(experiments: Dict[str, ExperimentBuilder[Experiment]], args):
+def cmd_run_experiment(experiments: Dict[str, ExperimentBuilder[Experiment]], args):
     if args.experiment not in experiments:
         print(f"Experiment {args.experiment} not found.")
         sys.exit(-1)
@@ -50,14 +58,14 @@ def cmd_run(experiments: Dict[str, ExperimentBuilder[Experiment]], args):
     experiment.build().run()
 
 
-def cmd_describe(args):
+def cmd_describe_experiment(args):
     if not args.type:
         print("Available experiment types are:")
-        for experiment in config_parser.experiment_types.keys():
+        for experiment in experiment_config_parser.experiment_types.keys():
             print(f"  - {experiment}")
         return
 
-    print(config_parser.experiment_types[args.type].schema_json(indent=2))
+    print(experiment_config_parser.experiment_types[args.type].schema_json(indent=2))
 
 
 def cmd_parse_single_log(log: Path, output: Path):
@@ -107,14 +115,33 @@ def cmd_parse_log_source(group_id: str, source_file: Path, output_dir: Path):
         )
 
 
-def _parse_config(config: Path) -> Dict[str, ExperimentBuilder[Experiment]]:
+def cmd_run_agent(agents: Dict[str, AgentBuilder], args):
+    if args.agent not in agents:
+        print(f"Agent type {args.experiment} not found.")
+        sys.exit(-1)
+
+    uvicorn.run(
+        agents[args.agent].build(),
+        host=str(args.host),
+        port=args.port,
+        reload=False,
+        workers=1,
+    )
+
+
+T = TypeVar("T")
+
+
+def _parse_config(
+    config: Path, parser: ConfigParser[Builder[T]]
+) -> Dict[str, Builder[T]]:
     if not config.exists():
         print(f"Config file {config} does not exist.")
         sys.exit(-1)
 
     with config.open(encoding="utf-8") as infile:
         try:
-            return config_parser.parse(infile)
+            return parser.parse(infile)
         except ValidationError as e:
             print("There were errors parsing the config file.")
             for error in e.errors():
@@ -147,11 +174,17 @@ def main():
     list_cmd = experiment_commands.add_parser(
         "list", help="Lists available experiments."
     )
-    list_cmd.set_defaults(func=lambda args: cmd_list(_parse_config(args.config), args))
+    list_cmd.set_defaults(
+        func=lambda args: cmd_list_experiment(_parse_config(args.config), args)
+    )
 
     run_cmd = experiment_commands.add_parser("run", help="Runs an experiment")
     run_cmd.add_argument("experiment", type=str, help="Name of the experiment to run.")
-    run_cmd.set_defaults(func=lambda args: cmd_run(_parse_config(args.config), args))
+    run_cmd.set_defaults(
+        func=lambda args: cmd_run_experiment(
+            _parse_config(args.config, experiment_config_parser), args
+        )
+    )
 
     describe_cmd = commands.add_parser(
         "describe", help="Shows the JSON schema for the various experiment types."
@@ -160,11 +193,11 @@ def main():
         "type",
         type=str,
         help="Type of the experiment to describe.",
-        choices=config_parser.experiment_types.keys(),
+        choices=experiment_config_parser.experiment_types.keys(),
         nargs="?",
     )
 
-    describe_cmd.set_defaults(func=cmd_describe)
+    describe_cmd.set_defaults(func=cmd_describe_experiment)
 
     logs_cmd = commands.add_parser("logs", help="Parse logs.")
     log_subcommands = logs_cmd.add_subparsers(required=True)
@@ -195,6 +228,27 @@ def main():
     log_source_cmd.set_defaults(
         func=lambda args: cmd_parse_log_source(
             args.group_id, args.source_file, args.output_dir
+        )
+    )
+
+    agent_cmd = commands.add_parser("agent", help="Starts a local agent.")
+    agent_cmd.add_argument(
+        "config", type=Path, help="Path to the agent configuration file."
+    )
+    agent_cmd.add_argument("agent", type=str, help="Name of the agent to run.")
+    agent_cmd.add_argument(
+        "--host",
+        type=IPvAnyAddress,
+        help="IP address to bind to.",
+        default=IPvAnyAddress("0.0.0.0"),
+    )
+    agent_cmd.add_argument(
+        "--port", type=int, help="Port to listen to connections.", default=9001
+    )
+
+    agent_cmd.set_defaults(
+        func=lambda args: cmd_run_agent(
+            _parse_config(args.config, agent_config_parser), args
         )
     )
 

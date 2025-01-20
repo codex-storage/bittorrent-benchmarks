@@ -13,12 +13,18 @@ experiment:
   # Identifies the experiment group. Needs to be defined by the user.
   groupId: ""
 
+  # If set to false, does not deploy a test runner (useful if you just want the network).
+  testRunner: true
+
 deployment:
   pvcName: ""
   appName: ""
 
   # If false, Deluge nodes will not be allowed to run on the same node.
   allowColocation: true
+
+  # Disables pulling of images and uses :minikube tag for the test runner and agents.
+  minikubeEnv: false
 
   # Labels for setting Deluge, tracker, and experiment runner node affinity towards pools.
   # Example:

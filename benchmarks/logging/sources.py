@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from contextlib import AbstractContextManager
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TextIO, Optional, Tuple, List, Dict, Type
+from typing import TextIO, Optional, Tuple, List, Dict, Type, IO
 
 from benchmarks.logging.logging import (
     LogParser,
@@ -51,14 +51,14 @@ class OutputManager(AbstractContextManager):
     """An :class:`OutputManager` is responsible for managing output locations for log splitting operations.
     :class:`OutputManager`s must be closed after use, and implements the context manager interface to that end."""
 
-    def open(self, relative_path: Path) -> TextIO:
+    def open(self, relative_path: Path, mode: str = "w", encoding="utf-8") -> IO:
         """Opens a file for writing within a relative abstract path."""
         if relative_path.is_absolute():
             raise ValueError(f"Path {relative_path} must be relative.")
-        return self._open(relative_path)
+        return self._open(relative_path, mode, encoding)
 
     @abstractmethod
-    def _open(self, relative_path: Path) -> TextIO:
+    def _open(self, relative_path: Path, mode: str, encoding: str) -> IO:
         pass
 
 
@@ -67,13 +67,13 @@ class FSOutputManager(OutputManager):
 
     def __init__(self, root: Path) -> None:
         self.root = root
-        self.open_files: List[TextIO] = []
+        self.open_files: List[IO] = []
 
-    def _open(self, relative_path: Path) -> TextIO:
+    def _open(self, relative_path: Path, mode: str, encoding: str) -> IO:
         fullpath = self.root / relative_path
         parent = fullpath.parent
         parent.mkdir(parents=True, exist_ok=True)
-        f = fullpath.open("w", encoding="utf-8")
+        f = fullpath.open(mode, encoding=encoding)
         self.open_files.append(f)
         return f
 
