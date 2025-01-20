@@ -16,6 +16,7 @@ from benchmarks.core.experiments.experiments import (
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.pydantic import Host
 from benchmarks.core.utils import sample
+from benchmarks.deluge.agent.client import DelugeAgentClient
 from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode
 from benchmarks.deluge.tracker import Tracker
 
@@ -95,13 +96,18 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
             else self.nodes
         )
 
+        agents = [
+            DelugeAgentClient(parse_url(str(node_spec.agent_url)))
+            for node_spec in nodes_specs
+        ]
+
         network = [
             DelugeNode(
                 name=node_spec.name,
                 volume=self.shared_volume_path,
                 daemon_port=node_spec.daemon_port,
                 daemon_address=str(node_spec.address),
-                agent_url=parse_url(str(node_spec.agent_url)),
+                agent=agents[i],
             )
             for i, node_spec in enumerate(nodes_specs)
         ]
@@ -109,7 +115,8 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
         tracker = Tracker(parse_url(str(self.tracker_announce_url)))
 
         env = ExperimentEnvironment(
-            components=network + [tracker],
+            components=network + agents + [tracker],
+            ping_max=10,
             polling_interval=0.5,
         )
 

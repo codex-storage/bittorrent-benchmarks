@@ -38,7 +38,7 @@ class DelugeNode(ExperimentComponent):
         name: str,
         volume: Path,
         daemon_port: int,
-        agent_url: Url = Url(scheme="http", host="localhost", port=8000),
+        agent: DelugeAgentClient,
         daemon_address: str = "localhost",
         daemon_username: str = "user",
         daemon_password: str = "password",
@@ -57,7 +57,7 @@ class DelugeNode(ExperimentComponent):
             "password": daemon_password,
         }
 
-        self.agent = DelugeAgentClient(agent_url)
+        self.agent = agent
 
     @property
     def name(self) -> str:

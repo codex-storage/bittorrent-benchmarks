@@ -6,6 +6,7 @@ import pytest
 from urllib3.util import parse_url
 
 from benchmarks.core.utils import await_predicate
+from benchmarks.deluge.agent.client import DelugeAgentClient
 from benchmarks.deluge.deluge_node import DelugeNode
 from benchmarks.deluge.tracker import Tracker
 
@@ -18,7 +19,7 @@ def deluge_node(
         volume=Path("/var/lib/deluge"),
         daemon_address=address,
         daemon_port=port,
-        agent_url=parse_url(agent_url),
+        agent=DelugeAgentClient(parse_url(agent_url)),
     )
     assert await_predicate(node.is_ready, timeout=10, polling_interval=0.5)
     node.wipe_all_torrents()

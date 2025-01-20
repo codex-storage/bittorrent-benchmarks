@@ -6,8 +6,8 @@ from typing import Iterator, Optional, Callable, IO
 def await_predicate(
     predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
 ) -> bool:
-    current = time()
-    while (timeout == 0) or ((time() - current) <= timeout):
+    start_time = time()
+    while (timeout == 0) or ((time() - start_time) <= timeout):
         if predicate():
             return True
         sleep(polling_interval)

@@ -77,3 +77,17 @@ def test_should_bind_experiment_to_environment():
 
     assert components[0].is_ready()
     assert components[1].is_ready()
+
+
+def test_should_not_ping_more_than_ping_max_components_per_polling_round():
+    components = [
+        ExternalComponent(5),
+        ExternalComponent(3),
+        ExternalComponent(1),
+    ]
+
+    env = ExperimentEnvironment(components, ping_max=2, polling_interval=0)
+    env.is_ready()
+
+    assert len([component for component in components if component.iteration == 1]) == 2
+    assert len([component for component in components if component.iteration == 0]) == 1

@@ -1,14 +1,15 @@
 """Basic definitions for structuring experiments."""
 
 import logging
+import random
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from time import time, sleep
 from typing import List, Optional
 
 from typing_extensions import Generic, TypeVar
 
 from benchmarks.core.config import Builder
+from benchmarks.core.utils import await_predicate
 
 logger = logging.getLogger(__name__)
 
@@ -63,40 +64,50 @@ class ExperimentComponent(ABC):
         pass
 
 
-class ExperimentEnvironment:
+class ExperimentEnvironment(ExperimentComponent):
     """An :class:`ExperimentEnvironment` is a collection of :class:`ExperimentComponent`s that must be ready before
-    an :class:`Experiment` can execute."""
+    an :class:`Experiment` can execute. Note that we assume that readiness is stable; i.e., if a component is ready
+    at some point, then it will remain ready for the duration of the experiment."""
 
     def __init__(
-        self, components: Iterable[ExperimentComponent], polling_interval: float = 0
+        self,
+        components: Iterable[ExperimentComponent],
+        ping_max: int = 10,
+        polling_interval: float = 0,
     ):
         self.components = components
         self.polling_interval = polling_interval
+        self.ping_max = ping_max
+        self.not_ready = list(components)
 
     def await_ready(self, timeout: float = 0) -> bool:
         """Awaits for all components to be ready, or until a timeout is reached."""
-
-        start_time = time()
-        not_ready = [component for component in self.components]
-
         logging.info(
-            f"Awaiting for components to be ready: {self._component_names(not_ready)}"
+            f"Awaiting for components to be ready: {self._component_names(self.not_ready)}"
         )
-        while len(not_ready) != 0:
-            for component in not_ready:
-                if component.is_ready():
-                    logger.info(f"Component {str(component)} is ready.")
-                    not_ready.remove(component)
 
-            sleep(self.polling_interval)
-
-            if (timeout != 0) and (time() - start_time > timeout):
-                logger.info(
-                    f"Some components timed out: {self._component_names(not_ready)}"
-                )
-                return False
+        if not await_predicate(self.is_ready, timeout, self.polling_interval):
+            logger.info(
+                f"Some components timed out: {self._component_names(self.not_ready)}"
+            )
+            return False
 
         return True
+
+    def is_ready(self) -> bool:
+        for component in self._draw(self.not_ready):
+            if component.is_ready():
+                logger.info(f"Component {str(component)} is ready.")
+                self.not_ready.remove(component)
+
+        return len(self.not_ready) == 0
+
+    def _draw(self, components: List[ExperimentComponent]) -> List[ExperimentComponent]:
+        if len(components) <= self.ping_max:
+            return components
+
+        random.shuffle(components)
+        return components[: self.ping_max]
 
     @staticmethod
     def _component_names(components: List[ExperimentComponent]) -> str:
