@@ -38,10 +38,12 @@ image-minikube:
 	eval $$(minikube docker-env) && \
 	docker build -t bittorrent-benchmarks:minikube \
 		--build-arg BUILD_TYPE="release" \
-		-f ./docker/bittorrent-benchmarks.Dockerfile .
+		-f ./docker/bittorrent-benchmarks.Dockerfile . && \
+	docker build -t bittorrent-benchmarks-workflows:minikube \
+		-f ./docker/bittorrent-benchmarks-workflows.Dockerfile .
 
 # Runs the integration tests in a docker container.
-integration-docker:
+integration-docker: image-test
 	docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml down --volumes --remove-orphans
 	docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml up \
 		--abort-on-container-exit --exit-code-from test-runner
