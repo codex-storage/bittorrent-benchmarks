@@ -29,7 +29,7 @@ you should increase inotify limits across the board:
 sudo sysctl -w fs.inotify.max_user_instances=2099999999
 sudo sysctl -w fs.inotify.max_queued_events=2099999999
 sudo sysctl -w fs.inotify.max_user_watches=2099999999
-``` 
+```
 
 **Kernel key retention service.** Kubernetes also places a large number of keys
 within the kernel. Make sure you have enough room:
