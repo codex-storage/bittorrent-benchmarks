@@ -13,7 +13,7 @@ deluge_experiment:
     # Setting the correct name is critical, and it has to match what's in deluge the StatefulSet.
     name: "${DELUGE_STATEFULSET}-{node_index}"
     address: "${DELUGE_STATEFULSET}-{node_index}.${DELUGE_SERVICE}.${NAMESPACE}.svc.cluster.local"
-    agent_url: "http://${DELUGE_STATEFULSET}-{node_index}.${DELUGE_SERVICE}.${NAMESPACE}:${DELUGE_AGENT_PORT}/"
+    agent_url: "http://${DELUGE_STATEFULSET}-{node_index}.${DELUGE_SERVICE}.${NAMESPACE}:9001/"
     daemon_port: 6890
     listen_ports: [ 6891, 6892 ]
 

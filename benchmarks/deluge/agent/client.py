@@ -1,6 +1,7 @@
 import socket
 
 import requests
+from requests import ConnectionError
 from tenacity import stop_after_attempt, wait_exponential, retry
 from torrentool.torrent import Torrent
 from urllib3.util import Url

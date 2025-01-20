@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 from typing import Optional
 
 from torrentool.torrent import Torrent
 
 from benchmarks.core.utils import random_data, megabytes
+
+logger = logging.getLogger(__name__)
 
 
 class DelugeAgent:
@@ -15,11 +18,15 @@ class DelugeAgent:
         torrent_path = self.torrents_path / name
         torrent_path.mkdir(parents=True, exist_ok=False)
 
+        logger.info(f"Creating torrent {name} with size {size} and seed {seed}")
+
         file_path = torrent_path / "datafile.bin"
         with file_path.open(mode="wb") as output:
             random_data(size=size, outfile=output, seed=seed)
 
         torrent = Torrent.create_from(torrent_path)
         torrent.name = name
+
+        logger.info(f"Torrent {name} created successfully")
 
         return torrent

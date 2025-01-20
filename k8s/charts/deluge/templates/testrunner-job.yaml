@@ -48,9 +48,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          volumeMounts:
-            - name: benchmark-volume
-              mountPath: /opt/bittorrent-benchmarks/volume
+
           resources:
             requests:
               cpu: "1"
