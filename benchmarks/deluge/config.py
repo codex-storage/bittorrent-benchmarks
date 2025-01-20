@@ -36,7 +36,7 @@ class DelugeNodeSetConfig(BaseModel):
     listen_ports: list[int] = Field(min_length=2, max_length=2)
     first_node_index: int = 1
     nodes: List[DelugeNodeConfig] = []
-    agent_url: HttpUrl
+    agent_url: str
 
     @model_validator(mode="after")
     def expand_nodes(self):
@@ -46,7 +46,7 @@ class DelugeNodeSetConfig(BaseModel):
                 address=self.address.format(node_index=str(i)),
                 daemon_port=self.daemon_port,
                 listen_ports=self.listen_ports,
-                agent_url=self.agent_url,
+                agent_url=self.agent_url.format(node_index=str(i)),
             )
             for i in range(
                 self.first_node_index, self.first_node_index + self.network_size

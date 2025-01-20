@@ -55,3 +55,15 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/instance: {{ include "experiment.id" . }}
 app.kubernetes.io/part-of: {{ include "experiment.groupId" . }}
 {{- end }}
+
+{{/*
+Minikube env.
+*/}}
+
+{{- define "benchmark.harness.image" -}}
+{{ .Values.deployment.minikubeEnv | ternary "bittorrent-benchmarks:minikube" "codexstorage/bittorrent-benchmarks:latest" }}
+{{- end }}-}}
+
+{{- define "benchmark.harness.imagePullPolicy" -}}
+{{ .Values.deployment.minikubeEnv | ternary "Never" "Always" }}
+{{- end }}

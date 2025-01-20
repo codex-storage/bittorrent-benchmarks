@@ -34,8 +34,10 @@ tests: unit integration
 image-test:
 	docker build -t bittorrent-benchmarks:test -f ./docker/bittorrent-benchmarks.Dockerfile .
 
-image-release:
-	docker build -t bittorrent-benchmarks:test --build-arg BUILD_TYPE="release" \
+image-minikube:
+	eval $(minikube docker-env)
+	docker build -t bittorrent-benchmarks:minikube \
+		--build-arg BUILD_TYPE="release" \
 		-f ./docker/bittorrent-benchmarks.Dockerfile .
 
 # Runs the integration tests in a docker container.
