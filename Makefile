@@ -8,8 +8,8 @@ SHELL := bash
 		integration \
 		tests \
 		integration-docker \
-		image-release \
 		image-test \
+		image-minikube \
 		clean
 
 # Runs the unit tests locally.
