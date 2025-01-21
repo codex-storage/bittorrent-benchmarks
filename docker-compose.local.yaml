@@ -115,6 +115,19 @@ services:
     ports:
       - "8000:8000"
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    container_name: elasticsearch
+    command: ["elasticsearch", "-Elogger.level=ERROR"]
+    environment:
+        - discovery.type=single-node
+        - xpack.security.http.ssl.enabled=false
+        - xpack.security.enabled=false
+        - xpack.security.enrollment.enabled=false
+        - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+    ports:
+      - "9200:9200"
+
 volumes:
   shared-volume-1:
   shared-volume-2:

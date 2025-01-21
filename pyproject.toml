@@ -17,6 +17,7 @@ requests = "^2.32.3"
 ruff = "^0.8.6"
 tenacity = "^9.0.0"
 fastapi = "^0.115.6"
+elasticsearch = "^8.17.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
