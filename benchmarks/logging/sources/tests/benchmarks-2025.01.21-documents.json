@@ -1,0 +1,80 @@
+{
+  "documents": [
+    {
+      "@timestamp": "2025-01-21T12:47:57.098459487Z",
+      "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-1_70c962b4-8fa3-43be-a664-aefb793c7b8c/deluge-node/0.log",
+      "message": "12:47:57.098 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"deluge_torrent_download\", \"timestamp\": \"2025-01-21T12:47:57.098167+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 310, \"node\": \"deluge-nodes-e3-g3-1\", \"torrent_name\": \"dataset-0-1\"}",
+      "pod_labels": {
+        "app.kubernetes.io/component": "deluge-node",
+        "app.kubernetes.io/instance": "e3",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "codex-benchmarks",
+        "app.kubernetes.io/part-of": "g3",
+        "app.kubernetes.io/version": "1.0.0",
+        "apps.kubernetes.io/pod-index": "1",
+        "controller-revision-hash": "deluge-nodes-e3-g3-bd9d9789d",
+        "helm.sh/chart": "deluge-benchmarks-0.1.0",
+        "statefulset.kubernetes.io/pod-name": "deluge-nodes-e3-g3-1"
+      },
+      "pod_name": "deluge-nodes-e3-g3-1",
+      "pod_namespace": "codex-benchmarks"
+    },
+    {
+      "@timestamp": "2025-01-21T12:47:57.099459487Z",
+      "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-1_70c962b4-8fa3-43be-a664-aefb793c7b8c/deluge-node/0.log",
+      "message": "12:47:57.098 INFO An unstructured log message",
+      "pod_labels": {
+        "app.kubernetes.io/component": "deluge-node",
+        "app.kubernetes.io/instance": "e3",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "codex-benchmarks",
+        "app.kubernetes.io/part-of": "g3",
+        "app.kubernetes.io/version": "1.0.0",
+        "apps.kubernetes.io/pod-index": "1",
+        "controller-revision-hash": "deluge-nodes-e3-g3-bd9d9789d",
+        "helm.sh/chart": "deluge-benchmarks-0.1.0",
+        "statefulset.kubernetes.io/pod-name": "deluge-nodes-e3-g3-1"
+      },
+      "pod_name": "deluge-nodes-e3-g3-1",
+      "pod_namespace": "codex-benchmarks"
+    },
+    {
+      "@timestamp": "2025-01-21T12:47:15.847325207Z",
+      "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-0_c42bf4d9-4f1d-40b2-9654-5de197153ac0/deluge-node/0.log",
+      "message": "12:47:15.847 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"deluge_torrent_download\", \"timestamp\": \"2025-01-21T12:47:15.846761+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 23, \"node\": \"deluge-nodes-e3-g3-0\", \"torrent_name\": \"dataset-0-0\"}",
+      "pod_labels": {
+        "app.kubernetes.io/component": "deluge-node",
+        "app.kubernetes.io/instance": "e3",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "codex-benchmarks",
+        "app.kubernetes.io/part-of": "g3",
+        "app.kubernetes.io/version": "1.0.0",
+        "apps.kubernetes.io/pod-index": "0",
+        "controller-revision-hash": "deluge-nodes-e3-g3-bd9d9789d",
+        "helm.sh/chart": "deluge-benchmarks-0.1.0",
+        "statefulset.kubernetes.io/pod-name": "deluge-nodes-e3-g3-0"
+      },
+      "pod_name": "deluge-nodes-e3-g3-0",
+      "pod_namespace": "codex-benchmarks"
+    },
+    {
+      "@timestamp": "2025-01-21T12:47:57.123446028Z",
+      "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-1_70c962b4-8fa3-43be-a664-aefb793c7b8c/deluge-node/0.log",
+      "message": "12:47:57.123 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"deluge_torrent_download\", \"timestamp\": \"2025-01-21T12:47:57.123105+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 218, \"node\": \"deluge-nodes-e2-g2-1\", \"torrent_name\": \"dataset-0-1\"}",
+      "pod_labels": {
+        "app.kubernetes.io/component": "deluge-node",
+        "app.kubernetes.io/instance": "e2",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "codex-benchmarks",
+        "app.kubernetes.io/part-of": "g3",
+        "app.kubernetes.io/version": "1.0.0",
+        "apps.kubernetes.io/pod-index": "1",
+        "controller-revision-hash": "deluge-nodes-e2-g2-bd9d9789d",
+        "helm.sh/chart": "deluge-benchmarks-0.1.0",
+        "statefulset.kubernetes.io/pod-name": "deluge-nodes-e2-g2-1"
+      },
+      "pod_name": "deluge-nodes-e2-g2-1",
+      "pod_namespace": "codex-benchmarks"
+    }
+  ]
+}

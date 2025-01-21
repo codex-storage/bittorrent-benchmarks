@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict
 
 import uvicorn
+from elasticsearch import Elasticsearch
 from pydantic import IPvAnyAddress
 from pydantic_core import ValidationError
 from typing_extensions import TypeVar
@@ -21,7 +22,12 @@ from benchmarks.logging.logging import (
     LogEntry,
     LogSplitterFormats,
 )
-from benchmarks.logging.sources.sources import FSOutputManager, split_logs_in_source
+from benchmarks.logging.sources.logstash import LogstashSource
+from benchmarks.logging.sources.sources import (
+    FSOutputManager,
+    split_logs_in_source,
+    LogSource,
+)
 from benchmarks.logging.sources.vector_flat_file import VectorFlatFileSource
 
 experiment_config_parser = ConfigParser[ExperimentBuilder]()
@@ -87,11 +93,7 @@ def cmd_parse_single_log(log: Path, output: Path):
         splitter.split(log_parser.parse(istream))
 
 
-def cmd_parse_log_source(group_id: str, source_file: Path, output_dir: Path):
-    if not source_file.exists():
-        print(f"Log source file {source_file} does not exist.")
-        sys.exit(-1)
-
+def cmd_parse_log_source(source: LogSource, group_id: str, output_dir: Path):
     if not output_dir.parent.exists():
         print(f"Folder {output_dir.parent} does not exist.")
         sys.exit(-1)
@@ -99,10 +101,9 @@ def cmd_parse_log_source(group_id: str, source_file: Path, output_dir: Path):
     output_dir.mkdir(exist_ok=True)
 
     with (
-        source_file.open("r", encoding="utf-8") as istream,
+        source as log_source,
         FSOutputManager(output_dir) as output_manager,
     ):
-        log_source = VectorFlatFileSource(app_name="codex-benchmarks", file=istream)
         split_logs_in_source(
             log_source,
             log_parser,
@@ -144,6 +145,27 @@ def _parse_config(
             for error in e.errors():
                 print(f' - {error["loc"]}: {error["msg"]} {error["input"]}')
             sys.exit(-1)
+
+
+def _configure_source(args):
+    # TODO we should probably have builders for sources as well, but for now
+    #   we'll just keep it simple.
+    if args.source_file:
+        if not args.source_file.exists():
+            print(f"Log source file {args.source_file} does not exist.")
+            sys.exit(-1)
+        return VectorFlatFileSource(
+            app_name="codex-benchmarks", file=args.source_file.open(encoding="utf-8")
+        )
+    else:
+        import urllib3
+
+        urllib3.disable_warnings()
+
+        return LogstashSource(
+            Elasticsearch(args.es_url, verify_certs=False),
+            structured_only=True,
+        )
 
 
 def _init_logging():
@@ -213,8 +235,13 @@ def main():
     log_source_cmd = log_subcommands.add_parser(
         "source", help="Parse logs from a log source."
     )
-    log_source_cmd.add_argument(
-        "source_file", type=Path, help="Vector log file to parse from."
+
+    group = log_source_cmd.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--source-file", type=Path, help="Vector log file to parse from."
+    )
+    group.add_argument(
+        "--es-url", type=str, help="URL to a logstash Elasticsearch instance."
     )
     log_source_cmd.add_argument(
         "output_dir", type=Path, help="Path to an output folder."
@@ -224,7 +251,7 @@ def main():
     )
     log_source_cmd.set_defaults(
         func=lambda args: cmd_parse_log_source(
-            args.group_id, args.source_file, args.output_dir
+            _configure_source(args), args.group_id, args.output_dir
         )
     )
 

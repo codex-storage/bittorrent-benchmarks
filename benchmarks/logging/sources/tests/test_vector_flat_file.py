@@ -44,37 +44,37 @@ EXPERIMENT_LOG = [
 
 
 def test_should_retrieve_events_for_specific_experiments():
-    extractor = VectorFlatFileSource(
+    source = VectorFlatFileSource(
         StringIO(make_jsonl(EXPERIMENT_LOG)),
         app_name="codex-benchmarks",
     )
 
-    assert list(extractor.logs(group_id="g1736425800", experiment_id="e1")) == [
+    assert list(source.logs(group_id="g1736425800", experiment_id="e1")) == [
         ("e1", "p1", "m1"),
         ("e1", "p2", "m2"),
     ]
 
-    assert list(extractor.logs(group_id="g1736425800", experiment_id="e2")) == [
+    assert list(source.logs(group_id="g1736425800", experiment_id="e2")) == [
         ("e2", "p1", "m3"),
     ]
 
 
 def test_should_return_empty_when_no_matching_experiment_exists():
-    extractor = VectorFlatFileSource(
+    source = VectorFlatFileSource(
         StringIO(make_jsonl(EXPERIMENT_LOG)),
         app_name="codex-benchmarks",
     )
 
-    assert list(extractor.logs("e3", "g1736425800")) == []
+    assert list(source.logs("e3", "g1736425800")) == []
 
 
 def test_should_retrieve_events_for_an_entire_group():
-    extractor = VectorFlatFileSource(
+    source = VectorFlatFileSource(
         StringIO(make_jsonl(EXPERIMENT_LOG)),
         app_name="codex-benchmarks",
     )
 
-    assert list(extractor.logs(group_id="g1736425800")) == [
+    assert list(source.logs(group_id="g1736425800")) == [
         ("e1", "p1", "m1"),
         ("e1", "p2", "m2"),
         ("e2", "p1", "m3"),

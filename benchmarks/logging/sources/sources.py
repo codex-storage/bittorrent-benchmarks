@@ -1,5 +1,5 @@
 import logging
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterator
 from contextlib import AbstractContextManager
 from pathlib import Path
@@ -19,7 +19,7 @@ NodeId = str
 logger = logging.getLogger(__name__)
 
 
-class LogSource(ABC):
+class LogSource(AbstractContextManager):
     """:class:`LogSource` knows how to retrieve logs for experiments within experiment groups. A key assumption is that
     group ids are known, and those can usually be recovered from, say, a workflow run."""
 
