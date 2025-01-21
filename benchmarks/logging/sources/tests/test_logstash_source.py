@@ -1,8 +1,9 @@
 import pytest
+from elasticsearch import Elasticsearch
 
 from benchmarks.deluge.logging import DelugeTorrentDownload
 from benchmarks.logging.logging import LogParser
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 from benchmarks.logging.sources.logstash import LogstashSource
 
@@ -14,6 +15,22 @@ def _log_lines(source, experiment_id, group_id):
     )
 
 
+def test_should_look_into_k_day_horizon():
+    source = LogstashSource(
+        Elasticsearch("http://bogus.com:9000/"),
+        today=date(2025, 1, 21),
+        horizon=5,
+    )
+
+    assert source.indexes == [
+        "benchmarks-2025.01.21",
+        "benchmarks-2025.01.20",
+        "benchmarks-2025.01.19",
+        "benchmarks-2025.01.18",
+        "benchmarks-2025.01.17",
+    ]
+
+
 @pytest.mark.integration
 def test_should_retrieve_unstructured_log_messages(benchmark_logs_client):
     source = LogstashSource(benchmark_logs_client, chronological=True)
@@ -21,6 +38,7 @@ def test_should_retrieve_unstructured_log_messages(benchmark_logs_client):
     assert not all(">>" in line for line in lines)
 
 
+@pytest.mark.integration
 def test_filter_out_unstructured_log_messages(benchmark_logs_client):
     source = LogstashSource(
         benchmark_logs_client, structured_only=True, chronological=True

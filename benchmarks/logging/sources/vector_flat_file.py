@@ -17,6 +17,12 @@ class VectorFlatFileSource(LogSource):
         self.file = file
         self.app_name = app_name
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+
     def experiments(self, group_id: str) -> Iterator[str]:
         """
         Retrieves all experiment IDs within an experiment group. Can be quite slow as this source supports

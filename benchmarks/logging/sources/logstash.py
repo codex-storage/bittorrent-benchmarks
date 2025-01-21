@@ -1,6 +1,7 @@
+import datetime
 import logging
 from collections.abc import Iterator
-from typing import Optional, Tuple, Any, Dict
+from typing import Optional, Tuple, Any, Dict, List
 
 from elasticsearch import Elasticsearch
 
@@ -8,6 +9,8 @@ from benchmarks.logging.sources.sources import LogSource, ExperimentId, NodeId, 
 
 GROUP_LABEL = "app.kubernetes.io/part-of"
 EXPERIMENT_LABEL = "app.kubernetes.io/instance"
+DEFAULT_HORIZON = 5
+ES_MAX_BATCH_SIZE = 10_000
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,8 @@ class LogstashSource(LogSource):
         client: Elasticsearch,
         structured_only: bool = False,
         chronological: bool = False,
+        horizon: int = DEFAULT_HORIZON,
+        today: Optional[datetime.date] = None,
     ):
         """
         @:param client: Elasticsearch client to use for retrieving logs
@@ -31,6 +36,17 @@ class LogstashSource(LogSource):
         self.client = client
         self.structured_only = structured_only
         self.chronological = chronological
+        self._indexes = self._generate_indexes(today, horizon)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.client.close()
+
+    @property
+    def indexes(self) -> List[str]:
+        return list(self._indexes)
 
     def experiments(self, group_id: str) -> Iterator[str]:
         """Retrieves all experiment IDs within an experiment group."""
@@ -74,9 +90,14 @@ class LogstashSource(LogSource):
         if self.chronological:
             query["sort"] = [{"@timestamp": {"order": "asc"}}]
 
+        # We can probably cache this, but for now OK.
+        actual_indexes = [
+            index for index in self.indexes if self.client.indices.exists(index=index)
+        ]
+
         # Scrolls are much cheaper than queries.
         scroll_response = self.client.search(
-            index="benchmarks-*", body=query, scroll="2m"
+            index=actual_indexes, body=query, scroll="2m", size=ES_MAX_BATCH_SIZE
         )
         scroll_id = scroll_response["_scroll_id"]
 
@@ -110,3 +131,12 @@ class LogstashSource(LogSource):
         finally:
             # Clean up scroll context
             self.client.clear_scroll(scroll_id=scroll_id)
+
+    def _generate_indexes(self, today: Optional[datetime.date], horizon: int):
+        if today is None:
+            today = datetime.date.today()
+
+        return [
+            f"benchmarks-{(today - datetime.timedelta(days=i)).strftime('%Y.%m.%d')}"
+            for i in range(horizon)
+        ]
