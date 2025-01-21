@@ -18,6 +18,9 @@ def _json_data(data: str) -> Dict[str, Any]:
 def benchmark_logs_client() -> Elasticsearch:
     client = Elasticsearch(os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200"))
 
+    # ES may take a while to boot up.
+    await_predicate(client.ping, timeout=15, polling_interval=0.5)
+
     if client.indices.exists(index="benchmarks-2025.01.21"):
         client.indices.delete(index="benchmarks-2025.01.21")
 
@@ -33,6 +36,7 @@ def benchmark_logs_client() -> Elasticsearch:
     def _is_indexed() -> bool:
         return client.count(index="benchmarks-2025.01.21")["count"] == len(documents)
 
+    # Indexed documents may not be immediately visible, hence the wait.
     assert await_predicate(
         _is_indexed, timeout=10, polling_interval=0.5
     ), "Indexing failed"
