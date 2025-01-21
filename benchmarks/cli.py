@@ -21,11 +21,8 @@ from benchmarks.logging.logging import (
     LogEntry,
     LogSplitterFormats,
 )
-from benchmarks.logging.sources import (
-    VectorFlatFileSource,
-    FSOutputManager,
-    split_logs_in_source,
-)
+from benchmarks.logging.sources.sources import FSOutputManager, split_logs_in_source
+from benchmarks.logging.sources.vector_flat_file import VectorFlatFileSource
 
 experiment_config_parser = ConfigParser[ExperimentBuilder]()
 experiment_config_parser.register(DelugeExperimentConfig)

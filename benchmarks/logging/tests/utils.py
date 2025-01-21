@@ -1,6 +1,6 @@
 from io import StringIO
 
-from benchmarks.logging.sources import OutputManager
+from benchmarks.logging.sources.sources import OutputManager
 
 
 class InMemoryOutputManager(OutputManager):

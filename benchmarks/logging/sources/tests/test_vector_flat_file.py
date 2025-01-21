@@ -1,6 +1,6 @@
 from io import StringIO
 
-from benchmarks.logging.sources import VectorFlatFileSource
+from benchmarks.logging.sources.vector_flat_file import VectorFlatFileSource
 from benchmarks.tests.utils import make_jsonl
 
 EXPERIMENT_LOG = [

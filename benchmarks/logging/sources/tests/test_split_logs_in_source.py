@@ -2,10 +2,8 @@ import datetime
 from io import StringIO
 
 from benchmarks.logging.logging import LogEntry, LogParser
-from benchmarks.logging.sources import (
-    VectorFlatFileSource,
-    split_logs_in_source,
-)
+from benchmarks.logging.sources.sources import split_logs_in_source
+from benchmarks.logging.sources.vector_flat_file import VectorFlatFileSource
 from benchmarks.logging.tests.utils import InMemoryOutputManager
 from benchmarks.tests.utils import make_jsonl, compact
 

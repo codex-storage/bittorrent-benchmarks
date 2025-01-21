@@ -1,3 +1,6 @@
+"""This module standardizes interfaces for consuming logs from external log sources; i.e. infrastructure
+that stores logs. Such infrastructure might be a simple file system, a service like Logstash, or a database."""
+
 import datetime
 import json
 import logging
