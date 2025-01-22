@@ -9,14 +9,20 @@ from typing import List, Optional, Self, Dict, Any
 
 import pathvalidate
 from deluge_client import DelugeRPCClient
-from tenacity import retry, wait_exponential, stop_after_attempt
+from deluge_client.client import RemoteException
+from tenacity import (
+    retry,
+    wait_exponential,
+    stop_after_attempt,
+    retry_if_not_exception_type,
+)
 from tenacity.stop import stop_base
 from tenacity.wait import wait_base
 from torrentool.torrent import Torrent
 from urllib3.util import Url
 
 from benchmarks.core.experiments.experiments import ExperimentComponent
-from benchmarks.core.network import DownloadHandle
+from benchmarks.core.network import DownloadHandle, Node
 from benchmarks.core.utils import await_predicate
 from benchmarks.deluge.agent.client import DelugeAgentClient
 
@@ -32,7 +38,7 @@ class DelugeMeta:
     announce_url: Url
 
 
-class DelugeNode(ExperimentComponent):
+class DelugeNode(Node[Torrent, DelugeMeta], ExperimentComponent):
     def __init__(
         self,
         name: str,
@@ -110,7 +116,20 @@ class DelugeNode(ExperimentComponent):
         )
 
     def remove(self, handle: Torrent):
-        self.rpc.core.remove_torrent(handle.info_hash, remove_data=True)
+        try:
+            self.rpc.core.remove_torrent(handle.info_hash, remove_data=True)
+            return True
+        except RemoteException as ex:
+            # DelugeRPCClient creates remote exception types dynamically, so there's
+            # actually no way of testing for them other than this.
+            exception_type = str(ex.__class__)
+            if "deluge_client.client.InvalidTorrentError" in exception_type:
+                # This might happen when we retry a failed delete - maybe we got a bad response back,
+                # but the node managed to delete it already.
+                logger.warning(f"Torrent {handle.name} was not found on {self.name}.")
+                return False
+            else:
+                raise ex
 
     def torrent_info(self, name: str) -> List[Dict[bytes, Any]]:
         return list(self.rpc.core.get_torrents_status({"name": name}, []).values())
@@ -161,7 +180,11 @@ class ResilientCallWrapper:
         self.stop_policy = stop_policy
 
     def __call__(self, *args, **kwargs):
-        @retry(wait=self.wait_policy, stop=self.stop_policy)
+        @retry(
+            wait=self.wait_policy,
+            stop=self.stop_policy,
+            retry=retry_if_not_exception_type(RemoteException),
+        )
         def _resilient_wrapper():
             return self.node(*args, **kwargs)
 

@@ -73,8 +73,21 @@ def test_should_remove_files(deluge_node1: DelugeNode, tracker: Tracker):
     )
     assert_is_seed(deluge_node1, name="dataset1", size=megabytes(1))
 
-    deluge_node1.remove(torrent)
+    assert deluge_node1.remove(torrent)
     assert not deluge_node1.torrent_info(name="dataset1")
+
+
+@pytest.mark.integration
+def test_should_return_false_when_file_does_not_exist(
+    deluge_node1: DelugeNode, deluge_node2: DelugeNode, tracker: Tracker
+):
+    torrent = deluge_node1.genseed(
+        size=megabytes(1),
+        seed=1234,
+        meta=DelugeMeta(name="dataset1", announce_url=tracker.announce_url),
+    )
+
+    assert not deluge_node2.remove(torrent)
 
 
 class FlakyClient:

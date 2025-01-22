@@ -57,8 +57,11 @@ class Node(ABC, Generic[TNetworkHandle, TInitialMetadata]):
         pass
 
     @abstractmethod
-    def remove(self, handle: TNetworkHandle):
+    def remove(self, handle: TNetworkHandle) -> bool:
         """Removes the file associated with the handle from this node. For seeders, this means the node will stop
         seeding it. For leechers, it will stop downloading it. In both cases, the file will be removed from the node's
-        storage."""
+        storage.
+
+        :return: True if the file exists and was successfully removed, False if the file didn't exit.
+        """
         pass
