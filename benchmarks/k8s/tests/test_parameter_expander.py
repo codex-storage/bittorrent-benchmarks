@@ -1,7 +1,7 @@
 import json
 
 from benchmarks.k8s import parameter_expander as expander
-from benchmarks.k8s.parameter_expander import normalize_argo_params
+from benchmarks.k8s.parameter_expander import normalize_argo_params, process_argo_input
 
 
 def test_should_expand_simple_parameter_lists():
@@ -70,3 +70,35 @@ def test_should_find_and_pre_expand_lists_encoded_as_strings():
         "b": [1, [2, 3]],
         "c": "foo",
     }
+
+
+def test_should_respect_the_specified_product_order():
+    matrix = {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": "foo"}
+
+    assert expander.expand(matrix, order_by=["c", "b", "a", "d"]) == [
+        {"a": 1, "b": 3, "c": 5, "d": "foo"},
+        {"a": 2, "b": 3, "c": 5, "d": "foo"},
+        {"a": 1, "b": 4, "c": 5, "d": "foo"},
+        {"a": 2, "b": 4, "c": 5, "d": "foo"},
+        {"a": 1, "b": 3, "c": 6, "d": "foo"},
+        {"a": 2, "b": 3, "c": 6, "d": "foo"},
+        {"a": 1, "b": 4, "c": 6, "d": "foo"},
+        {"a": 2, "b": 4, "c": 6, "d": "foo"},
+    ]
+
+
+def test_should_handle_order_by_when_consuming_argo_input():
+    argo_input = (
+        '[{"name":"repetitions","value":"1"},{"name":"fileSize","value":"[\\"100MB\\", \\"500MB\\"]"},'
+        '{"name":"networkSize","value":"[2, 10, 15]"},{"name":"seeders","value":"1"},'
+        '{"name": "orderBy", "value": "[\\"networkSize\\", \\"fileSize\\"]"}]'
+    )
+
+    assert process_argo_input(argo_input) == [
+        {"repetitions": 1, "fileSize": "100MB", "networkSize": 2, "seeders": 1},
+        {"repetitions": 1, "fileSize": "500MB", "networkSize": 2, "seeders": 1},
+        {"repetitions": 1, "fileSize": "100MB", "networkSize": 10, "seeders": 1},
+        {"repetitions": 1, "fileSize": "500MB", "networkSize": 10, "seeders": 1},
+        {"repetitions": 1, "fileSize": "100MB", "networkSize": 15, "seeders": 1},
+        {"repetitions": 1, "fileSize": "500MB", "networkSize": 15, "seeders": 1},
+    ]

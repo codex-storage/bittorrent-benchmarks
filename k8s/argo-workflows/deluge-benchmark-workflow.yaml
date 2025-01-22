@@ -20,6 +20,11 @@ spec:
       - name: maxExperimentDuration
         value: 144h
 
+      # Groups the expansion such that all experiments with a given networkSize run together, smallest
+      # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
+      - name: orderBy
+        value: "['networkSize', 'seeders', 'fileSize']"
+
   templates:
     - name: benchmark-workflow
       parallelism: 1

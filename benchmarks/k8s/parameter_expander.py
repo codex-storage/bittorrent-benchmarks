@@ -4,13 +4,18 @@ import itertools
 import json
 import sys
 from json import JSONDecodeError
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 
 
-def expand(parameters: Dict[str, Any], run_id: bool = False) -> List[Dict[str, Any]]:
+def expand(
+    parameters: Dict[str, Any],
+    order_by: Optional[List[str]] = None,
+    run_id: bool = False,
+) -> List[Dict[str, Any]]:
     simple = {}
     constrained = {}
     fixed = {}
+    order_by = [] if order_by is None else order_by
 
     for k, v in parameters.items():
         if not isinstance(v, list):
@@ -36,6 +41,10 @@ def expand(parameters: Dict[str, Any], run_id: bool = False) -> List[Dict[str, A
     if run_id:
         for i, item in enumerate(final_expansion, start=1):
             item["runId"] = i
+
+    # Sort is stable, so we can just order in reverse.
+    for key in reversed(order_by):
+        final_expansion.sort(key=lambda x: x[key])
 
     return final_expansion
 
@@ -90,15 +99,19 @@ def normalize_argo_params(argo_params: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {param["name"]: param["value"] for param in argo_params}
 
 
+def process_argo_input(input: str, run_id: bool = False) -> List[Dict[str, Any]]:
+    try:
+        params = normalize_argo_params(json.loads(input))
+        return expand(params, order_by=params.pop("orderBy", None), run_id=run_id)
+    except JSONDecodeError as err:
+        print("Error decoding JSON: ", err)
+        print("Input:", sys.argv[1])
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} '<json_string>'")
         sys.exit(1)
 
-    try:
-        params = normalize_argo_params(json.loads(sys.argv[1]))
-        print(json.dumps(expand(params, run_id=True)))
-    except JSONDecodeError as err:
-        print("Error decoding JSON: ", err)
-        print("Input:", sys.argv[1])
-        sys.exit(1)
+    print(json.dumps(process_argo_input(sys.argv[1], run_id=True)))
