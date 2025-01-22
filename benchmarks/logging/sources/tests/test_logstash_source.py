@@ -39,6 +39,17 @@ def test_should_retrieve_unstructured_log_messages(benchmark_logs_client):
 
 
 @pytest.mark.integration
+def test_should_retrieve_the_same_results_when_slicing(benchmark_logs_client):
+    source = LogstashSource(benchmark_logs_client, chronological=True)
+    unsliced = set(source.logs(group_id="g3"))
+
+    source = LogstashSource(benchmark_logs_client, chronological=True, slices=2)
+    sliced = set(source.logs(group_id="g3"))
+
+    assert unsliced == sliced
+
+
+@pytest.mark.integration
 def test_filter_out_unstructured_log_messages(benchmark_logs_client):
     source = LogstashSource(
         benchmark_logs_client, structured_only=True, chronological=True

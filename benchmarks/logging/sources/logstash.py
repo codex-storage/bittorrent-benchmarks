@@ -5,6 +5,7 @@ from typing import Optional, Tuple, Any, Dict, List
 
 from elasticsearch import Elasticsearch
 
+from benchmarks.core.concurrency import pflatmap
 from benchmarks.logging.sources.sources import LogSource, ExperimentId, NodeId, RawLine
 
 GROUP_LABEL = "app.kubernetes.io/part-of"
@@ -24,6 +25,7 @@ class LogstashSource(LogSource):
         client: Elasticsearch,
         structured_only: bool = False,
         chronological: bool = False,
+        slices: int = 1,
         horizon: int = DEFAULT_HORIZON,
         today: Optional[datetime.date] = None,
     ):
@@ -36,6 +38,7 @@ class LogstashSource(LogSource):
         self.client = client
         self.structured_only = structured_only
         self.chronological = chronological
+        self.slices = slices
         self._indexes = self._generate_indexes(today, horizon)
 
     def __enter__(self):
@@ -89,13 +92,34 @@ class LogstashSource(LogSource):
 
         if self.chronological:
             query["sort"] = [{"@timestamp": {"order": "asc"}}]
+        else:
+            # More efficient, as per https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html#scroll-search-results
+            query["sort"] = ["_doc"]
 
         # We can probably cache this, but for now OK.
         actual_indexes = [
             index for index in self.indexes if self.client.indices.exists(index=index)
         ]
 
-        # Scrolls are much cheaper than queries.
+        if self.slices > 1:
+            yield from pflatmap(
+                [
+                    self._run_scroll(sliced_query, actual_indexes)
+                    for sliced_query in self._sliced_queries(query)
+                ],
+                workers=self.slices,
+                max_queue_size=100_000,
+            )
+        else:
+            yield from self._run_scroll(query, actual_indexes)
+
+    def _sliced_queries(self, query: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+        for i in range(self.slices):
+            query_slice = query.copy()
+            query_slice["slice"] = {"id": i, "max": self.slices}
+            yield query_slice
+
+    def _run_scroll(self, query: Dict[str, Any], actual_indexes: List[str]):
         scroll_response = self.client.search(
             index=actual_indexes, body=query, scroll="2m", size=ES_MAX_BATCH_SIZE
         )
@@ -104,6 +128,7 @@ class LogstashSource(LogSource):
         try:
             while True:
                 hits = scroll_response["hits"]["hits"]
+                logger.info(f"Retrieved {len(hits)} log entries.")
                 if not hits:
                     break
 
@@ -131,6 +156,12 @@ class LogstashSource(LogSource):
         finally:
             # Clean up scroll context
             self.client.clear_scroll(scroll_id=scroll_id)
+
+    def __str__(self):
+        return (
+            f"LogstashSource(client={self.client}, structured_only={self.structured_only}, "
+            f"chronological={self.chronological}, indexes={self.indexes})"
+        )
 
     def _generate_indexes(self, today: Optional[datetime.date], horizon: int):
         if today is None:
