@@ -93,7 +93,7 @@ def cmd_parse_single_log(log: Path, output: Path):
         splitter.split(log_parser.parse(istream))
 
 
-def cmd_parse_log_source(source: LogSource, group_id: str, output_dir: Path):
+def cmd_split_log_source(source: LogSource, group_id: str, output_dir: Path):
     if not output_dir.parent.exists():
         print(f"Folder {output_dir.parent} does not exist.")
         sys.exit(-1)
@@ -111,6 +111,14 @@ def cmd_parse_log_source(source: LogSource, group_id: str, output_dir: Path):
             group_id,
             formats=[(DECLogEntry, LogSplitterFormats.jsonl)],
         )
+
+
+def cmd_dump_single_experiment(source: LogSource, group_id: str, experiment_id: str):
+    with source as log_source:
+        for _, node_id, raw_line in log_source.logs(
+            group_id=group_id, experiment_id=experiment_id
+        ):
+            print(f"<<{node_id}>> {raw_line}", file=sys.stdout)
 
 
 def cmd_run_agent(agents: Dict[str, AgentBuilder], args):
@@ -147,7 +155,7 @@ def _parse_config(
             sys.exit(-1)
 
 
-def _configure_source(args):
+def _configure_source(args, dump=False):
     # TODO we should probably have builders for sources as well, but for now
     #   we'll just keep it simple.
     if args.source_file:
@@ -164,7 +172,7 @@ def _configure_source(args):
 
         return LogstashSource(
             Elasticsearch(args.es_url, verify_certs=False),
-            structured_only=True,
+            structured_only=not dump,
         )
 
 
@@ -236,22 +244,36 @@ def main():
         "source", help="Parse logs from a log source."
     )
 
-    group = log_source_cmd.add_mutually_exclusive_group(required=True)
-    group.add_argument(
+    source_group = log_source_cmd.add_mutually_exclusive_group(required=True)
+    source_group.add_argument(
         "--source-file", type=Path, help="Vector log file to parse from."
     )
-    group.add_argument(
+    source_group.add_argument(
         "--es-url", type=str, help="URL to a logstash Elasticsearch instance."
     )
-    log_source_cmd.add_argument(
-        "output_dir", type=Path, help="Path to an output folder."
-    )
+
     log_source_cmd.add_argument(
         "group_id", type=str, help="ID of experiment group to parse."
     )
+
+    single_or_split = log_source_cmd.add_mutually_exclusive_group(required=True)
+    single_or_split.add_argument(
+        "--experiment-id",
+        type=str,
+        help="Dumps logs for a single experiment onto stdout.",
+    )
+    single_or_split.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Splits logs for the entire group into the specified folder.",
+    )
     log_source_cmd.set_defaults(
-        func=lambda args: cmd_parse_log_source(
-            _configure_source(args), args.group_id, args.output_dir
+        func=lambda args: cmd_split_log_source(
+            _configure_source(args, dump=False), args.group_id, args.output_dir
+        )
+        if args.output_dir
+        else cmd_dump_single_experiment(
+            _configure_source(args, dump=True), args.group_id, args.experiment_id
         )
     )
 
