@@ -20,7 +20,7 @@ devtools::load_all()
 This is data that's been pre-parsed from an experiment [log source](https://github.com/codex-storage/bittorrent-benchmarks/blob/1ee8ea8a35a2c0fccea6e7c955183c4ed03eebb3/benchmarks/logging/sources.py#L27).
 
 ```{r}
-deluge <- read_all_experiments('./data/deluge')
+deluge <- read_all_experiments('./data/deluge-g1737553501/')
 ```
 Computes the benchmark statistics from raw download logs.
 
