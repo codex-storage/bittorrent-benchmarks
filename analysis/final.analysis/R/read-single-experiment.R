@@ -13,7 +13,8 @@ read_single_experiment <- function(experiment_folder) {
     ) |>
       mutate(
         experiment_id = !!experiment_id
-      )
+      ) |>
+      arrange(timestamp)
   })
 
   names(data) <- gsub('(\\..*)$', '', table_files)
