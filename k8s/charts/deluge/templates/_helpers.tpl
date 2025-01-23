@@ -30,9 +30,7 @@ Expand the name of the chart.
 {{- printf "%s-%s" (include "experiment.id" .) (include "experiment.groupId" .) }}
 {{- end }}
 
-{{/*
-Common and selector labels.
-*/}}
+{{/* Common and selector labels. */}}
 {{- define "deluge-benchmarks.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
@@ -56,9 +54,12 @@ app.kubernetes.io/instance: {{ include "experiment.id" . }}
 app.kubernetes.io/part-of: {{ include "experiment.groupId" . }}
 {{- end }}
 
-{{/*
-Minikube env.
-*/}}
+{{/* Annotations. */}}
+{{- define "deluge-benchmarks.pod.annotations" -}}
+cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+{{- end }}
+
+{{/* Minikube env. */}}
 
 {{- define "benchmark.harness.image" -}}
 {{ .Values.deployment.minikubeEnv | ternary "bittorrent-benchmarks:minikube" "codexstorage/bittorrent-benchmarks:latest" }}

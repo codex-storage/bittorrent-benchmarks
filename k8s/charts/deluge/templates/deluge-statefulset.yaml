@@ -18,6 +18,8 @@ spec:
       labels:
         app.kubernetes.io/component: deluge-node
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
+      annotations:
+        {{- include "deluge-benchmarks.pod.annotations" . | nindent 8 }}
 
     spec:
       {{- if not .Values.deployment.allowColocation }}

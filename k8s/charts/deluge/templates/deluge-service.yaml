@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/component: deluge-nodes-service
     {{- include "deluge-benchmarks.labels" . | nindent 4}}
+
 spec:
   clusterIP: None
   selector:

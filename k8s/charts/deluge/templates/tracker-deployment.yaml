@@ -19,6 +19,8 @@ spec:
       labels:
         app.kubernetes.io/component: bittorrent-tracker
         {{- include "deluge-benchmarks.labels" . | nindent 8 }}
+      annotations:
+        {{- include "deluge-benchmarks.pod.annotations" . | nindent 8 }}
 
     spec:
       {{- with .Values.deployment.trackerNodePool }}
