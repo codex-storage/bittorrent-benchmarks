@@ -15,7 +15,7 @@ def deluge_agent() -> DelugeAgent:
     raise Exception("Dependency must be set")
 
 
-@router.post("/api/v1/hello")
+@router.get("/api/v1/hello")
 def hello():
     return {"message": "Server is up"}
 
