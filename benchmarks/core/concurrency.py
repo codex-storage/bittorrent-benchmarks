@@ -34,6 +34,7 @@ def pflatmap(
         finally:
             q.put(_End())
 
+    # TODO handle SIGTERM properly
     executor = ThreadPoolExecutor(max_workers=workers)
     try:
         task_futures = [executor.submit(_consume, task) for task in tasks]

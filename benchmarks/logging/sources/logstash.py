@@ -102,6 +102,7 @@ class LogstashSource(LogSource):
         ]
 
         if self.slices > 1:
+            logger.info(f"Querying ES with {self.slices} scroll slices.")
             yield from pflatmap(
                 [
                     self._run_scroll(sliced_query, actual_indexes)
@@ -153,8 +154,11 @@ class LogstashSource(LogSource):
 
                 # Get next batch of results
                 scroll_response = self.client.scroll(scroll_id=scroll_id, scroll="2m")
+        except Exception as e:
+            logger.exception(f"Error while scrolling: {e}")
         finally:
             # Clean up scroll context
+            logger.info("Worker done, clearing scroll context.")
             self.client.clear_scroll(scroll_id=scroll_id)
 
     def __str__(self):
