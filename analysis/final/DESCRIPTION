@@ -1,16 +1,20 @@
 Package: final.analysis
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Analysis for Codex/Deluge Benchmarks
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Giuliano", "Mega",
+      email = "giuliano.mega@gmail.com",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: Analysis for parsed logs output from benchmarking experiments.
+Depends:
+  devtools (>= 2.4.5),
+  tidyverse (>= 2.0.0),
+  bookdown (>= 0.42),
+  jsonlite (>= 1.8.9)
+License: MIT
 Encoding: UTF-8
 LazyData: true
