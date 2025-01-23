@@ -1,9 +1,14 @@
 *.pyc
 .idea
 .vscode
-/volume/deluge*
+
+# R/Rmd stuff
 .RData
 .Rhistory
 .Rproj.user
 *.Rproj
 *.nb.html
+*.csv
+*.log
+*.jsonl
+**/rsconnect
