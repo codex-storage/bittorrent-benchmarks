@@ -15,6 +15,7 @@ from tenacity import (
     wait_exponential,
     stop_after_attempt,
     retry_if_not_exception_type,
+    after_log,
 )
 from tenacity.stop import stop_base
 from tenacity.wait import wait_base
@@ -27,6 +28,9 @@ from benchmarks.core.utils import await_predicate
 from benchmarks.deluge.agent.client import DelugeAgentClient
 
 logger = logging.getLogger(__name__)
+
+STOP_POLICY = stop_after_attempt(10)
+WAIT_POLICY = wait_exponential(exp_base=2, min=4, max=16)
 
 
 @dataclass(frozen=True)
@@ -141,7 +145,9 @@ class DelugeNode(Node[Torrent, DelugeMeta], ExperimentComponent):
         return self._rpc
 
     @retry(
-        stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=16)
+        stop=STOP_POLICY,
+        wait=WAIT_POLICY,
+        after=after_log(logger, logging.WARNING),
     )
     def connect(self) -> Self:
         return self._raw_connect()
@@ -151,8 +157,8 @@ class DelugeNode(Node[Torrent, DelugeMeta], ExperimentComponent):
         client.connect()
         self._rpc = ResilientCallWrapper(
             client,
-            wait_policy=wait_exponential(multiplier=1, min=4, max=16),
-            stop_policy=stop_after_attempt(5),
+            wait_policy=WAIT_POLICY,
+            stop_policy=STOP_POLICY,
         )
         return self
 
@@ -184,6 +190,7 @@ class ResilientCallWrapper:
             wait=self.wait_policy,
             stop=self.stop_policy,
             retry=retry_if_not_exception_type(RemoteException),
+            after=after_log(logger, logging.WARNING),
         )
         def _resilient_wrapper():
             return self.node(*args, **kwargs)
