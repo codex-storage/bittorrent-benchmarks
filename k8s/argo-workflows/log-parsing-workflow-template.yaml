@@ -1,0 +1,90 @@
+# Workflow template for parsing logs for an experiment group. Can be run as part
+# of another workflow, or standalone.
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: log-parsing-workflow
+spec:
+  serviceAccountName: codex-benchmarks-workflows
+  entrypoint: log-parsing-workflow
+
+  # Sadly we need a PVC to share data among steps. This is a limitation of Argo.
+  volumeClaimTemplates:
+    - metadata:
+        name: logs
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: hcloud-volumes
+
+  arguments:
+    parameters: 
+      - name: experimentGroupId
+      - name: elasticsearchUrl
+        value: "https://elastic-es-default-0.elastic-es-default.logging.svc.cluster.local:9200"
+      - name: bucket
+        value: "codex-benchmarks"
+  
+  templates:
+    - name: log-parsing-workflow
+      steps:
+        - - name: parse-logs
+            template: parse-logs
+
+        - - name: tar-and-upload
+            template: tar-and-upload
+
+    - name: parse-logs
+      container:
+        image: codexstorage/bittorrent-benchmarks:latest
+        command: ["poetry", "run", "python", "-m", "benchmarks.cli"]
+        args:
+          - logs
+          - source
+          - --output-dir
+          - "/var/logs/{{workflow.parameters.experimentGroupId}}"
+          - "{{workflow.parameters.experimentGroupId}}"
+          - logstash
+          - "{{workflow.parameters.elasticsearchUrl}}"
+          - --slices
+          - "4"
+
+        volumeMounts:
+          - name: logs
+            mountPath: "/var/logs"
+
+    - name: tar-and-upload
+      script:
+        image: codexstorage/bittorrent-benchmarks-workflows:latest
+        command: ["/bin/bash"]
+        source: |
+          set -e
+  
+          if [ -z "$(ls /var/logs/{{workflow.parameters.experimentGroupId}})" ]; then
+            echo "No logs found."
+            exit 1
+          fi
+
+          echo "Creating tarball."
+          tar -czvf \
+            "/var/logs/{{workflow.parameters.experimentGroupId}}.tar.gz" \
+            "/var/logs/{{workflow.parameters.experimentGroupId}}"
+
+          echo "Configure s3 alias for endpoint ${AWS_ENDPOINT_URL}."
+          mc alias set s3 "${AWS_ENDPOINT_URL}" "${AWS_ACCESS_KEY_ID}" "${AWS_SECRET_ACCESS_KEY}"
+          
+          echo "Copy logs."
+          mc cp "/var/logs/{{workflow.parameters.experimentGroupId}}.tar.gz"\
+            "s3/{{workflow.parameters.bucket}}/logs/{{workflow.parameters.experimentGroupId}}.tar.gz"
+                  
+        envFrom:
+          - secretRef:
+              name: s3-codex-benchmarks
+      
+        volumeMounts:
+          - name: logs
+            mountPath: "/var/logs"
+    
