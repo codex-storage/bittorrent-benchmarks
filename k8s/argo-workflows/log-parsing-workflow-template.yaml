@@ -71,7 +71,8 @@ spec:
           echo "Creating tarball."
           tar -czvf \
             "/var/logs/{{workflow.parameters.experimentGroupId}}.tar.gz" \
-            "/var/logs/{{workflow.parameters.experimentGroupId}}"
+            -C /var/logs \
+            "{{workflow.parameters.experimentGroupId}}"
 
           echo "Configure s3 alias for endpoint ${AWS_ENDPOINT_URL}."
           mc alias set s3 "${AWS_ENDPOINT_URL}" "${AWS_ACCESS_KEY_ID}" "${AWS_SECRET_ACCESS_KEY}"
