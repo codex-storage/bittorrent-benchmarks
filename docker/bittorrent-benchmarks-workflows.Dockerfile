@@ -10,7 +10,7 @@ RUN curl -SL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scr
 RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
 
-RUN curl -SL https://dl.min.io/client/mc/release/linux-amd64/mc \
+RUN curl -SL "https://dl.min.io/client/mc/release/linux-$(dpkg --print-architecture)/mc" \
     --create-dirs \
     -o /usr/local/bin/mc && \
     chmod +x /usr/local/bin/mc
