@@ -118,7 +118,7 @@ def cmd_dump_single_experiment(source: LogSource, group_id: str, experiment_id: 
         for _, node_id, raw_line in log_source.logs(
             group_id=group_id, experiment_id=experiment_id
         ):
-            print(f"<<{node_id}>> {raw_line}", file=sys.stdout)
+            print(f"[[{node_id}]] {raw_line}", file=sys.stdout)
 
 
 def cmd_run_agent(agents: Dict[str, AgentBuilder], args):
