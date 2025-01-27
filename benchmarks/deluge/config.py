@@ -8,11 +8,11 @@ from torrentool.torrent import Torrent
 from urllib3.util import parse_url
 
 from benchmarks.core.experiments.experiments import (
-    IteratedExperiment,
     ExperimentEnvironment,
     BoundExperiment,
     ExperimentBuilder,
 )
+from benchmarks.core.experiments.iterated_experiment import IteratedExperiment
 from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.pydantic import Host
 from benchmarks.core.utils import sample
@@ -62,6 +62,9 @@ DelugeDisseminationExperiment = IteratedExperiment[
 
 
 class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
+    experiment_set_id: str = Field(
+        description="Identifies the group of experiment repetitions", default="unnamed"
+    )
     seeder_sets: int = Field(
         gt=0, default=1, description="Number of distinct seeder sets to experiment with"
     )
@@ -138,4 +141,6 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
                         )
                     )
 
-        return IteratedExperiment(repetitions())
+        return IteratedExperiment(
+            repetitions(), experiment_set_id=self.experiment_set_id
+        )

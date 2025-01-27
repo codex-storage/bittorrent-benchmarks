@@ -46,6 +46,8 @@ spec:
               value: "deluge-nodes-{{ include "experiment.fullId" . }}"
             - name: DELUGE_SERVICE
               value: "deluge-nodes-service-{{ include "experiment.fullId" . }}"
+            - name: EXPERIMENT_SET_ID
+              value: {{ include "experiment.fullId" . | quote }}
             - name: NAMESPACE
               valueFrom:
                 fieldRef:

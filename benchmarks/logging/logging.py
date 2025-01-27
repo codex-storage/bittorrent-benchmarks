@@ -225,10 +225,18 @@ class RequestEvent(Event):
     type: RequestEventType
 
 
+class ExperimentStatus(Event):
+    name: str
+    repetition: int
+    duration: float
+    error: Optional[str] = None
+
+
 def basic_log_parser() -> LogParser:
     """Constructs a basic log parser which can understand some common log entry types."""
     parser = LogParser()
     parser.register(Event)
     parser.register(Metric)
     parser.register(RequestEvent)
+    parser.register(ExperimentStatus)
     return parser

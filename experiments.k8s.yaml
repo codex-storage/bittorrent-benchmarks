@@ -1,4 +1,5 @@
 deluge_experiment:
+  experiment_set_id: ${EXPERIMENT_SET_ID}
   seeder_sets: ${SEEDER_SETS}
   seeders: ${SEEDERS}
   tracker_announce_url: ${TRACKER_ANNOUNCE_URL}

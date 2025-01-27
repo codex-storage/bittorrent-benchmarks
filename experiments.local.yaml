@@ -1,6 +1,7 @@
 # You can use this configuration to run the experiments locally with the provided
 # Docker compose environment.
 deluge_experiment:
+  experiment_set_id: local
   seeders: 1
   tracker_announce_url: ${TRACKER_ANNOUNCE_URL:-http://127.0.0.1:8000/announce}
   file_size: 52428800
