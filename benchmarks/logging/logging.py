@@ -203,14 +203,17 @@ type NodeId = str
 
 
 class Event(LogEntry):
-    node: NodeId
     name: str  # XXX this ends up being redundant for custom event schemas... need to think of a better solution.
     timestamp: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.UTC)
     )
 
 
-class Metric(Event):
+class NodeEvent(Event):
+    node: NodeId
+
+
+class Metric(NodeEvent):
     value: int | float
 
 
@@ -219,14 +222,13 @@ class RequestEventType(Enum):
     end = "end"
 
 
-class RequestEvent(Event):
+class RequestEvent(NodeEvent):
     destination: NodeId
     request_id: str
     type: RequestEventType
 
 
 class ExperimentStatus(Event):
-    name: str
     repetition: int
     duration: float
     error: Optional[str] = None
@@ -236,6 +238,7 @@ def basic_log_parser() -> LogParser:
     """Constructs a basic log parser which can understand some common log entry types."""
     parser = LogParser()
     parser.register(Event)
+    parser.register(NodeEvent)
     parser.register(Metric)
     parser.register(RequestEvent)
     parser.register(ExperimentStatus)
