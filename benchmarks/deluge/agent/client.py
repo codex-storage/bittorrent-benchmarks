@@ -22,8 +22,8 @@ class DelugeAgentClient(ExperimentComponent):
 
     def generate(self, size: int, seed: int, name: str) -> Torrent:
         @retry(
-            stop=stop_after_attempt(5),
-            wait=wait_exponential(multiplier=1, min=4, max=16),
+            stop=stop_after_attempt(10),
+            wait=wait_exponential(exp_base=2, min=4, max=16),
         )
         def _request():
             return requests.post(
