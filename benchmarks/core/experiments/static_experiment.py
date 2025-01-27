@@ -1,10 +1,12 @@
 import logging
-from multiprocessing.pool import ThreadPool
+from concurrent.futures.thread import ThreadPoolExecutor
+
 from time import sleep
 from typing import Sequence, Optional
 
 from typing_extensions import Generic, List, Tuple
 
+from benchmarks.core.concurrency import ensure_successful
 from benchmarks.core.experiments.experiments import ExperimentWithLifecycle
 from benchmarks.core.network import (
     TInitialMetadata,
@@ -36,8 +38,8 @@ class StaticDisseminationExperiment(
         self.file_size = file_size
         self.seed = seed
 
-        self._pool = ThreadPool(
-            processes=len(network) - len(seeders)
+        self._executor = ThreadPoolExecutor(
+            max_workers=len(network) - len(seeders)
             if concurrency is None
             else concurrency
         )
@@ -71,20 +73,34 @@ class StaticDisseminationExperiment(
             _log_request(leecher, "leech", str(self.meta), RequestEventType.end)
             return download
 
-        downloads = list(self._pool.imap_unordered(_leech, leechers))
-
         logger.info("Now waiting for downloads to complete")
 
-        def _await_for_download(element: Tuple[int, DownloadHandle]) -> int:
+        downloads = ensure_successful(
+            [self._executor.submit(_leech, leecher) for leecher in leechers]
+        )
+
+        def _await_for_download(
+            element: Tuple[int, DownloadHandle],
+        ) -> Tuple[int, DownloadHandle]:
             index, download = element
             if not download.await_for_completion():
                 raise Exception(
                     f"Download ({index}, {str(download)}) did not complete in time."
                 )
-            return index
+            logger.info(
+                "Download %d / %d completed (node: %s)",
+                index + 1,
+                len(downloads),
+                download.node.name,
+            )
+            return element
 
-        for i in self._pool.imap_unordered(_await_for_download, enumerate(downloads)):
-            logger.info("Download %d / %d completed", i + 1, len(downloads))
+        ensure_successful(
+            [
+                self._executor.submit(_await_for_download, (i, download))
+                for i, download in enumerate(downloads)
+            ]
+        )
 
         # FIXME this is a hack to ensure that nodes get a chance to log their data before we
         #   run the teardown hook and remove the torrents.
@@ -96,15 +112,21 @@ class StaticDisseminationExperiment(
             index, node = element
             assert self._cid is not None  # to please mypy
             node.remove(self._cid)
-            return index
+            logger.info("Node %d (%s) removed file", index + 1, node.name)
+            return element
 
         try:
-            for i in self._pool.imap_unordered(_remove, enumerate(self.nodes)):
-                logger.info("Node %d removed file", i + 1)
+            # Since teardown might be called as the result of an exception, it's expected
+            # that not all removes will succeed, so we don't check their result.
+            ensure_successful(
+                [
+                    self._executor.submit(_remove, (i, node))
+                    for i, node in enumerate(self.nodes)
+                ]
+            )
         finally:
             logger.info("Shut down thread pool.")
-            self._pool.close()
-            self._pool.join()
+            self._executor.shutdown(wait=True)
             logger.info("Done.")
 
     def _split_nodes(

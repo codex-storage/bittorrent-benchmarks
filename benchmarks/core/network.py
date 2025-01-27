@@ -9,6 +9,12 @@ TInitialMetadata = TypeVar("TInitialMetadata")
 class DownloadHandle(ABC):
     """A :class:`DownloadHandle` is a reference to an ongoing download operation."""
 
+    @property
+    @abstractmethod
+    def node(self) -> "Node":
+        """The node that initiated the download."""
+        pass
+
     @abstractmethod
     def await_for_completion(self, timeout: float = 0) -> bool:
         """Blocks the current thread until either the download completes or a timeout expires.

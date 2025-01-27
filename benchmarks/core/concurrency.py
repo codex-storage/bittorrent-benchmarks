@@ -1,6 +1,7 @@
+from concurrent import futures
 from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
-from typing import Iterable, Iterator, List
+from typing import Iterable, Iterator, List, cast
 
 from typing_extensions import TypeVar
 
@@ -50,8 +51,27 @@ def pflatmap(
                 yield item
 
         # This will cause any exceptions thrown in tasks to be re-raised.
-        for future in task_futures:
-            future.result()
+        ensure_successful(task_futures)
 
     finally:
         executor.shutdown(wait=True)
+
+
+def ensure_successful(futs: Iterable[futures.Future[T]]) -> List[T]:
+    future_list = list(futs)
+    futures.wait(future_list, return_when=futures.ALL_COMPLETED)
+
+    # We treat cancelled futures as if they were successful.
+    exceptions = [
+        fut.exception()
+        for fut in future_list
+        if not fut.cancelled() and fut.exception() is not None
+    ]
+
+    if exceptions:
+        raise ExceptionGroup(
+            "One or more computations failed to complete successfully",
+            cast(List[Exception], exceptions),
+        )
+
+    return [cast(T, fut.result()) for fut in future_list]

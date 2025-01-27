@@ -60,6 +60,8 @@ def cmd_run_experiment(experiments: Dict[str, ExperimentBuilder[Experiment]], ar
     logger.info(DECLogEntry.adapt_instance(experiment))
     experiment.build().run()
 
+    print(f"Experiment {args.experiment} completed successfully.")
+
 
 def cmd_describe_experiment(args):
     if not args.type:

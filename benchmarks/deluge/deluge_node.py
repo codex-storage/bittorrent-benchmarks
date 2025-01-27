@@ -207,8 +207,12 @@ class ResilientCallWrapper:
 
 class DelugeDownloadHandle(DownloadHandle):
     def __init__(self, torrent: Torrent, node: DelugeNode) -> None:
-        self.node = node
+        self._node = node
         self.torrent = torrent
+
+    @property
+    def node(self) -> DelugeNode:
+        return self._node
 
     def await_for_completion(self, timeout: float = 0) -> bool:
         name = self.torrent.name
