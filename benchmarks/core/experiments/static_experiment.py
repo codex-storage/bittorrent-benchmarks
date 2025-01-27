@@ -110,14 +110,17 @@ class StaticDisseminationExperiment(
     def teardown(self, exception: Optional[Exception] = None):
         def _remove(element: Tuple[int, Node[TNetworkHandle, TInitialMetadata]]):
             index, node = element
-            assert self._cid is not None  # to please mypy
+            # This means this node didn't even get to seed anything.
+            if self._cid is None:
+                return element
+
+            # Since teardown might be called as the result of an exception, it's expected
+            # that not all removes will succeed, so we don't check their result.
             node.remove(self._cid)
             logger.info("Node %d (%s) removed file", index + 1, node.name)
             return element
 
         try:
-            # Since teardown might be called as the result of an exception, it's expected
-            # that not all removes will succeed, so we don't check their result.
             ensure_successful(
                 [
                     self._executor.submit(_remove, (i, node))
