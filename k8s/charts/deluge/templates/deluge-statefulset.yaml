@@ -44,6 +44,11 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 6890
+          resources:
+            requests:
+              memory: 6Gi
+            limits:
+              memory: 6Gi
           env:
             - name: CLIENT_POD_NAME
               valueFrom:
