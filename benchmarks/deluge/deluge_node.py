@@ -206,12 +206,9 @@ class ResilientCallWrapper:
 
 
 class DelugeDownloadHandle(DownloadHandle):
-    def __init__(
-        self, torrent: Torrent, node: DelugeNode, missing_retries: int = 10
-    ) -> None:
+    def __init__(self, torrent: Torrent, node: DelugeNode) -> None:
         self._node = node
         self.torrent = torrent
-        self.missing_retries = missing_retries
 
     @property
     def node(self) -> DelugeNode:
@@ -228,16 +225,9 @@ class DelugeDownloadHandle(DownloadHandle):
                 )
 
             if len(response) == 0:
-                if self.missing_retries == 0:
-                    raise ValueError(
-                        f"Client {self._node.name} has no torrents matching name {name}."
-                    )
-
-                logger.warning(
+                raise ValueError(
                     f"Client {self._node.name} has no torrents matching name {name}."
                 )
-                self.missing_retries -= 1
-                return False
 
             status = list(response.values())[0]
             return status[b"is_seed"]

@@ -90,6 +90,27 @@ def test_should_return_false_when_file_does_not_exist(
     assert not deluge_node2.remove(torrent)
 
 
+@pytest.mark.integration
+def test_should_raise_value_error_when_awaiting_on_non_existing_file(
+    deluge_node1: DelugeNode, tracker: Tracker
+):
+    # XXX This is a bit convoluted, but the easiest way I could find to do this.
+    torrent = deluge_node1.genseed(
+        size=megabytes(1),
+        seed=1234,
+        meta=DelugeMeta(name="dataset1", announce_url=tracker.announce_url),
+    )
+
+    deluge_node1.remove(torrent)
+
+    handle = deluge_node1.leech(torrent)
+
+    deluge_node1.remove(torrent)
+
+    with pytest.raises(ValueError):
+        handle.await_for_completion(5)
+
+
 class FlakyClient:
     def __init__(self):
         self.count = 0
