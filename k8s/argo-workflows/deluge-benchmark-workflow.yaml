@@ -15,8 +15,6 @@ spec:
         value: '["100MB", "1GB"]'
       - name: constrained__networkSize_seeders
         value: "[[2, 1], [8, [1, 2, 4]], [16, [1, 2, 4, 8]], [32, [1, 2, 4, 8, 16]]]"
-      - name: minikubeEnv
-        value: "false"
       - name: maxExperimentDuration
         value: 144h
 
@@ -24,57 +22,99 @@ spec:
       # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
       - name: orderBy
         value: '["networkSize", "seeders", "fileSize"]'
+      # Set this to true to run workflows on Minikube.
+      - name: minikubeEnv
+        value: "false"
+      # If set to false, leaves pods for failed experiments behind so they can be inspected.
+      - name: cleanupOnFailure
+        value: "false"
+      # If set to false, does not parse/upload logs at the end of the experiment.
+      - name: parseLogs
+        value: "true"
 
   templates:
     - name: benchmark-workflow
       parallelism: 1
-      steps:
-        - - name: define-image-settings
-            template: define-image-settings
+      dag:
+        tasks:
+        - name: define-image-settings
+          template: define-image-settings
 
-        - - name: generate-group-id
-            template: generate-group-id
+        - name: generate-group-id
+          template: generate-group-id
+          arguments:
+            parameters:
+              - name: runnerImage
+                value: "{{tasks.define-image-settings.outputs.parameters.image}}"
+              - name: imagePullPolicy
+                value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
+          depends: "define-image-settings.Succeeded"
+
+        - name: expand-parameter-matrix
+          template: expand-parameter-matrix
+          arguments:
+            parameters:
+              - name: runnerImage
+                value: "{{tasks.define-image-settings.outputs.parameters.image}}"
+              - name: imagePullPolicy
+                value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
+          depends: "generate-group-id.Succeeded"
+
+        - name: benchmark-experiment
+          template: wrapped-benchmark-experiment
+          arguments:
+            parameters:
+              - name: groupId
+                value: "{{tasks.generate-group-id.outputs.result}}"
+              - name: runId
+                value: "{{item.runId}}"
+              - name: fileSize
+                value: "{{item.fileSize}}"
+              - name: seederSets
+                value: "{{item.seederSets}}"
+              - name: networkSize
+                value: "{{item.networkSize}}"
+              - name: seeders
+                value: "{{item.seeders}}"
+              - name: repetitions
+                value: "{{item.repetitions}}"
+              - name: runnerImage
+                value: "{{tasks.define-image-settings.outputs.parameters.image}}"
+              - name: imagePullPolicy
+                value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
+
+          withParam: "{{tasks.expand-parameter-matrix.outputs.result}}"
+          depends: "expand-parameter-matrix.Succeeded"
+
+        - name: parse-logs
+          template: parse-logs
+          arguments:
+            parameters:
+              - name: groupId
+                value: "{{tasks.generate-group-id.outputs.result}}"
+          depends: "benchmark-experiment.AnySucceeded"
+          when: '{{workflow.parameters.parseLogs}} == true'
+
+    - name: parse-logs
+      inputs:
+        parameters:
+          - name: groupId
+      resource:
+        action: create
+        manifest: |
+          apiVersion: argoproj.io/v1alpha1
+          kind: Workflow
+          metadata:
+            generateName: log-parsing-
+          spec:
+            workflowTemplateRef:
+              name: log-parsing-workflow
             arguments:
               parameters:
-                - name: runnerImage
-                  value: "{{steps.define-image-settings.outputs.parameters.image}}"
-                - name: imagePullPolicy
-                  value: "{{steps.define-image-settings.outputs.parameters.imagePullPolicy}}"
-
-        - - name: expand-parameter-matrix
-            template: expand-parameter-matrix
-            arguments:
-              parameters:
-                - name: runnerImage
-                  value: "{{steps.define-image-settings.outputs.parameters.image}}"
-                - name: imagePullPolicy
-                  value: "{{steps.define-image-settings.outputs.parameters.imagePullPolicy}}"
-
-        - - name: benchmark-experiment
-            template: wrapped-benchmark-experiment
-            arguments:
-              parameters:
-                - name: groupId
-                  value: "{{steps.generate-group-id.outputs.result}}"
-                - name: runId
-                  value: "{{item.runId}}"
-                - name: fileSize
-                  value: "{{item.fileSize}}"
-                - name: seederSets
-                  value: "{{item.seederSets}}"
-                - name: networkSize
-                  value: "{{item.networkSize}}"
-                - name: seeders
-                  value: "{{item.seeders}}"
-                - name: repetitions
-                  value: "{{item.repetitions}}"
-                - name: runnerImage
-                  value: "{{steps.define-image-settings.outputs.parameters.image}}"
-                - name: imagePullPolicy
-                  value: "{{steps.define-image-settings.outputs.parameters.imagePullPolicy}}"
-
-            withParam: "{{steps.expand-parameter-matrix.outputs.result}}"
-
+                - name: experimentGroupId
+                  value: "{{inputs.parameters.groupId}}"
+        successCondition: status.phase == Succeeded
+        failureCondition: status.phase in (Failed, Error)
 
     - name: define-image-settings
       # I think this goes to show just how clumsy Argo Workflows is. If I want to select
@@ -121,7 +161,8 @@ spec:
         imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "/bin/bash" ]
         source: |
-          echo "$(date +%s)"
+          # The ID starts with a "g" as otherwise we can't use it as a label value in k8s.
+          echo "g$(date +%s)"
 
     # We "wrap" the benchmark workflow with a dummy workflow so exit handlers behave properly. If we
     # were to call benchmark-experiment directly from the main flow, the exit handlers would be run
@@ -138,20 +179,11 @@ spec:
           - name: networkSize
           - name: seeders
           - name: repetitions
-      steps:
-        - - name: benchmark-experiment
+
+      dag:
+        tasks:
+          - name: benchmark-experiment
             template: benchmark-experiment
-            hooks:
-              exit:
-                template: cleanup
-                arguments:
-                  parameters:
-                    - name: runId
-                      value: "{{inputs.parameters.runId}}"
-                    - name: runnerImage
-                      value: "{{inputs.parameters.runnerImage}}"
-                    - name: imagePullPolicy
-                      value: "{{inputs.parameters.imagePullPolicy}}"
             arguments:
               parameters:
                 - name: groupId
@@ -173,6 +205,32 @@ spec:
                 - name: imagePullPolicy
                   value: "{{inputs.parameters.imagePullPolicy}}"
 
+          - name: cleanup-success
+            template: cleanup
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{inputs.parameters.runId}}"
+                - name: runnerImage
+                  value: "{{inputs.parameters.runnerImage}}"
+                - name: imagePullPolicy
+                  value: "{{inputs.parameters.imagePullPolicy}}"
+
+            depends: "benchmark-experiment.Succeeded"
+
+          - name: cleanup-failure
+            template: cleanup
+            arguments:
+              parameters:
+                - name: runId
+                  value: "{{inputs.parameters.runId}}"
+                - name: runnerImage
+                  value: "{{inputs.parameters.runnerImage}}"
+                - name: imagePullPolicy
+                  value: "{{inputs.parameters.imagePullPolicy}}"
+
+            depends: "benchmark-experiment.Failed"
+            when: '{{workflows.inputs.parameters.cleanupOnFailure}} == true'
 
     - name: benchmark-experiment
       inputs:
@@ -251,7 +309,7 @@ spec:
 
           helm install e{{inputs.parameters.runId}} ./k8s/charts/deluge\
             --namespace codex-benchmarks "${VALUE_FILE[@]}"\
-            --set experiment.groupId=g{{inputs.parameters.groupId}}\
+            --set experiment.groupId={{inputs.parameters.groupId}}\
             --set experiment.repetitions={{inputs.parameters.repetitions}}\
             --set experiment.fileSize={{inputs.parameters.fileSize}}\
             --set experiment.networkSize={{inputs.parameters.networkSize}}\
@@ -273,7 +331,7 @@ spec:
           ./docker/bin/kubectl-wait-job\
             --selector=app.kubernetes.io/component=deluge-experiment-runner,\
           app.kubernetes.io/instance=e{{inputs.parameters.runId}},\
-          app.kubernetes.io/part-of=g{{inputs.parameters.groupId}}\
+          app.kubernetes.io/part-of={{inputs.parameters.groupId}}\
             --timeout={{workflow.parameters.maxExperimentDuration}}\
             -n codex-benchmarks
 
