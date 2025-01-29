@@ -230,7 +230,7 @@ spec:
                   value: "{{inputs.parameters.imagePullPolicy}}"
 
             depends: "benchmark-experiment.Failed"
-            when: '{{workflows.inputs.parameters.cleanupOnFailure}} == true'
+            when: '{{workflow.parameters.cleanupOnFailure}} == true'
 
     - name: benchmark-experiment
       inputs:
