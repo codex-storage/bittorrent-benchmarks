@@ -46,11 +46,18 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run pytest -m "not integration"
+          docker run --rm --entrypoint poetry bittorrent-benchmarks:test run pytest -m \
+            "not codex_integration and not deluge_integration"
 
-      - name: Run Integration Tests
+      - name: Run Deluge Integration Tests
         run: |
-          docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml up --abort-on-container-exit --exit-code-from test-runner
+          docker compose -f docker-compose-deluge.local.yaml \
+              -f docker-compose-deluge.ci.yaml up --abort-on-container-exit --exit-code-from test-runner
+
+      - name: Run Codex Integration Tests
+        run: |
+          docker compose -f docker-compose-codex.local.yaml \
+              -f docker-compose-codex.ci.yaml up --abort-on-container-exit --exit-code-from test-runner
 
   variables:
     name: Compute outputs

@@ -13,9 +13,9 @@ services:
         touch /.done
         sleep infinity
     volumes:
-      - shared-volume-1:/var/lib/deluge1
-      - shared-volume-2:/var/lib/deluge2
-      - shared-volume-3:/var/lib/deluge3
+      - deluge-volume-1:/var/lib/deluge1
+      - deluge-volume-2:/var/lib/deluge2
+      - deluge-volume-3:/var/lib/deluge3
     healthcheck:
       timeout: 10s
       test: [ "CMD", "test", "-f", "/.done" ]
@@ -31,7 +31,7 @@ services:
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
       - DELUGE_NODE_ID=deluge-1
     volumes:
-      - shared-volume-1:/var/lib/deluge
+      - deluge-volume-1:/var/lib/deluge
     ports:
       - "6890:6890"
       - "6891-6892:6891-6892"
@@ -39,7 +39,7 @@ services:
       clean-volumes:
         condition: service_healthy
 
-  agent-1:
+  deluge-agent-1:
     image: bittorrent-benchmarks:test
     container_name: agent-1
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
@@ -47,7 +47,7 @@ services:
     environment:
       - TORRENTS_ROOT=/var/lib/deluge/downloads
     volumes:
-      - shared-volume-1:/var/lib/deluge
+      - deluge-volume-1:/var/lib/deluge
     ports:
       - "9001:9001"
 
@@ -60,7 +60,7 @@ services:
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
       - DELUGE_NODE_ID=deluge-2
     volumes:
-      - shared-volume-2:/var/lib/deluge
+      - deluge-volume-2:/var/lib/deluge
     ports:
       - "6893:6893"
       - "6894-6895:6894-6895"
@@ -68,7 +68,7 @@ services:
       clean-volumes:
         condition: service_healthy
 
-  agent-2:
+  deluge-agent-2:
     image: bittorrent-benchmarks:test
     container_name: agent-2
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent",
@@ -76,7 +76,7 @@ services:
     environment:
       - TORRENTS_ROOT=/var/lib/deluge/downloads
     volumes:
-      - shared-volume-2:/var/lib/deluge
+      - deluge-volume-2:/var/lib/deluge
     ports:
       - "9002:9002"
 
@@ -89,7 +89,7 @@ services:
       - DELUGE_LOG_LEVEL=${DELUGE_LOG_LEVEL:-info}
       - DELUGE_NODE_ID=deluge-3
     volumes:
-      - shared-volume-3:/var/lib/deluge
+      - deluge-volume-3:/var/lib/deluge
     ports:
       - "6896:6896"
       - "6897-6898:6897-6898"
@@ -97,7 +97,7 @@ services:
       clean-volumes:
         condition: service_healthy
 
-  agent-3:
+  deluge-agent-3:
     image: bittorrent-benchmarks:test
     container_name: agent-3
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent", "experiments.local.yaml",
@@ -105,7 +105,7 @@ services:
     environment:
       - TORRENTS_ROOT=/var/lib/deluge/downloads
     volumes:
-      - shared-volume-3:/var/lib/deluge
+      - deluge-volume-3:/var/lib/deluge
     ports:
       - "9003:9003"
 
@@ -129,6 +129,6 @@ services:
       - "9200:9200"
 
 volumes:
-  shared-volume-1:
-  shared-volume-2:
-  shared-volume-3:
+  deluge-volume-1:
+  deluge-volume-2:
+  deluge-volume-3:

@@ -14,22 +14,29 @@ SHELL := bash
 
 # Runs the unit tests locally.
 unit:
-	poetry run pytest -m "not integration"
+	poetry run pytest -m "not deluge_integration and not codex_integration"
 
-# Starts the local integration harness. This is required for running pytest with the "integration" marker.
-harness-start:
-	docker compose -f docker-compose.local.yaml up
+deluge-harness-start:
+	docker compose -f docker-compose-deluge.local.yaml up
 
-# Stops the local integration harness.
-harness-stop:
-	docker compose -f docker-compose.local.yaml down --volumes --remove-orphans
+codex-harness-start:
+	docker compose -f docker-compose-codex.local.yaml up
+
+deluge-harness-stop:
+	docker compose -f docker-compose-deluge.local.yaml down --volumes --remove-orphans
+
+codex-harness-stop:
+	docker compose -f docker-compose-codex.local.yaml down --volumes --remove-orphans
 
 # Runs the integration tests locally. This requires the integration harness to be running.
-integration:
-	echo "NOTE: Make sure to have started the integration harness or this will not work"
-	poetry run pytest -m "integration"
+deluge-integration:
+	echo "NOTE: Make sure to have started the Deluge integration harness or this will not work"
+	poetry run pytest -m "deluge_integration"
 
-tests: unit integration
+
+codex-integration:
+	echo "NOTE: Make sure to have started the Codex integration harness or this will not work"
+	poetry run pytest -m "codex_integration"
 
 image-test:
 	docker build -t bittorrent-benchmarks:test -f ./docker/bittorrent-benchmarks.Dockerfile .
@@ -43,10 +50,14 @@ image-minikube:
 		-f ./docker/bittorrent-benchmarks-workflows.Dockerfile .
 
 # Runs the integration tests in a docker container.
-integration-docker: image-test
-	docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml down --volumes --remove-orphans
-	docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml up \
+deluge-integration-docker: image-test
+	docker compose -f docker-compose-deluge.local.yaml -f docker-compose-deluge.ci.yaml down --volumes --remove-orphans
+	docker compose -f docker-compose-deluge.local.yaml -f docker-compose-deluge.ci.yaml up \
 		--abort-on-container-exit --exit-code-from test-runner
 
+codex-integration-docker: image-test
+	docker compose -f docker-compose-codex.local.yaml -f docker-compose-codex.ci.yaml down --volumes --remove-orphans
+	docker compose -f docker-compose-codex.local.yaml -f docker-compose-codex.ci.yaml up \
+		--abort-on-container-exit --exit-code-from test-runner
 clean:
 	docker compose -f docker-compose.local.yaml -f docker-compose.ci.yaml down --volumes --rmi all --remove-orphans

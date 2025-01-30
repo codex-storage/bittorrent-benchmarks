@@ -31,14 +31,14 @@ def test_should_look_into_k_day_horizon():
     ]
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_retrieve_unstructured_log_messages(benchmark_logs_client):
     source = LogstashSource(benchmark_logs_client, chronological=True)
     lines = list(_log_lines(source, "e3", "g3"))
     assert not all(">>" in line for line in lines)
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_retrieve_the_same_results_when_slicing(benchmark_logs_client):
     source = LogstashSource(benchmark_logs_client, chronological=True)
     unsliced = set(source.logs(group_id="g3"))
@@ -49,7 +49,7 @@ def test_should_retrieve_the_same_results_when_slicing(benchmark_logs_client):
     assert unsliced == sliced
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_filter_out_unstructured_log_messages(benchmark_logs_client):
     source = LogstashSource(
         benchmark_logs_client, structured_only=True, chronological=True
@@ -58,7 +58,7 @@ def test_filter_out_unstructured_log_messages(benchmark_logs_client):
     assert all(">>" in line for line in lines)
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_retrieve_logs_for_single_experiment(benchmark_logs_client):
     source = LogstashSource(
         benchmark_logs_client, structured_only=True, chronological=True
@@ -99,7 +99,7 @@ def test_should_retrieve_logs_for_single_experiment(benchmark_logs_client):
     ]
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_return_empty_data_for_non_existing_experiments(benchmark_logs_client):
     source = LogstashSource(
         benchmark_logs_client, structured_only=True, chronological=True
@@ -113,7 +113,7 @@ def test_should_return_empty_data_for_non_existing_experiments(benchmark_logs_cl
     assert list(lines) == []
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_return_all_experiments_within_a_group(benchmark_logs_client):
     source = LogstashSource(
         benchmark_logs_client, structured_only=True, chronological=True

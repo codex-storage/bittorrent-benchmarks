@@ -7,7 +7,7 @@ from benchmarks.deluge.deluge_node import DelugeMeta
 from benchmarks.deluge.tests.test_deluge_node import assert_is_seed
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_run_with_a_single_seeder(
     tracker, deluge_node1, deluge_node2, deluge_node3
 ):
@@ -37,7 +37,7 @@ def test_should_run_with_a_single_seeder(
         experiment.teardown()
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_run_with_multiple_seeders(
     tracker, deluge_node1, deluge_node2, deluge_node3
 ):

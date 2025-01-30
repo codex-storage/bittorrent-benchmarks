@@ -3,14 +3,14 @@ services:
   test-runner:
     image: bittorrent-benchmarks:test
     container_name: test-runner
-    entrypoint: [ "poetry", "run", "pytest", "--exitfirst" ]
+    entrypoint: [ "poetry", "run", "pytest", "-m", "deluge_integration", "--exitfirst" ]
     environment:
       - DELUGE_NODE_1=deluge-1
       - DELUGE_NODE_2=deluge-2
       - DELUGE_NODE_3=deluge-3
-      - DELUGE_AGENT_1=http://agent-1:9001/
-      - DELUGE_AGENT_2=http://agent-2:9002/
-      - DELUGE_AGENT_3=http://agent-3:9003/
+      - DELUGE_AGENT_1=http://deluge-agent-1:9001/
+      - DELUGE_AGENT_2=http://deluge-agent-2:9002/
+      - DELUGE_AGENT_3=http://deluge-agent-3:9003/
       - TRACKER_ANNOUNCE_URL=http://tracker:8000/announce
       - ELASTICSEARCH_URL=http://elasticsearch:9200/
     depends_on:

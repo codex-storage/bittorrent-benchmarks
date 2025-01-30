@@ -1,0 +1,11 @@
+
+services:
+  test-runner:
+    image: bittorrent-benchmarks:test
+    container_name: test-runner
+    entrypoint: [ "poetry", "run", "pytest", "-m", "codex_integration", "--exitfirst" ]
+    environment:
+      - CODEX_NODE_1=codex-1
+    depends_on:
+      clean-volumes:
+        condition: service_healthy

@@ -13,6 +13,7 @@ def temp_dir():
         yield Path(temp_dir)
 
 
+@pytest.mark.deluge_integration
 def test_should_create_torrent_at_specified_location(temp_dir):
     agent = DelugeAgent(
         torrents_path=temp_dir,
@@ -31,6 +32,7 @@ def test_should_create_torrent_at_specified_location(temp_dir):
     assert (temp_dir / "dataset-1" / "datafile.bin").stat().st_size == 1024
 
 
+@pytest.mark.deluge_integration
 def test_should_generate_identical_torrent_files_for_identical_seeds(temp_dir):
     agent1 = DelugeAgent(
         torrents_path=temp_dir / "d1",
@@ -55,6 +57,7 @@ def test_should_generate_identical_torrent_files_for_identical_seeds(temp_dir):
     assert torrent_file1.to_string() == torrent_file2.to_string()
 
 
+@pytest.mark.deluge_integration
 def test_should_generate_different_torrent_files_for_different_seeds(temp_dir):
     agent1 = DelugeAgent(
         torrents_path=temp_dir / "d1",

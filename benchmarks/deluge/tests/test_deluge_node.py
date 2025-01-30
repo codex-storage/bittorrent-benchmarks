@@ -28,7 +28,7 @@ def assert_is_seed(node: DelugeNode, name: str, size: int):
     assert await_predicate(_is_seed, timeout=5)
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_seed_files(deluge_node1: DelugeNode, tracker: Tracker):
     assert not deluge_node1.torrent_info(name="dataset1")
 
@@ -41,7 +41,7 @@ def test_should_seed_files(deluge_node1: DelugeNode, tracker: Tracker):
     assert_is_seed(deluge_node1, name="dataset1", size=megabytes(1))
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_download_files(
     deluge_node1: DelugeNode,
     deluge_node2: DelugeNode,
@@ -62,7 +62,7 @@ def test_should_download_files(
     assert_is_seed(deluge_node2, name="dataset1", size=megabytes(1))
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_remove_files(deluge_node1: DelugeNode, tracker: Tracker):
     assert not deluge_node1.torrent_info(name="dataset1")
 
@@ -77,7 +77,7 @@ def test_should_remove_files(deluge_node1: DelugeNode, tracker: Tracker):
     assert not deluge_node1.torrent_info(name="dataset1")
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_return_false_when_file_does_not_exist(
     deluge_node1: DelugeNode, deluge_node2: DelugeNode, tracker: Tracker
 ):
@@ -90,7 +90,7 @@ def test_should_return_false_when_file_does_not_exist(
     assert not deluge_node2.remove(torrent)
 
 
-@pytest.mark.integration
+@pytest.mark.deluge_integration
 def test_should_raise_value_error_when_awaiting_on_non_existing_file(
     deluge_node1: DelugeNode, tracker: Tracker
 ):

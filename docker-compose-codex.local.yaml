@@ -1,0 +1,42 @@
+services:
+  clean-volumes:
+    image: alpine
+    container_name: clean-volumes
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        rm -rf /var/lib/codex1/* /var/lib/codex2/* /var/lib/codex3/*
+        touch /.done
+        sleep infinity
+    volumes:
+      - codex-volume-1:/var/lib/deluge1
+      - codex-volume-2:/var/lib/deluge2
+      - codex-volume-3:/var/lib/deluge3
+    healthcheck:
+      timeout: 10s
+      test: [ "CMD", "test", "-f", "/.done" ]
+      retries: 10
+      interval: 1s
+
+  codex-1:
+    image: codexstorage/nim-codex:latest
+    container_name: codex-1
+    environment:
+      - CODEX_LOG_LEVEL=DEBUG
+
+      - CODEX_DATA_DIR=/var/lib/codex
+      - CODEX_DISC_PORT=8090
+      - CODEX_API_BINDADDR=0.0.0.0
+      - CODEX_API_PORT=8091
+      - CODEX_STORAGE_QUOTA=1073741824 # 1GB
+
+    volumes:
+      - codex-volume-1:/var/lib/codex
+    ports:
+      - "8090-8091:8090-8091"
+
+volumes:
+  codex-volume-1:
+  codex-volume-2:
+  codex-volume-3:
