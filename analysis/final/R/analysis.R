@@ -141,11 +141,18 @@ completion_time_stats <- function(download_times, meta) {
     p05 = quantile(completion_times, p = 0.05),
     p10 = quantile(completion_times, p = 0.10),
     p20 = quantile(completion_times, p = 0.20),
+    p25 = quantile(completion_times, p = 0.25),
     median = median(completion_times),
+    p75 = quantile(completion_times, p = 0.75),
     p80 = quantile(completion_times, p = 0.80),
     p90 = quantile(completion_times, p = 0.90),
     p95 = quantile(completion_times, p = 0.95),
     max = max(completion_times),
+    iqr = p75 - p25,
+    # This gives us roughly a 95% ci for comparing medians.
+    ci = (1.58 * iqr) / sqrt(n),
+    w_top = median + ci,
+    w_bottom = median - ci
   )
 }
 

@@ -67,6 +67,10 @@ We then plot the median by network size, and facet it by seeder ratio and file s
 
 ```{r fig.width = 10, warning=FALSE, message=FALSE}
 ggplot(benchmarks) +
+  geom_ribbon(aes(ymin = p25, ymax = p75, x = network_size),
+              fill = scales::alpha('blue', 0.5), col = 'lightgray') +
+  geom_point(aes(x = network_size, y = p25), col = 'darkgray', size=10.0, shape='-') +
+  geom_point(aes(x = network_size, y = p75), col = 'darkgray', size=10.0, shape='-') +
   geom_line(aes(x = network_size, y = median)) +
   geom_point(aes(x = network_size, y = median)) +
   ylab('median download time (seconds)') +
