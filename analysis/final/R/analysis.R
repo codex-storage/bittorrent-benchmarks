@@ -1,7 +1,7 @@
 PIECE_SIZE <- 262144
 
-piece_count <- function(experiment) {
-  experiment$meta$file_size / PIECE_SIZE
+piece_count <- function(experiment_meta) {
+  experiment_meta$file_size / PIECE_SIZE
 }
 
 extract_repetitions <- function(deluge_torrent_download) {
@@ -26,17 +26,23 @@ compute_pieces <- function(deluge_torrent_download, n_pieces) {
     mutate(completed = piece_count / n_pieces)
 }
 
-check_incomplete_downloads <- function(deluge_torrent_download, n_pieces) {
+process_incomplete_downloads <- function(deluge_torrent_download, n_pieces, discard_incomplete) {
   incomplete_downloads <- deluge_torrent_download |>
     group_by(node, seed_set, run) |>
     count() |>
     ungroup() |>
     filter(n != n_pieces)
 
-  nrow(incomplete_downloads) == 0
+  if(nrow(incomplete_downloads) > 0) {
+    (if (!discard_incomplete) stop else warning)(
+      'Experiment contained incomplete downloads.')
+  }
+
+  deluge_torrent_download |> anti_join(
+    incomplete_downloads, by = c('node', 'seed_set', 'run'))
 }
 
-check_mismatching_repetitions <- function(deluge_torrent_download, repetitions) {
+process_incomplete_repetitions <- function(deluge_torrent_download, repetitions, allow_missing) {
   mismatching_repetitions <- deluge_torrent_download |>
     select(seed_set, node, run) |>
     distinct() |>
@@ -44,7 +50,12 @@ check_mismatching_repetitions <- function(deluge_torrent_download, repetitions) 
     count() |>
     filter(n != repetitions)
 
-  nrow(mismatching_repetitions) == 0
+  if(nrow(mismatching_repetitions) > 0) {
+    (if (!allow_missing) stop else warning)(
+      'Experiment data did not have all repetitions.')
+  }
+
+  deluge_torrent_download
 }
 
 compute_download_times <- function(meta, request_event, deluge_torrent_download, group_id) {
@@ -111,13 +122,21 @@ download_stats <- function(download_times) {
     )
 }
 
-completion_time_stats <- function(download_times) {
+completion_time_stats <- function(download_times, meta) {
+  n_pieces <- meta |> piece_count()
   completion_times <- download_times |>
-    filter(!is.na(elapsed_download_time)) |>
+    filter(!is.na(elapsed_download_time),
+           piece_count == n_pieces) |>
     pull(elapsed_download_time)
 
+  n_experiments <- meta$repetitions * meta$seeder_sets
+  n_leechers <- meta$nodes$network_size - meta$seeders
+  n_points <- n_experiments * n_leechers
 
   tibble(
+    n = length(completion_times),
+    expected_n = n_points,
+    missing = expected_n - n,
     min = min(completion_times),
     p05 = quantile(completion_times, p = 0.05),
     p10 = quantile(completion_times, p = 0.10),
@@ -126,28 +145,23 @@ completion_time_stats <- function(download_times) {
     p80 = quantile(completion_times, p = 0.80),
     p90 = quantile(completion_times, p = 0.90),
     p95 = quantile(completion_times, p = 0.95),
-    max = max(completion_times)
+    max = max(completion_times),
   )
 }
 
-download_times <- function(experiment) {
+download_times <- function(experiment, discard_incomplete = TRUE, allow_missing = TRUE) {
   meta <- experiment$meta
-  pieces <- experiment |> piece_count()
+  pieces <- experiment$meta |> piece_count()
   downloads <- experiment$deluge_torrent_download |>
     extract_repetitions() |>
     compute_pieces(pieces)
 
-  if (!check_incomplete_downloads(downloads, pieces)) {
-    warning(glue::glue('Discard experiment {experiment$experiment_id} ',
-                       'due to incomplete downloads'))
-    return(NULL)
-  }
-
-  if (!check_mismatching_repetitions(downloads, meta$repetitions)) {
-    warning(glue::glue('Discard experiment {experiment$experiment_id} ',
-                       'due to mismatching repetitions'))
-    return(NULL)
-  }
+  downloads <- process_incomplete_downloads(
+    downloads,
+    pieces,
+    discard_incomplete
+  ) |>
+    process_incomplete_repetitions(meta$repetitions, allow_missing)
 
   download_times <- compute_download_times(
     meta,

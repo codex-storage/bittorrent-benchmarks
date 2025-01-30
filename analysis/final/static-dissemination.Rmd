@@ -20,7 +20,7 @@ devtools::load_all()
 This is data that's been pre-parsed from an experiment [log source](https://github.com/codex-storage/bittorrent-benchmarks/blob/1ee8ea8a35a2c0fccea6e7c955183c4ed03eebb3/benchmarks/logging/sources.py#L27).
 
 ```{r}
-deluge <- read_all_experiments('./data/deluge-g1737553501/')
+deluge <- read_all_experiments('./data/g1738145663/')
 ```
 Computes the benchmark statistics from raw download logs.
 
@@ -31,7 +31,7 @@ benchmarks <- lapply(deluge, function(experiment) {
     meta <- experiment$meta
     completion <- experiment |>
       download_times() |>
-      completion_time_stats()
+      completion_time_stats(meta)
     
     if (is.null(completion)) {
       NULL
@@ -83,4 +83,3 @@ ggplot(benchmarks) +
   ) +
   ylim(c(0,NA))
 ```
-The data looks largely sane: a larger seeder ratio makes performance somewhat better; though not nearly as consistently as one would hope, at least in this data, and there is a linear performance degradation trend as the network grows larger. Also, the $100\text{MB}$ file seems to generate much better-behaved data than the $1\text{GB}$ case with those trends; i.e., larger seeder ratio improving performance, and network size linearly degrading it, being more pronounced.
