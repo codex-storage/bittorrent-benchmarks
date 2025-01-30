@@ -12,7 +12,7 @@ spec:
       - name: seederSets
         value: 2
       - name: fileSize
-        value: '["100MB", "1GB"]'
+        value: '["100MB", "1GB", "5GB"]'
       - name: constrained__networkSize_seeders
         value: "[[2, 1], [8, [1, 2, 4]], [16, [1, 2, 4, 8]], [32, [1, 2, 4, 8, 16]]]"
       - name: maxExperimentDuration
