@@ -1,8 +1,11 @@
+from abc import ABC, abstractmethod
 from typing import IO
 
 import aiohttp
 from pydantic import BaseModel
 from urllib3.util import Url
+
+from benchmarks.core.utils.streams import BaseStreamReader
 
 API_VERSION = "v1"
 
@@ -20,7 +23,21 @@ class Manifest(BaseModel):
     protected: bool
 
 
-class CodexClient:
+class CodexClient(ABC):
+    @abstractmethod
+    async def upload(self, name: str, mime_type: str, content: IO) -> Cid:
+        pass
+
+    @abstractmethod
+    async def get_manifest(self, cid: Cid) -> Manifest:
+        pass
+
+    @abstractmethod
+    async def download(self, cid: Cid) -> BaseStreamReader:
+        pass
+
+
+class CodexClientImpl(CodexClient):
     """A lightweight async wrapper built around the Codex REST API."""
 
     def __init__(self, codex_api_url: Url):
@@ -55,3 +72,15 @@ class CodexClient:
         cid = response_contents.pop("cid")
 
         return Manifest.model_validate(dict(cid=cid, **response_contents["manifest"]))
+
+    async def download(self, cid: Cid) -> BaseStreamReader:
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(
+                self.codex_api_url._replace(
+                    path=f"/api/codex/v1/data/{cid}/network/download"
+                ).url,
+            )
+
+            response.raise_for_status()
+
+            return response.content

@@ -5,7 +5,7 @@ from typing import Generator
 import pytest
 from urllib3.util import parse_url
 
-from benchmarks.core.utils import await_predicate
+from benchmarks.core.concurrency import await_predicate
 from benchmarks.deluge.agent.client import DelugeAgentClient
 from benchmarks.deluge.deluge_node import DelugeNode
 from benchmarks.deluge.tracker import Tracker

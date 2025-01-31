@@ -8,8 +8,8 @@ from typing import List, Optional
 
 from typing_extensions import Generic, TypeVar
 
+from benchmarks.core.concurrency import await_predicate
 from benchmarks.core.config import Builder
-from benchmarks.core.utils import await_predicate
 
 logger = logging.getLogger(__name__)
 

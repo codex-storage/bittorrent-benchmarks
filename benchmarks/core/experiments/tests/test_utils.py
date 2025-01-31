@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from benchmarks.core.utils import random_data
+from benchmarks.core.utils.random import random_data
 
 
 def test_should_generate_the_requested_amount_of_bytes():

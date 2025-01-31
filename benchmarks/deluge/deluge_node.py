@@ -22,9 +22,10 @@ from tenacity.wait import wait_base
 from torrentool.torrent import Torrent
 from urllib3.util import Url
 
+from benchmarks.core.concurrency import await_predicate
 from benchmarks.core.experiments.experiments import ExperimentComponent
 from benchmarks.core.network import DownloadHandle, Node
-from benchmarks.core.utils import await_predicate
+
 from benchmarks.deluge.agent.client import DelugeAgentClient
 
 logger = logging.getLogger(__name__)

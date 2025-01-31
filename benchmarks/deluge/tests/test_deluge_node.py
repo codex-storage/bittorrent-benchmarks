@@ -1,7 +1,8 @@
 import pytest
 from tenacity import wait_incrementing, stop_after_attempt, RetryError
 
-from benchmarks.core.utils import megabytes, await_predicate
+from benchmarks.core.concurrency import await_predicate
+from benchmarks.core.utils.units import megabytes
 from benchmarks.deluge.deluge_node import DelugeNode, DelugeMeta, ResilientCallWrapper
 from benchmarks.deluge.tracker import Tracker
 

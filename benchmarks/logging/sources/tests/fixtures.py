@@ -6,7 +6,7 @@ from typing import Dict, Any
 import pytest
 from elasticsearch import Elasticsearch
 
-from benchmarks.core.utils import await_predicate
+from benchmarks.core.concurrency import await_predicate
 
 
 def _json_data(data: str) -> Dict[str, Any]:

@@ -4,7 +4,8 @@ from typing import Optional
 
 from torrentool.torrent import Torrent
 
-from benchmarks.core.utils import random_data, megabytes
+from benchmarks.core.utils.random import random_data
+from benchmarks.core.utils.units import megabytes
 
 logger = logging.getLogger(__name__)
 

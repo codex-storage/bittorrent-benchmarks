@@ -1,0 +1,9 @@
+from typing import Protocol
+
+
+class BaseStreamReader(Protocol):
+    async def read(self, n: int) -> bytes: ...
+
+    def feed_data(self, data: bytes) -> None: ...
+
+    def at_eof(self) -> bool: ...

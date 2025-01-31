@@ -4,8 +4,8 @@ from typing import Annotated, Optional
 from fastapi import FastAPI, Depends, APIRouter, Response
 
 from benchmarks.core.agent import AgentBuilder
+from benchmarks.core.utils.units import megabytes
 
-from benchmarks.core.utils import megabytes
 from benchmarks.deluge.agent.agent import DelugeAgent
 
 router = APIRouter()

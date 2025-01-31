@@ -1,9 +1,41 @@
+import asyncio
 from concurrent import futures
 from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
-from typing import Iterable, Iterator, List, cast
+from time import time, sleep
+from typing import Iterable, Iterator, List, cast, Awaitable, Callable
 
 from typing_extensions import TypeVar
+
+
+def await_predicate(
+    predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
+) -> bool:
+    start_time = time()
+    while (timeout == 0) or ((time() - start_time) <= timeout):
+        if predicate():
+            return True
+        sleep(polling_interval)
+
+    return False
+
+
+async def await_predicate_async(
+    predicate: Callable[[], Awaitable[bool]] | Callable[[], bool],
+    timeout: float = 0,
+    polling_interval: float = 0,
+) -> bool:
+    start_time = time()
+    while (timeout == 0) or ((time() - start_time) <= timeout):
+        if asyncio.iscoroutinefunction(predicate):
+            if await predicate():
+                return True
+        else:
+            if predicate():
+                return True
+        await asyncio.sleep(polling_interval)
+
+    return False
 
 
 class _End:

@@ -2,7 +2,7 @@ from io import BytesIO
 
 import pytest
 
-from benchmarks.core.utils import random_data
+from benchmarks.core.utils.random import random_data
 
 
 @pytest.fixture

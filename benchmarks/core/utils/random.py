@@ -1,18 +1,7 @@
 import random
-from time import time, sleep
-from typing import Iterator, Optional, Callable, IO
+from typing import Iterator, IO, Optional
 
-
-def await_predicate(
-    predicate: Callable[[], bool], timeout: float = 0, polling_interval: float = 0
-) -> bool:
-    start_time = time()
-    while (timeout == 0) or ((time() - start_time) <= timeout):
-        if predicate():
-            return True
-        sleep(polling_interval)
-
-    return False
+from benchmarks.core.utils.units import megabytes
 
 
 def sample(n: int) -> Iterator[int]:
@@ -24,14 +13,6 @@ def sample(n: int) -> Iterator[int]:
         p[j] = p[i]
         p[i] = tmp
         yield p[i]
-
-
-def kilobytes(n: int) -> int:
-    return n * 1024
-
-
-def megabytes(n: int) -> int:
-    return kilobytes(n) * 1024
 
 
 def random_data(
