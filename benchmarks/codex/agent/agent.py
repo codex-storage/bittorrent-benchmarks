@@ -1,9 +1,10 @@
 import asyncio
 import logging
 from asyncio import Task
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional
+from typing import Optional, Dict
 
 from benchmarks.codex.agent.codex_client import CodexClient, Manifest
 from benchmarks.codex.logging import CodexDownloadMetric
@@ -15,6 +16,12 @@ Cid = str
 EMPTY_STREAM_BACKOFF = 0.1
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DownloadStatus:
+    downloaded: int
+    total: int
 
 
 class DownloadHandle:
@@ -37,51 +44,58 @@ class DownloadHandle:
         return self.download_task
 
     async def _download_loop(self):
-        step_size = int(self.manifest.datasetSize * self.read_increment)
+        try:
+            step_size = int(self.manifest.datasetSize * self.read_increment)
 
-        while not self.download_stream.at_eof():
-            step = min(step_size, self.manifest.datasetSize - self.bytes_downloaded)
-            bytes_read = await self.download_stream.read(step)
-            # We actually have no guarantees that an empty read means EOF, so we just back off
-            # a bit.
-            if not bytes_read:
-                await asyncio.sleep(EMPTY_STREAM_BACKOFF)
-            self.bytes_downloaded += len(bytes_read)
-            logger.info(
-                CodexDownloadMetric(
-                    cid=self.manifest.cid,
-                    value=self.bytes_downloaded,
-                    node=self.parent.node_id,
+            while not self.download_stream.at_eof():
+                step = min(step_size, self.manifest.datasetSize - self.bytes_downloaded)
+                bytes_read = await self.download_stream.read(step)
+                # We actually have no guarantees that an empty read means EOF, so we just back off
+                # a bit.
+                if not bytes_read:
+                    await asyncio.sleep(EMPTY_STREAM_BACKOFF)
+                self.bytes_downloaded += len(bytes_read)
+
+                logger.info(
+                    CodexDownloadMetric(
+                        cid=self.manifest.cid,
+                        value=self.bytes_downloaded,
+                        node=self.parent.node_id,
+                    )
                 )
-            )
 
-        if self.bytes_downloaded < self.manifest.datasetSize:
-            raise EOFError(
-                f"Got EOF too early: download size ({self.bytes_downloaded}) was less "
-                f"than expected ({self.manifest.datasetSize})."
-            )
+            if self.bytes_downloaded < self.manifest.datasetSize:
+                raise EOFError(
+                    f"Got EOF too early: download size ({self.bytes_downloaded}) was less "
+                    f"than expected ({self.manifest.datasetSize})."
+                )
 
-        if self.bytes_downloaded > self.manifest.datasetSize:
-            raise ValueError(
-                f"Download size ({self.bytes_downloaded}) was greater than expected "
-                f"({self.manifest.datasetSize})."
-            )
+            if self.bytes_downloaded > self.manifest.datasetSize:
+                raise ValueError(
+                    f"Download size ({self.bytes_downloaded}) was greater than expected "
+                    f"({self.manifest.datasetSize})."
+                )
+        finally:
+            self.parent._download_done(self.manifest.cid)
 
-    def progress(self) -> float:
+    def progress(self) -> DownloadStatus:
         if self.download_task is None:
-            return 0
+            return DownloadStatus(downloaded=0, total=self.manifest.datasetSize)
 
         if self.download_task.done():
             # This will bubble exceptions up, if any.
             self.download_task.result()
 
-        return self.bytes_downloaded / self.manifest.datasetSize
+        return DownloadStatus(
+            downloaded=self.bytes_downloaded, total=self.manifest.datasetSize
+        )
 
 
 class CodexAgent:
     def __init__(self, client: CodexClient, node_id: str = "unknown") -> None:
         self.client = client
         self.node_id = node_id
+        self.ongoing_downloads: Dict[Cid, DownloadHandle] = {}
 
     async def create_dataset(self, name: str, size: int, seed: Optional[int]) -> Cid:
         with TemporaryDirectory() as td:
@@ -96,6 +110,9 @@ class CodexAgent:
                 )
 
     async def download(self, cid: Cid, read_increment: float = 0.01) -> DownloadHandle:
+        if cid in self.ongoing_downloads:
+            return self.ongoing_downloads[cid]
+
         handle = DownloadHandle(
             self,
             manifest=await self.client.get_manifest(cid),
@@ -105,4 +122,8 @@ class CodexAgent:
 
         handle.begin_download()
 
+        self.ongoing_downloads[cid] = handle
         return handle
+
+    def _download_done(self, cid: Cid):
+        self.ongoing_downloads.pop(cid)

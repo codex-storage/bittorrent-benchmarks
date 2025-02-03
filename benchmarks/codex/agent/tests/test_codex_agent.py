@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from benchmarks.codex.agent.agent import CodexAgent
+from benchmarks.codex.agent.agent import CodexAgent, DownloadStatus
 from benchmarks.codex.agent.codex_client import CodexClient, Cid, Manifest
 from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.concurrency import await_predicate_async
@@ -76,29 +76,20 @@ async def test_should_report_download_progress():
 
     handle = await codex_agent.download(cid)
 
-    assert handle.progress() == 0
+    assert handle.progress() == DownloadStatus(downloaded=0, total=1000)
 
-    for i in range(100):
+    for i in range(200):
         download_stream.feed_data(b"0" * 5)
-        assert len(download_stream._buffer) == 5
         assert await await_predicate_async(
-            lambda: round(handle.progress() * 100) == i, timeout=5
-        )
-        assert await await_predicate_async(
-            lambda: len(download_stream._buffer) == 0, timeout=5
-        )
-
-        download_stream.feed_data(b"0" * 5)
-        assert len(download_stream._buffer) == 5
-        assert await await_predicate_async(
-            lambda: round(handle.progress() * 100) == (i + 1), timeout=5
-        )
-        assert await await_predicate_async(
-            lambda: len(download_stream._buffer) == 0, timeout=5
+            lambda: handle.progress()
+            == DownloadStatus(downloaded=5 * (i + 1), total=1000),
+            timeout=5,
         )
 
     download_stream.feed_eof()
     await handle.download_task
+
+    assert handle.progress() == DownloadStatus(downloaded=1000, total=1000)
 
 
 @pytest.mark.asyncio
@@ -114,16 +105,11 @@ async def test_should_raise_exception_on_progress_query_if_download_fails():
     download_stream.feed_eof()
 
     with pytest.raises(EOFError):
-
-        def _predicate():
-            handle.progress()
-            return False
-
-        await await_predicate_async(_predicate, timeout=5)
+        await handle.download_task
 
 
 @pytest.mark.asyncio
-async def test_should_log_download_progress_as_metric(mock_logger):
+async def test_should_log_download_progress_as_metric_in_discrete_steps(mock_logger):
     logger, output = mock_logger
 
     with patch("benchmarks.codex.agent.agent.logger", logger):
@@ -164,3 +150,23 @@ async def test_should_log_download_progress_as_metric(mock_logger):
             timestamp=metrics[4].timestamp,
         ),
     ]
+
+
+@pytest.mark.asyncio
+async def test_should_track_download_handles_and_dispose_of_them_at_the_end():
+    client = FakeCodexClient()
+    codex_agent = CodexAgent(client)
+
+    cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1356)
+    download_stream = client.create_download_stream(cid)
+
+    handle = await codex_agent.download(cid)
+
+    assert codex_agent.ongoing_downloads[cid] == handle
+
+    download_stream.feed_data(b"0" * 1000)
+    download_stream.feed_eof()
+
+    await handle.download_task
+
+    assert cid not in codex_agent.ongoing_downloads
