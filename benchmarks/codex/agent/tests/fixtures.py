@@ -3,7 +3,7 @@ import os
 import pytest
 from urllib3.util import parse_url
 
-from benchmarks.codex.client import CodexClientImpl
+from benchmarks.codex.agent.codex_client import CodexClientImpl
 
 
 @pytest.fixture

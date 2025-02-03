@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
 
-from benchmarks.codex.client import CodexClient, Manifest
+from benchmarks.codex.agent.codex_client import CodexClient, Manifest
 from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.utils.random import random_data
 from benchmarks.core.utils.streams import BaseStreamReader

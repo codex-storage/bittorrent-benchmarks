@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from benchmarks.codex.agent import CodexAgent
-from benchmarks.codex.client import CodexClient, Cid, Manifest
+from benchmarks.codex.agent.agent import CodexAgent
+from benchmarks.codex.agent.codex_client import CodexClient, Cid, Manifest
 from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.concurrency import await_predicate_async
 from benchmarks.core.utils.streams import BaseStreamReader
@@ -126,7 +126,7 @@ async def test_should_raise_exception_on_progress_query_if_download_fails():
 async def test_should_log_download_progress_as_metric(mock_logger):
     logger, output = mock_logger
 
-    with patch("benchmarks.codex.agent.logger", logger):
+    with patch("benchmarks.codex.agent.agent.logger", logger):
         client = FakeCodexClient()
         codex_agent = CodexAgent(client)
 
