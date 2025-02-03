@@ -153,20 +153,22 @@ async def test_should_log_download_progress_as_metric_in_discrete_steps(mock_log
 
 
 @pytest.mark.asyncio
-async def test_should_track_download_handles_and_dispose_of_them_at_the_end():
+async def test_should_track_download_handles():
     client = FakeCodexClient()
     codex_agent = CodexAgent(client)
 
     cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1356)
+
+    assert cid not in codex_agent.ongoing_downloads
+
     download_stream = client.create_download_stream(cid)
-
     handle = await codex_agent.download(cid)
-
-    assert codex_agent.ongoing_downloads[cid] == handle
 
     download_stream.feed_data(b"0" * 1000)
     download_stream.feed_eof()
 
+    assert codex_agent.ongoing_downloads[cid] == handle
+
     await handle.download_task
 
-    assert cid not in codex_agent.ongoing_downloads
+    assert cid in codex_agent.ongoing_downloads
