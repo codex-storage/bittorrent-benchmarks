@@ -23,3 +23,18 @@ read_all_experiments <- function(base_path, skip_incomplete = TRUE) {
 
   experiments[!is.null(experiments)]
 }
+
+merge_experiments <- function(set_1, set_2, prefix) {
+  maxid <- max(as.integer(sub(pattern = 'e', '', ls(deluge))))
+  merged <- list()
+
+  for (set_1_id in ls(set_1)) {
+    merged[[set_1_id]] <- set_1[[set_1_id]]
+  }
+
+  for (set_2_id in ls(set_2)) {
+    merged[[paste0(prefix, set_2_id)]] <- set_2[[set_2_id]]
+  }
+
+  merged
+}

@@ -20,7 +20,9 @@ devtools::load_all()
 This is data that's been pre-parsed from an experiment [log source](https://github.com/codex-storage/bittorrent-benchmarks/blob/1ee8ea8a35a2c0fccea6e7c955183c4ed03eebb3/benchmarks/logging/sources.py#L27).
 
 ```{r}
-deluge <- read_all_experiments('./data/g1738145663/')
+deluge <- read_all_experiments('./data/g1738145663/') |>
+  merge_experiments(
+    read_all_experiments('./data/g1738248455/'), prefix = 's')
 ```
 Computes the benchmark statistics from raw download logs.
 
@@ -49,7 +51,10 @@ benchmarks <- lapply(deluge, function(experiment) {
   bind_rows() |>
   arrange(file_size, network_size, seeders, leechers) |>
   mutate(
-    file_size = as.character(rlang::parse_bytes(as.character(file_size))),
+    # This factor conversion is horrible but needed so things are sorted properly in the plot.
+    file_size = factor(rlang::parse_bytes(as.character(file_size)),
+                        levels = rlang::parse_bytes(as.character(
+                          unique(file_size[order(file_size, decreasing = TRUE)])))),
     seeder_ratio = seeders/network_size
   ) |>
   relocate(file_size, network_size, seeders, leechers)
