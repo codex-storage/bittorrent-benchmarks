@@ -1,16 +1,20 @@
 import asyncio
+import logging
 from asyncio import Task
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
 
 from benchmarks.codex.client import CodexClient, Manifest
+from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.utils.random import random_data
 from benchmarks.core.utils.streams import BaseStreamReader
 
 Cid = str
 
 EMPTY_STREAM_BACKOFF = 0.1
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadHandle:
@@ -43,6 +47,13 @@ class DownloadHandle:
             if not bytes_read:
                 await asyncio.sleep(EMPTY_STREAM_BACKOFF)
             self.bytes_downloaded += len(bytes_read)
+            logger.info(
+                CodexDownloadMetric(
+                    cid=self.manifest.cid,
+                    value=self.bytes_downloaded,
+                    node=self.parent.node_id,
+                )
+            )
 
         if self.bytes_downloaded < self.manifest.datasetSize:
             raise EOFError(
@@ -68,8 +79,9 @@ class DownloadHandle:
 
 
 class CodexAgent:
-    def __init__(self, client: CodexClient) -> None:
+    def __init__(self, client: CodexClient, node_id: str = "unknown") -> None:
         self.client = client
+        self.node_id = node_id
 
     async def create_dataset(self, name: str, size: int, seed: Optional[int]) -> Cid:
         with TemporaryDirectory() as td:
@@ -83,11 +95,12 @@ class CodexAgent:
                     name=name, mime_type="application/octet-stream", content=infile
                 )
 
-    async def download(self, cid: Cid) -> DownloadHandle:
+    async def download(self, cid: Cid, read_increment: float = 0.01) -> DownloadHandle:
         handle = DownloadHandle(
             self,
             manifest=await self.client.get_manifest(cid),
             download_stream=await self.client.download(cid),
+            read_increment=read_increment,
         )
 
         handle.begin_download()

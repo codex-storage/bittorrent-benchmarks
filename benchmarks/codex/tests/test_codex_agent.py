@@ -1,12 +1,16 @@
 from asyncio import StreamReader
+from io import StringIO
 from typing import IO, Dict
+from unittest.mock import patch
 
 import pytest
 
 from benchmarks.codex.agent import CodexAgent
 from benchmarks.codex.client import CodexClient, Cid, Manifest
+from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.concurrency import await_predicate_async
 from benchmarks.core.utils.streams import BaseStreamReader
+from benchmarks.logging.logging import LogParser
 
 
 class FakeCodexClient(CodexClient):
@@ -116,3 +120,47 @@ async def test_should_raise_exception_on_progress_query_if_download_fails():
             return False
 
         await await_predicate_async(_predicate, timeout=5)
+
+
+@pytest.mark.asyncio
+async def test_should_log_download_progress_as_metric(mock_logger):
+    logger, output = mock_logger
+
+    with patch("benchmarks.codex.agent.logger", logger):
+        client = FakeCodexClient()
+        codex_agent = CodexAgent(client)
+
+        cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1234)
+
+        download_stream = client.create_download_stream(cid)
+        download_stream.feed_data(b"0" * 1000)
+        download_stream.feed_eof()
+
+        handle = await codex_agent.download(cid, read_increment=0.2)
+        await handle.download_task
+
+    parser = LogParser()
+    parser.register(CodexDownloadMetric)
+
+    metrics = list(parser.parse(StringIO(output.getvalue())))
+
+    assert metrics == [
+        CodexDownloadMetric(
+            cid=cid, value=200, node=codex_agent.node_id, timestamp=metrics[0].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid, value=400, node=codex_agent.node_id, timestamp=metrics[1].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid, value=600, node=codex_agent.node_id, timestamp=metrics[2].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid, value=800, node=codex_agent.node_id, timestamp=metrics[3].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid,
+            value=1000,
+            node=codex_agent.node_id,
+            timestamp=metrics[4].timestamp,
+        ),
+    ]
