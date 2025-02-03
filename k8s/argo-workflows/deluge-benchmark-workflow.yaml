@@ -27,7 +27,7 @@ spec:
         value: "false"
       # If set to false, leaves pods for failed experiments behind so they can be inspected.
       - name: cleanupOnFailure
-        value: "false"
+        value: "true"
       # If set to false, does not parse/upload logs at the end of the experiment.
       - name: parseLogs
         value: "true"
