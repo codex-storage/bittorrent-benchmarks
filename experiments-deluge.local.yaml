@@ -27,3 +27,4 @@ deluge_experiment:
 
 deluge_agent:
   torrents_path: /var/lib/deluge/downloads
+

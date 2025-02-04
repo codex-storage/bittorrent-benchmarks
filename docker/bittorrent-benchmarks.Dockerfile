@@ -19,4 +19,5 @@ RUN if [ "$BUILD_TYPE" = "release" ]; then \
 COPY . .
 RUN poetry install --only main
 
-ENTRYPOINT ["poetry", "run", "bittorrent-benchmarks", "experiments", "/opt/bittorrent-benchmarks/experiments.k8s.yaml"]
+ENTRYPOINT ["poetry", "run", "bittorrent-benchmarks", "experiments", \
+    "/opt/bittorrent-benchmarks/experiments-deluge.k8s.yaml"]

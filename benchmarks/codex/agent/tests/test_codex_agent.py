@@ -1,19 +1,21 @@
 from asyncio import StreamReader
+from contextlib import asynccontextmanager
 from io import StringIO
-from typing import IO, Dict
+from typing import IO, Dict, AsyncIterator
 from unittest.mock import patch
 
 import pytest
 
 from benchmarks.codex.agent.agent import CodexAgent, DownloadStatus
-from benchmarks.codex.agent.codex_client import CodexClient, Cid, Manifest
+from benchmarks.codex.client.async_client import AsyncCodexClient
+from benchmarks.codex.client.common import Manifest, Cid
 from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.concurrency import await_predicate_async
 from benchmarks.core.utils.streams import BaseStreamReader
 from benchmarks.logging.logging import LogParser
 
 
-class FakeCodexClient(CodexClient):
+class FakeCodexClient(AsyncCodexClient):
     def __init__(self) -> None:
         self.storage: Dict[Cid, Manifest] = {}
         self.streams: Dict[Cid, StreamReader] = {}
@@ -33,7 +35,7 @@ class FakeCodexClient(CodexClient):
         )
         return cid
 
-    async def get_manifest(self, cid: Cid) -> Manifest:
+    async def manifest(self, cid: Cid) -> Manifest:
         return self.storage[cid]
 
     def create_download_stream(self, cid: Cid) -> StreamReader:
@@ -41,15 +43,16 @@ class FakeCodexClient(CodexClient):
         self.streams[cid] = reader
         return reader
 
-    async def download(self, cid: Cid) -> BaseStreamReader:
-        return self.streams[cid]
+    @asynccontextmanager
+    async def download(self, cid: Cid) -> AsyncIterator[BaseStreamReader]:
+        yield self.streams[cid]
 
 
 @pytest.mark.asyncio
 async def test_should_create_dataset_of_right_size():
     codex_agent = CodexAgent(FakeCodexClient())
     cid = await codex_agent.create_dataset(size=1024, name="dataset-1", seed=1234)
-    manifest = await codex_agent.client.get_manifest(cid)
+    manifest = await codex_agent.client.manifest(cid)
 
     assert manifest.datasetSize == 1024
 

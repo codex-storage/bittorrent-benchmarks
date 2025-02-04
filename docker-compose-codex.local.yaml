@@ -6,13 +6,15 @@ services:
       - /bin/sh
       - -c
       - |
+        echo "Cleaning data dirs..."
         rm -rf /var/lib/codex1/* /var/lib/codex2/* /var/lib/codex3/*
         touch /.done
+        echo "done."
         sleep infinity
     volumes:
-      - codex-volume-1:/var/lib/deluge1
-      - codex-volume-2:/var/lib/deluge2
-      - codex-volume-3:/var/lib/deluge3
+      - codex-volume-1:/var/lib/codex1
+      - codex-volume-2:/var/lib/codex2
+      - codex-volume-3:/var/lib/codex3
     healthcheck:
       timeout: 10s
       test: [ "CMD", "test", "-f", "/.done" ]
@@ -24,17 +26,55 @@ services:
     container_name: codex-1
     environment:
       - CODEX_LOG_LEVEL=DEBUG
-
       - CODEX_DATA_DIR=/var/lib/codex
-      - CODEX_DISC_PORT=8090
+      - CODEX_DISC_PORT=6890
       - CODEX_API_BINDADDR=0.0.0.0
-      - CODEX_API_PORT=8091
+      - CODEX_API_PORT=6891
       - CODEX_STORAGE_QUOTA=1073741824 # 1GB
-
+      - NAT_IP_AUTO=true
     volumes:
       - codex-volume-1:/var/lib/codex
     ports:
-      - "8090-8091:8090-8091"
+      - "6890-6891:6890-6891"
+
+  codex-agent-1:
+    image: bittorrent-benchmarks:test
+    container_name: codex-agent-1
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
+                  "agent", "experiments-codex.local.yaml", "codex_agent", "--port", "9000" ]
+    environment:
+      - CODEX_API_URL=http://codex-1:6891
+      - NODE_ID=codex-1
+    ports:
+      - "9000:9000"
+
+  codex-2:
+    image: codexstorage/nim-codex:latest
+    container_name: codex-2
+    environment:
+      - CODEX_LOG_LEVEL=DEBUG
+      - CODEX_DATA_DIR=/var/lib/codex
+      - CODEX_DISC_PORT=6892
+      - CODEX_API_BINDADDR=0.0.0.0
+      - CODEX_API_PORT=6893
+      - CODEX_STORAGE_QUOTA=1073741824 # 1GB
+      - BOOTSTRAP_NODE_URL=http://codex-1:6891
+      - NAT_IP_AUTO=true
+    volumes:
+      - codex-volume-2:/var/lib/codex
+    ports:
+      - "6892-6893:6892-6893"
+
+  codex-agent-2:
+    image: bittorrent-benchmarks:test
+    container_name: codex-agent-2
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
+                  "agent", "experiments-codex.local.yaml", "codex_agent", "--port", "9001" ]
+    environment:
+      - CODEX_API_URL=http://codex-2:6893
+      - NODE_ID=codex-2
+    ports:
+      - "9001:9001"
 
 volumes:
   codex-volume-1:

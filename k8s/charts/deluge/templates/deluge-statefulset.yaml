@@ -76,7 +76,7 @@ spec:
           imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
           command: [
             "poetry", "run", "bittorrent-benchmarks",
-            "agent", "experiments.k8s.yaml", "deluge_agent", "--port", "9001"
+            "agent", "experiments-deluge.k8s.yaml", "deluge_agent", "--port", "9001"
           ]
           ports:
             - containerPort: 9001

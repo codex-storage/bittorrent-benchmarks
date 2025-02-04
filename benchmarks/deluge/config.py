@@ -17,7 +17,7 @@ from benchmarks.core.experiments.static_experiment import StaticDisseminationExp
 from benchmarks.core.pydantic import Host
 from benchmarks.core.utils.random import sample
 
-from benchmarks.deluge.agent.client import DelugeAgentClient
+from benchmarks.deluge.agent.deluge_agent_client import DelugeAgentClient
 from benchmarks.deluge.deluge_node import DelugeMeta, DelugeNode
 from benchmarks.deluge.tracker import Tracker
 

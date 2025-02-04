@@ -10,6 +10,7 @@ from pydantic import IPvAnyAddress
 from pydantic_core import ValidationError
 from typing_extensions import TypeVar
 
+from benchmarks.codex.agent.api import CodexAgentConfig
 from benchmarks.core.agent import AgentBuilder
 from benchmarks.core.config import ConfigParser, Builder
 from benchmarks.core.experiments.experiments import Experiment, ExperimentBuilder
@@ -35,6 +36,7 @@ experiment_config_parser.register(DelugeExperimentConfig)
 
 agent_config_parser = ConfigParser[AgentBuilder]()
 agent_config_parser.register(DelugeAgentConfig)
+agent_config_parser.register(CodexAgentConfig)
 
 log_parser = basic_log_parser()
 log_parser.register(DelugeTorrentDownload)
@@ -125,7 +127,7 @@ def cmd_dump_single_experiment(source: LogSource, group_id: str, experiment_id: 
 
 def cmd_run_agent(agents: Dict[str, AgentBuilder], args):
     if args.agent not in agents:
-        print(f"Agent type {args.experiment} not found.")
+        print(f"Agent type {args.agent} not found.")
         sys.exit(-1)
 
     uvicorn.run(

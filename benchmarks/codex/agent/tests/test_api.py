@@ -27,7 +27,7 @@ async def test_should_create_file():
     assert response.status_code == 200
     assert response.charset_encoding == "utf-8"
 
-    manifest = await codex_client.get_manifest(response.text)
+    manifest = await codex_client.manifest(response.text)
 
     assert manifest.datasetSize == 1024
 

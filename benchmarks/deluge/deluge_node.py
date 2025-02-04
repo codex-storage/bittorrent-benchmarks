@@ -26,7 +26,7 @@ from benchmarks.core.concurrency import await_predicate
 from benchmarks.core.experiments.experiments import ExperimentComponent
 from benchmarks.core.network import DownloadHandle, Node
 
-from benchmarks.deluge.agent.client import DelugeAgentClient
+from benchmarks.deluge.agent.deluge_agent_client import DelugeAgentClient
 
 logger = logging.getLogger(__name__)
 

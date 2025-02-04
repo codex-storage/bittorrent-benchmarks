@@ -6,6 +6,9 @@ services:
     entrypoint: [ "poetry", "run", "pytest", "-m", "codex_integration", "--exitfirst" ]
     environment:
       - CODEX_NODE_1=codex-1
+      - CODEX_NODE_2=codex-2
+      - CODEX_AGENT_1=codex-agent-1
+      - CODEX_AGENT_2=codex-agent-2
     depends_on:
       clean-volumes:
         condition: service_healthy
