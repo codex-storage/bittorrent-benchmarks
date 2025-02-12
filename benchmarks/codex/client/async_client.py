@@ -59,9 +59,7 @@ class AsyncCodexClientImpl(AsyncCodexClient):
             response.raise_for_status()
             response_contents = await response.json()
 
-        cid = response_contents.pop("cid")
-
-        return Manifest.model_validate(dict(cid=cid, **response_contents["manifest"]))
+        return Manifest.from_codex_api_response(response_contents)
 
     @asynccontextmanager
     async def download(self, cid: Cid) -> AsyncIterator[BaseStreamReader]:

@@ -1,3 +1,25 @@
+codex_experiment:
+  seeders: 1
+  file_size: 52428800
+  repetitions: 3
+
+  nodes:
+    - name: codex-1
+      address: ${CODEX_NODE_1:-localhost}
+      disc_port: 6890
+      api_port: 6891
+      agent_url: http://${CODEX_AGENT_1:-localhost}:9000/
+    - name: codex-2
+      address: ${CODEX_NODE_2:-localhost}
+      disc_port: 6892
+      api_port: 6893
+      agent_url: http://${CODEX_AGENT_1:-localhost}:9002/
+    - name: codex-3
+      address: ${CODEX_NODE_2:-localhost}
+      disc_port: 6893
+      api_port: 6894
+      agent_url: http://${CODEX_AGENT_1:-localhost}:9003/
+
 codex_agent:
   codex_api_url: ${CODEX_API_URL}
   node_id: ${NODE_ID}

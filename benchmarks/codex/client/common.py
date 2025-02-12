@@ -14,3 +14,9 @@ class Manifest(BaseModel):
     mimetype: str
     uploadedAt: int
     protected: bool
+
+    @staticmethod
+    def from_codex_api_response(response: dict) -> "Manifest":
+        return Manifest.model_validate(
+            dict(cid=response["cid"], **response["manifest"])
+        )

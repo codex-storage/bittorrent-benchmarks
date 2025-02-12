@@ -76,6 +76,34 @@ services:
     ports:
       - "9001:9001"
 
+  codex-3:
+    image: codexstorage/nim-codex:latest
+    container_name: codex-3
+    environment:
+      - CODEX_LOG_LEVEL=DEBUG
+      - CODEX_DATA_DIR=/var/lib/codex
+      - CODEX_DISC_PORT=6894
+      - CODEX_API_BINDADDR=0.0.0.0
+      - CODEX_API_PORT=6895
+      - CODEX_STORAGE_QUOTA=1073741824 # 1GB
+      - BOOTSTRAP_NODE_URL=http://codex-1:6891
+      - NAT_IP_AUTO=true
+    volumes:
+      - codex-volume-3:/var/lib/codex
+    ports:
+      - "6894-6895:6894-6895"
+
+  codex-agent-3:
+    image: bittorrent-benchmarks:test
+    container_name: codex-agent-3
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
+                  "agent", "experiments-codex.local.yaml", "codex_agent", "--port", "9002" ]
+    environment:
+      - CODEX_API_URL=http://codex-3:6895
+      - NODE_ID=codex-3
+    ports:
+      - "9002:9002"
+
 volumes:
   codex-volume-1:
   codex-volume-2:

@@ -7,8 +7,10 @@ services:
     environment:
       - CODEX_NODE_1=codex-1
       - CODEX_NODE_2=codex-2
+      - CODEX_NODE_3=codex-3
       - CODEX_AGENT_1=codex-agent-1
       - CODEX_AGENT_2=codex-agent-2
+      - CODEX_AGENT_3=codex-agent-3
     depends_on:
       clean-volumes:
         condition: service_healthy

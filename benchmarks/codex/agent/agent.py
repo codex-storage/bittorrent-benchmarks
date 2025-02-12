@@ -8,12 +8,10 @@ from typing import Optional, Dict
 from pydantic import BaseModel
 
 from benchmarks.codex.client.async_client import AsyncCodexClient
-
+from benchmarks.codex.client.common import Cid
 from benchmarks.codex.client.common import Manifest
 from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.utils.random import random_data
-
-Cid = str
 
 EMPTY_STREAM_BACKOFF = 0.1
 
