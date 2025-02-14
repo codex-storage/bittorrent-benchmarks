@@ -242,6 +242,11 @@ class Metric(NodeEvent):
     value: int | float
 
 
+class DownloadMetric(Metric):
+    name: str = "download"
+    dataset_name: str
+
+
 class RequestEventType(Enum):
     start = "start"
     end = "end"
@@ -265,6 +270,7 @@ def basic_log_parser() -> LogParser:
     parser.register(Event)
     parser.register(NodeEvent)
     parser.register(Metric)
+    parser.register(DownloadMetric)
     parser.register(RequestEvent)
     parser.register(ExperimentStatus)
     return parser

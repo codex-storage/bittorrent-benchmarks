@@ -17,7 +17,6 @@ from benchmarks.core.config import ConfigParser, Builder
 from benchmarks.core.experiments.experiments import Experiment, ExperimentBuilder
 from benchmarks.deluge.agent.api import DelugeAgentConfig
 from benchmarks.deluge.config import DelugeExperimentConfig
-from benchmarks.deluge.logging import DelugeTorrentDownload
 from benchmarks.logging.logging import (
     basic_log_parser,
     LogSplitter,
@@ -41,7 +40,6 @@ agent_config_parser.register(DelugeAgentConfig)
 agent_config_parser.register(CodexAgentConfig)
 
 log_parser = basic_log_parser()
-log_parser.register(DelugeTorrentDownload)
 
 config_adapters = ConfigToLogAdapters()
 log_parser.register(config_adapters.adapt(DelugeExperimentConfig))

@@ -9,10 +9,9 @@ import pytest
 from benchmarks.codex.agent.agent import CodexAgent, DownloadStatus
 from benchmarks.codex.client.async_client import AsyncCodexClient
 from benchmarks.codex.client.common import Manifest, Cid
-from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.concurrency import await_predicate_async
 from benchmarks.core.utils.streams import BaseStreamReader
-from benchmarks.logging.logging import LogParser
+from benchmarks.logging.logging import LogParser, DownloadMetric
 
 
 class FakeCodexClient(AsyncCodexClient):
@@ -128,25 +127,42 @@ async def test_should_log_download_progress_as_metric_in_discrete_steps(mock_log
         await handle.download_task
 
     parser = LogParser()
-    parser.register(CodexDownloadMetric)
+    parser.register(DownloadMetric)
 
     metrics = list(parser.parse(StringIO(output.getvalue())))
 
     assert metrics == [
-        CodexDownloadMetric(
-            cid=cid, value=200, node=codex_agent.node_id, timestamp=metrics[0].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=200,
+            node=codex_agent.node_id,
+            timestamp=metrics[0].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid, value=400, node=codex_agent.node_id, timestamp=metrics[1].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=400,
+            node=codex_agent.node_id,
+            timestamp=metrics[1].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid, value=600, node=codex_agent.node_id, timestamp=metrics[2].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=600,
+            node=codex_agent.node_id,
+            timestamp=metrics[2].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid, value=800, node=codex_agent.node_id, timestamp=metrics[3].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=800,
+            node=codex_agent.node_id,
+            timestamp=metrics[3].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid,
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
             value=1000,
             node=codex_agent.node_id,
             timestamp=metrics[4].timestamp,
@@ -183,25 +199,42 @@ async def test_should_log_download_progress_as_discrete_steps_even_when_underlyi
         await handle.download_task
 
     parser = LogParser()
-    parser.register(CodexDownloadMetric)
+    parser.register(DownloadMetric)
 
     metrics = list(parser.parse(StringIO(output.getvalue())))
 
     assert metrics == [
-        CodexDownloadMetric(
-            cid=cid, value=200, node=codex_agent.node_id, timestamp=metrics[0].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=200,
+            node=codex_agent.node_id,
+            timestamp=metrics[0].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid, value=400, node=codex_agent.node_id, timestamp=metrics[1].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=400,
+            node=codex_agent.node_id,
+            timestamp=metrics[1].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid, value=600, node=codex_agent.node_id, timestamp=metrics[2].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=600,
+            node=codex_agent.node_id,
+            timestamp=metrics[2].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid, value=800, node=codex_agent.node_id, timestamp=metrics[3].timestamp
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
+            value=800,
+            node=codex_agent.node_id,
+            timestamp=metrics[3].timestamp,
         ),
-        CodexDownloadMetric(
-            cid=cid,
+        DownloadMetric(
+            dataset_name="dataset-1",
+            handle=cid,
             value=1000,
             node=codex_agent.node_id,
             timestamp=metrics[4].timestamp,

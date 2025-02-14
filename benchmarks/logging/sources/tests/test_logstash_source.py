@@ -1,8 +1,7 @@
 import pytest
 from elasticsearch import Elasticsearch
 
-from benchmarks.deluge.logging import DelugeTorrentDownload
-from benchmarks.logging.logging import LogParser
+from benchmarks.logging.logging import LogParser, DownloadMetric
 from datetime import datetime, timezone, date
 
 from benchmarks.logging.sources.logstash import LogstashSource
@@ -65,36 +64,36 @@ def test_should_retrieve_logs_for_single_experiment(benchmark_logs_client):
     )
 
     parser = LogParser()
-    parser.register(DelugeTorrentDownload)
+    parser.register(DownloadMetric)
 
     entries = parser.parse(_log_lines(source, "e3", "g3"))
 
     assert list(entries) == [
-        DelugeTorrentDownload(
+        DownloadMetric(
             name="deluge_piece_downloaded",
             timestamp=datetime(2025, 1, 21, 12, 47, 15, 846761, tzinfo=timezone.utc),
             value=23,
             node="deluge-nodes-e3-g3-0",
-            torrent_name="dataset-0-0",
+            dataset_name="dataset-0-0",
         ),
-        DelugeTorrentDownload(
+        DownloadMetric(
             name="deluge_piece_downloaded",
             timestamp=datetime(2025, 1, 21, 12, 47, 57, 98167, tzinfo=timezone.utc),
             value=310,
             node="deluge-nodes-e3-g3-1",
-            torrent_name="dataset-0-1",
+            dataset_name="dataset-0-1",
         ),
     ]
 
     entries = parser.parse(_log_lines(source, "e2", "g3"))
 
     assert list(entries) == [
-        DelugeTorrentDownload(
+        DownloadMetric(
             name="deluge_piece_downloaded",
             timestamp=datetime(2025, 1, 21, 12, 47, 57, 123105, tzinfo=timezone.utc),
             value=218,
             node="deluge-nodes-e2-g2-1",
-            torrent_name="dataset-0-1",
+            dataset_name="dataset-0-1",
         ),
     ]
 
@@ -106,7 +105,7 @@ def test_should_return_empty_data_for_non_existing_experiments(benchmark_logs_cl
     )
 
     parser = LogParser()
-    parser.register(DelugeTorrentDownload)
+    parser.register(DownloadMetric)
 
     lines = source.logs(experiment_id="e0", group_id="g0")
 

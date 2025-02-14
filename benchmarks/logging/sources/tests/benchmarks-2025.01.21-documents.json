@@ -3,7 +3,7 @@
     {
       "@timestamp": "2025-01-21T12:47:57.098459487Z",
       "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-1_70c962b4-8fa3-43be-a664-aefb793c7b8c/deluge-node/0.log",
-      "message": "12:47:57.098 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"deluge_torrent_download\", \"timestamp\": \"2025-01-21T12:47:57.098167+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 310, \"node\": \"deluge-nodes-e3-g3-1\", \"torrent_name\": \"dataset-0-1\"}",
+      "message": "12:47:57.098 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"download_metric\", \"timestamp\": \"2025-01-21T12:47:57.098167+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 310, \"node\": \"deluge-nodes-e3-g3-1\", \"dataset_name\": \"dataset-0-1\"}",
       "pod_labels": {
         "app.kubernetes.io/component": "deluge-node",
         "app.kubernetes.io/instance": "e3",
@@ -41,7 +41,7 @@
     {
       "@timestamp": "2025-01-21T12:47:15.847325207Z",
       "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-0_c42bf4d9-4f1d-40b2-9654-5de197153ac0/deluge-node/0.log",
-      "message": "12:47:15.847 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"deluge_torrent_download\", \"timestamp\": \"2025-01-21T12:47:15.846761+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 23, \"node\": \"deluge-nodes-e3-g3-0\", \"torrent_name\": \"dataset-0-0\"}",
+      "message": "12:47:15.847 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"download_metric\", \"timestamp\": \"2025-01-21T12:47:15.846761+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 23, \"node\": \"deluge-nodes-e3-g3-0\", \"dataset_name\": \"dataset-0-0\"}",
       "pod_labels": {
         "app.kubernetes.io/component": "deluge-node",
         "app.kubernetes.io/instance": "e3",
@@ -60,7 +60,7 @@
     {
       "@timestamp": "2025-01-21T12:47:57.123446028Z",
       "file": "/var/log/pods/codex-benchmarks_deluge-nodes-e3-g3-1_70c962b4-8fa3-43be-a664-aefb793c7b8c/deluge-node/0.log",
-      "message": "12:47:57.123 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"deluge_torrent_download\", \"timestamp\": \"2025-01-21T12:47:57.123105+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 218, \"node\": \"deluge-nodes-e2-g2-1\", \"torrent_name\": \"dataset-0-1\"}",
+      "message": "12:47:57.123 [INFO    ][deluge.core.metrics           :49  ] >>{\"entry_type\": \"download_metric\", \"timestamp\": \"2025-01-21T12:47:57.123105+00:00\", \"name\": \"deluge_piece_downloaded\", \"value\": 218, \"node\": \"deluge-nodes-e2-g2-1\", \"dataset_name\": \"dataset-0-1\"}",
       "pod_labels": {
         "app.kubernetes.io/component": "deluge-node",
         "app.kubernetes.io/instance": "e2",

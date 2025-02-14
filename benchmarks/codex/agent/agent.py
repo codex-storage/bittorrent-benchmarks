@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from benchmarks.codex.client.async_client import AsyncCodexClient
 from benchmarks.codex.client.common import Cid
 from benchmarks.codex.client.common import Manifest
-from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.utils.random import random_data
+from benchmarks.logging.logging import DownloadMetric
 
 EMPTY_STREAM_BACKOFF = 2
 
@@ -60,8 +60,9 @@ class DownloadHandle:
                 if int(self.bytes_downloaded / step_size) > logged_step:
                     logged_step += 1
                     logger.info(
-                        CodexDownloadMetric(
-                            cid=self.manifest.cid,
+                        DownloadMetric(
+                            dataset_name=self.manifest.filename,
+                            handle=self.manifest.cid,
                             value=step_size * logged_step,
                             node=self.parent.node_id,
                         )
