@@ -2,7 +2,7 @@ import random
 from itertools import islice
 from typing import List, cast
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_core import Url
 from urllib3.util import parse_url
 
@@ -26,6 +26,33 @@ class CodexNodeConfig(SnakeCaseModel):
     disc_port: int
     api_port: int
     agent_url: Url
+
+
+class CodexNodeSetConfig(SnakeCaseModel):
+    network_size: int = Field(gt=1)
+    name: str
+    address: str
+    disc_port: int
+    api_port: int
+    first_node_index: int = 1
+    nodes: List[CodexNodeConfig] = []
+    agent_url: str
+
+    @model_validator(mode="after")
+    def expand_nodes(self):
+        self.nodes = [
+            CodexNodeConfig(
+                name=self.name.format(node_index=str(i)),
+                address=self.address.format(node_index=str(i)),
+                disc_port=self.disc_port,
+                api_port=self.api_port,
+                agent_url=self.agent_url.format(node_index=str(i)),
+            )
+            for i in range(
+                self.first_node_index, self.first_node_index + self.network_size
+            )
+        ]
+        return self
 
 
 CodexDisseminationExperiment = IteratedExperiment[
@@ -52,11 +79,17 @@ class CodexExperimentConfig(ExperimentBuilder[CodexDisseminationExperiment]):
         description="Time to wait after the last download completes before tearing down the experiment.",
     )
 
-    nodes: List[CodexNodeConfig]
+    nodes: List[CodexNodeConfig] | CodexNodeSetConfig
 
     def build(self) -> CodexDisseminationExperiment:
+        node_specs = (
+            self.nodes.nodes
+            if isinstance(self.nodes, CodexNodeSetConfig)
+            else self.nodes
+        )
+
         agents = [
-            CodexAgentClient(parse_url(str(node.agent_url))) for node in self.nodes
+            CodexAgentClient(parse_url(str(node.agent_url))) for node in node_specs
         ]
 
         network = [
@@ -64,7 +97,7 @@ class CodexExperimentConfig(ExperimentBuilder[CodexDisseminationExperiment]):
                 codex_api_url=parse_url(f"http://{str(node.address)}:{node.api_port}"),
                 agent=agents[i],
             )
-            for i, node in enumerate(self.nodes)
+            for i, node in enumerate(node_specs)
         ]
 
         env = ExperimentEnvironment(

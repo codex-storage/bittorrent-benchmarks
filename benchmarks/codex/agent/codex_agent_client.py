@@ -1,11 +1,12 @@
-from urllib3.util import Url, parse_url
-import requests
 import socket
 
-from benchmarks.codex.agent.agent import DownloadStatus
-from benchmarks.core.experiments.experiments import ExperimentComponent
+import requests
+from requests.exceptions import ConnectionError
+from urllib3.util import Url, parse_url
 
+from benchmarks.codex.agent.agent import DownloadStatus
 from benchmarks.codex.client.common import Cid
+from benchmarks.core.experiments.experiments import ExperimentComponent
 
 
 class CodexAgentClient(ExperimentComponent):
@@ -62,3 +63,6 @@ class CodexAgentClient(ExperimentComponent):
         response.raise_for_status()
 
         return response.text
+
+    def __str__(self):
+        return f"CodexAgentClient({self.url.url})"

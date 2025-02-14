@@ -1,0 +1,5 @@
+apiVersion: v2
+name: codex-benchmarks
+description: A Helm chart for running Codex benchmarks.
+version: 0.1.0
+appVersion: "1.0.0"

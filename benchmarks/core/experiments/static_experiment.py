@@ -108,6 +108,8 @@ class StaticDisseminationExperiment(
         sleep(self.logging_cooldown)
 
     def teardown(self, exception: Optional[Exception] = None):
+        logger.info("Tearing down experiment.")
+
         def _remove(element: Tuple[int, Node[TNetworkHandle, TInitialMetadata]]):
             index, node = element
             # This means this node didn't even get to seed anything.

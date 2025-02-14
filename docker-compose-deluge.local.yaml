@@ -43,7 +43,7 @@ services:
     image: bittorrent-benchmarks:test
     container_name: agent-1
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
-                  "agent", "experiments-deluge.local.yaml", "deluge_agent", "--port", "9001" ]
+                  "agent", "config/deluge/agent.local.yaml", "deluge_agent", "--port", "9001" ]
     environment:
       - TORRENTS_ROOT=/var/lib/deluge/downloads
     volumes:
@@ -72,7 +72,7 @@ services:
     image: bittorrent-benchmarks:test
     container_name: agent-2
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent",
-                  "experiments-deluge.local.yaml", "deluge_agent", "--port", "9002" ]
+                  "config/deluge/agent.local.yaml", "deluge_agent", "--port", "9002" ]
     environment:
       - TORRENTS_ROOT=/var/lib/deluge/downloads
     volumes:
@@ -100,7 +100,7 @@ services:
   deluge-agent-3:
     image: bittorrent-benchmarks:test
     container_name: agent-3
-    entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent", "experiments-deluge.local.yaml",
+    entrypoint: [ "poetry", "run", "bittorrent-benchmarks", "agent", "config/deluge/agent.local.yaml",
                   "deluge_agent", "--port", "9003" ]
     environment:
       - TORRENTS_ROOT=/var/lib/deluge/downloads

@@ -1,6 +1,5 @@
 import random
 from itertools import islice
-from pathlib import Path
 from typing import List
 
 from pydantic import BaseModel, Field, model_validator, HttpUrl
@@ -76,9 +75,6 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
     )
     file_size: int = Field(gt=0, description="File size, in bytes")
 
-    shared_volume_path: Path = Field(
-        description="Path to the volume shared between clients and experiment runner"
-    )
     tracker_announce_url: HttpUrl = Field(
         description="URL to the tracker announce endpoint"
     )
@@ -108,7 +104,6 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
         network = [
             DelugeNode(
                 name=node_spec.name,
-                volume=self.shared_volume_path,
                 daemon_port=node_spec.daemon_port,
                 daemon_address=str(node_spec.address),
                 agent=agents[i],

@@ -1,0 +1,16 @@
+codex_experiment:
+  experiment_set_id: ${EXPERIMENT_SET_ID}
+  seeder_sets: ${SEEDER_SETS}
+  seeders: ${SEEDERS}
+  file_size: ${FILE_SIZE}
+  repetitions: ${REPETITIONS}
+  logging_cooldown: 10
+
+  nodes:
+    network_size: ${NETWORK_SIZE}
+    first_node_index: 0
+    name: "${CODEX_STATEFULSET}-{node_index}"
+    address: "${CODEX_STATEFULSET}-{node_index}.${CODEX_SERVICE}.${NAMESPACE}.svc.cluster.local"
+    disc_port: 6890
+    api_port: 6891
+    agent_url: "http://${CODEX_STATEFULSET}-{node_index}.${CODEX_SERVICE}.${NAMESPACE}.svc.cluster.local:9001/"

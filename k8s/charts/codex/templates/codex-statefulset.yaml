@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "codex-nodes.statefulset" . }}
+  namespace: {{ .Release.Namespace }}
+
+spec:
+  replicas: {{ .Values.experiment.networkSize }}
+  serviceName: {{ include "codex-nodes.service" . }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: codex-node
+      {{- include "codex-benchmarks.selectorLabels" . | nindent 6 }}
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: codex-node
+        {{- include "codex-benchmarks.labels" . | nindent 8 }}
+      annotations:
+        {{- include "codex-benchmarks.pod.annotations" . | nindent 8 }}
+
+    spec:
+      {{- if not .Values.deployment.allowColocation }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - codex-node
+              topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+      {{- with .Values.deployment.codexNodePool }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: codex-node
+          image: {{ include "codex.image" . }}
+          imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
+          ports:
+            - containerPort: 6890
+          resources:
+            requests:
+              memory: 6Gi
+            limits:
+              memory: 6Gi
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CODEX_NAT
+              value: "none"
+            - name: CODEX_BLOCK_TTL
+              value: {{ .Values.experiment.blockTTL | quote }}
+            - name: CODEX_BLOCK_MI
+              value: {{ .Values.experiment.blockMaintenanceInterval | quote }}
+            - name: CODEX_DISC_PORT
+              value: "6890"
+            - name: CODEX_API_PORT
+              value: "6891"
+            - name: CODEX_API_BINDADDR
+              value: "0.0.0.0"
+            - name: CODEX_STORAGE_QUOTA
+              value: {{ include "codex.quota" . | quote }}
+            - name: CODEX_DATA_DIR
+              value: "/var/lib/codex"
+            - name: CODEX_LOG_LEVEL
+              value: {{ .Values.experiment.codexLogLevel }}
+            - name: BOOTSTRAP_NODE
+              value: "{{ include "codex-nodes.statefulset" . }}-{{ .Values.experiment.bootstrapNodeIndex }}"
+          command: [ "/bin/bash", "--login", "-c" ]
+          args:
+            - |
+              echo " -- K8S config -- "
+              echo "Pod name is: ${POD_NAME}"
+              echo "Bootstrap node is: ${BOOTSTRAP_NODE}"
+              echo "Pod IP is: ${POD_IP}"
+              echo "Log level is: ${CODEX_LOG_LEVEL}"
+
+              if [ "${POD_NAME}" != "${BOOTSTRAP_NODE}" ]; then
+                export BOOTSTRAP_NODE_URL="http://${BOOTSTRAP_NODE}.{{include "codex-nodes.service" .}}.{{ .Release.Namespace }}.svc.cluster.local:6891"
+                echo "Bootstrap node URL is: ${BOOTSTRAP_NODE_URL}"
+              else
+                echo "This is the boostrap node."
+              fi
+
+              export CODEX_LISTEN_ADDRS="/ip4/${POD_IP}/tcp/6892"
+              rm -rf ${CODEX_DATA_DIR}/*
+
+              echo " -- Starting Codex node -- "
+              echo "Running Docker entrypoint..."
+              /docker-entrypoint.sh codex
+          volumeMounts:
+            - name: codex-node-storage
+              mountPath: /var/lib/codex
+
+        - name: codex-agent
+          image: {{ include "benchmark.harness.image" . }}
+          imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command: [ "/bin/bash", "--login", "-c" ]
+          args:
+            - |
+              CODEX_API_URL="http://${POD_NAME}.{{include "codex-nodes.service" .}}.{{ .Release.Namespace }}.svc.cluster.local:6891"
+              export CODEX_API_URL
+
+              poetry run bittorrent-benchmarks agent config/codex/agent.k8s.yaml codex_agent --port 9001
+          ports:
+            - containerPort: 9001
+          volumeMounts:
+            - name: codex-node-storage
+              mountPath: /var/lib/codex
+
+      volumes:
+        - name: codex-node-storage
+          emptyDir: { }

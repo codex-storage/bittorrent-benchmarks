@@ -1,10 +1,8 @@
 import base64
 import logging
-import shutil
 import socket
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path
 from typing import List, Optional, Self, Dict, Any
 
 import pathvalidate
@@ -47,7 +45,6 @@ class DelugeNode(Node[Torrent, DelugeMeta], ExperimentComponent):
     def __init__(
         self,
         name: str,
-        volume: Path,
         daemon_port: int,
         agent: DelugeAgentClient,
         daemon_address: str = "localhost",
@@ -58,8 +55,6 @@ class DelugeNode(Node[Torrent, DelugeMeta], ExperimentComponent):
             raise ValueError(f'Node name must be a valid filename (bad name: "{name}")')
 
         self._name = name
-        self.downloads_root = volume / "downloads"
-
         self._rpc: Optional[DelugeRPCClient] = None
         self.daemon_args = {
             "host": daemon_address,
@@ -80,16 +75,6 @@ class DelugeNode(Node[Torrent, DelugeMeta], ExperimentComponent):
             errors = self.rpc.core.remove_torrents(torrent_ids, remove_data=True)
             if errors:
                 raise Exception(f"There were errors removing torrents: {errors}")
-
-        # Wipe download folder to get rid of files that got uploaded but failed
-        # seeding or deletes.
-        try:
-            shutil.rmtree(self.downloads_root)
-        except FileNotFoundError:
-            # If the call to remove_torrents succeeds, this might happen. Checking
-            # for existence won't protect you as the client might still delete the
-            # folder after your check, so this is the only sane way to do it.
-            pass
 
     def genseed(
         self,

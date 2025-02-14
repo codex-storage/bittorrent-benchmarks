@@ -33,7 +33,6 @@ deluge-integration:
 	echo "NOTE: Make sure to have started the Deluge integration harness or this will not work"
 	poetry run pytest -m "deluge_integration"
 
-
 codex-integration:
 	echo "NOTE: Make sure to have started the Codex integration harness or this will not work"
 	poetry run pytest -m "codex_integration"
@@ -41,7 +40,18 @@ codex-integration:
 image-test:
 	docker build -t bittorrent-benchmarks:test -f ./docker/bittorrent-benchmarks.Dockerfile .
 
-image-minikube:
+export CODEX_REPO_PATH
+
+codex-image-minikube:
+	@if [ -z "$(CODEX_REPO_PATH)" ]; then \
+		echo "Error: CODEX_REPO_PATH environment variable is not set"; \
+		exit 1; \
+	fi
+	eval $$(minikube docker-env) && \
+	cd ${CODEX_REPO_PATH} && \
+	docker build -t nim-codex:minikube -f ./docker/codex.Dockerfile .
+
+harness-image-minikube:
 	eval $$(minikube docker-env) && \
 	docker build -t bittorrent-benchmarks:minikube \
 		--build-arg BUILD_TYPE="release" \

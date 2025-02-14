@@ -1,0 +1,38 @@
+experiment:
+  networkSize: 5
+  fileSize: "100MB"
+  seeders: 1
+  seederSets: 1
+  repetitions: 1
+
+  blockTTL: 360000
+  blockMaintenanceInterval: 360000
+  bootstrapNodeIndex: 0
+  codexLogLevel: debug
+
+  # Experiments are ran as part of groups which may entail several invocations for this Helm chart.
+  # We therefore identify both the experiment within a group, and the group itself.
+
+  # Identifies the experiment within the group. If left empty, defaults to the release name.
+  id: ""
+  # Identifies the experiment group. Needs to be defined by the user.
+  groupId: ""
+
+  # If set to false, does not deploy a test runner (useful if you just want the network).
+  testRunner: true
+
+deployment:
+  appName: ""
+
+  # If false, Codex nodes will not be allowed to run on the same node.
+  allowColocation: true
+
+  # Disables pulling of images and uses :minikube tag for the test runner, agents, and Codex.
+  minikubeEnv: false
+
+  # Labels for setting Deluge, tracker, and experiment runner node affinity towards pools.
+  # Example:
+  #   codexNodePool:
+  #     workload: benchmarks
+  codexNodePool: {}
+  runnerNodePool: {}

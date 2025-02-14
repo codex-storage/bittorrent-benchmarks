@@ -11,6 +11,7 @@ from pydantic_core import ValidationError
 from typing_extensions import TypeVar
 
 from benchmarks.codex.agent.api import CodexAgentConfig
+from benchmarks.codex.config import CodexExperimentConfig
 from benchmarks.core.agent import AgentBuilder
 from benchmarks.core.config import ConfigParser, Builder
 from benchmarks.core.experiments.experiments import Experiment, ExperimentBuilder
@@ -20,8 +21,8 @@ from benchmarks.deluge.logging import DelugeTorrentDownload
 from benchmarks.logging.logging import (
     basic_log_parser,
     LogSplitter,
-    LogEntry,
     LogSplitterFormats,
+    ConfigToLogAdapters,
 )
 from benchmarks.logging.sources.logstash import LogstashSource
 from benchmarks.logging.sources.sources import (
@@ -33,6 +34,7 @@ from benchmarks.logging.sources.vector_flat_file import VectorFlatFileSource
 
 experiment_config_parser = ConfigParser[ExperimentBuilder]()
 experiment_config_parser.register(DelugeExperimentConfig)
+experiment_config_parser.register(CodexExperimentConfig)
 
 agent_config_parser = ConfigParser[AgentBuilder]()
 agent_config_parser.register(DelugeAgentConfig)
@@ -41,8 +43,9 @@ agent_config_parser.register(CodexAgentConfig)
 log_parser = basic_log_parser()
 log_parser.register(DelugeTorrentDownload)
 
-DECLogEntry = LogEntry.adapt(DelugeExperimentConfig)
-log_parser.register(DECLogEntry)
+config_adapters = ConfigToLogAdapters()
+log_parser.register(config_adapters.adapt(DelugeExperimentConfig))
+log_parser.register(config_adapters.adapt(CodexExperimentConfig))
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +62,7 @@ def cmd_run_experiment(experiments: Dict[str, ExperimentBuilder[Experiment]], ar
         sys.exit(-1)
 
     experiment = experiments[args.experiment]
-    logger.info(DECLogEntry.adapt_instance(experiment))
+    logger.info(config_adapters.adapt_instance(experiment))
     experiment.build().run()
 
     print(f"Experiment {args.experiment} completed successfully.")
@@ -93,7 +96,8 @@ def cmd_parse_single_log(log: Path, output: Path):
         log.open("r", encoding="utf-8") as istream,
         LogSplitter(output_factory) as splitter,
     ):
-        splitter.set_format(DECLogEntry, LogSplitterFormats.jsonl)
+        for adapted_config in config_adapters.adapted_types():
+            splitter.set_format(adapted_config, LogSplitterFormats.jsonl)
         splitter.split(log_parser.parse(istream))
 
 
@@ -113,7 +117,10 @@ def cmd_split_log_source(source: LogSource, group_id: str, output_dir: Path):
             log_parser,
             output_manager,
             group_id,
-            formats=[(DECLogEntry, LogSplitterFormats.jsonl)],
+            formats=[
+                (adapted_config, LogSplitterFormats.jsonl)
+                for adapted_config in config_adapters.adapted_types()
+            ],
         )
 
 
@@ -149,6 +156,7 @@ def _parse_config(
         print(f"Config file {config} does not exist.")
         sys.exit(-1)
 
+    print(f"Read config file: {config}.")
     with config.open(encoding="utf-8") as infile:
         try:
             return parser.parse(infile)
@@ -335,6 +343,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # So we see clearly in logs if this gets restarted.
+    print("### Start Codex benchmarks CLI", file=sys.stderr)
 
     _init_logging()
 

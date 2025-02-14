@@ -25,6 +25,3 @@ deluge_experiment:
       listen_ports: [ 6897, 6898 ]
       agent_url: http://${DELUGE_AGENT_3:-localhost}:9003/
 
-deluge_agent:
-  torrents_path: /var/lib/deluge/downloads
-

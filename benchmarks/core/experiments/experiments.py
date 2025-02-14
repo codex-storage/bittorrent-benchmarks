@@ -83,7 +83,7 @@ class ExperimentEnvironment(ExperimentComponent):
     def await_ready(self, timeout: float = 0) -> bool:
         """Awaits for all components to be ready, or until a timeout is reached."""
         logging.info(
-            f"Awaiting for components to be ready: {self._component_names(self.not_ready)}"
+            f"Awaiting for components to be ready:\n {'\n'.join(self._component_names(self.not_ready))}"
         )
 
         if not await_predicate(self.is_ready, timeout, self.polling_interval):

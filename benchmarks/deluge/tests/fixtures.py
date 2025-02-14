@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from typing import Generator
 
 import pytest
@@ -16,7 +15,6 @@ def deluge_node(
 ) -> Generator[DelugeNode, None, None]:
     node = DelugeNode(
         name,
-        volume=Path("/var/lib/deluge"),
         daemon_address=address,
         daemon_port=port,
         agent=DelugeAgentClient(parse_url(agent_url)),

@@ -80,6 +80,31 @@ class AdaptedLogEntry(LogEntry, ABC):
         pass
 
 
+class ConfigToLogAdapters:
+    """Utility class for managing adapted log entry types. This is mostly used to register different :class:`Experiment`
+    configuration classes (typically :class:`ExperimentBuilder` models) so they can be logged and later recovered."""
+
+    def __init__(self) -> None:
+        self.adapters: Dict[Type[SnakeCaseModel], Type[AdaptedLogEntry]] = {}
+
+    def adapt(self, model: Type[SnakeCaseModel]) -> Type[AdaptedLogEntry]:
+        if model in self.adapters:
+            return self.adapters[model]
+
+        adapted = LogEntry.adapt(model)
+        self.adapters[model] = adapted
+        return adapted
+
+    def adapt_instance(self, instance: SnakeCaseModel) -> AdaptedLogEntry:
+        return self.adapt(instance.__class__).adapt_instance(instance)
+
+    def adapted_types(self) -> Iterable[Type[AdaptedLogEntry]]:
+        return self.adapters.values()
+
+    def __getitem__(self, model: Type[SnakeCaseModel]) -> Type[AdaptedLogEntry]:
+        return self.adapt(model)
+
+
 type Logs = Iterable[LogEntry]
 
 

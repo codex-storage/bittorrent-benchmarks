@@ -2,20 +2,20 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: deluge-experiment-runner-{{ include "experiment.fullId" . }}
+  name: codex-experiment-runner-{{ include "experiment.fullId" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/component: deluge-experiment-runner
-    {{- include "deluge-benchmarks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: codex-experiment-runner
+    {{- include "codex-benchmarks.labels" . | nindent 4 }}
 
 spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/component: deluge-experiment-runner
-        {{- include "deluge-benchmarks.labels" . | nindent 8 }}
+        app.kubernetes.io/component: codex-experiment-runner
+        {{- include "codex-benchmarks.labels" . | nindent 8 }}
       annotations:
-        {{- include "deluge-benchmarks.pod.annotations" . | nindent 8 }}
+        {{- include "codex-benchmarks.pod.annotations" . | nindent 8 }}
 
     spec:
       {{- with .Values.deployment.runnerNodePool }}
@@ -26,7 +26,7 @@ spec:
         - name: deluge-experiment-runner
           image: {{ include "benchmark.harness.image" . }}
           imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
-          args: [ "/opt/bittorrent-benchmarks/config/deluge/experiments.k8s.yaml", "run", "deluge_experiment" ]
+          args: [ "/opt/bittorrent-benchmarks/config/codex/experiments.k8s.yaml", "run", "codex_experiment" ]
           env:
             - name: NETWORK_SIZE
               value: {{ .Values.experiment.networkSize | quote }}
@@ -38,12 +38,10 @@ spec:
               value: {{ .Values.experiment.seederSets | quote }}
             - name: FILE_SIZE
               value: {{ include "filesize.bytes" . | quote }}
-            - name: TRACKER_ANNOUNCE_URL
-              value: "http://bittorrent-tracker-service-{{ include "experiment.fullId" . }}.{{ .Release.Namespace }}.svc.cluster.local:8000/announce"
-            - name: DELUGE_STATEFULSET
-              value: "deluge-nodes-{{ include "experiment.fullId" . }}"
-            - name: DELUGE_SERVICE
-              value: "deluge-nodes-service-{{ include "experiment.fullId" . }}"
+            - name: CODEX_STATEFULSET
+              value: {{ include "codex-nodes.statefulset" . | quote }}
+            - name: CODEX_SERVICE
+              value: "codex-nodes-service-{{ include "experiment.fullId" . }}"
             - name: EXPERIMENT_SET_ID
               value: {{ include "experiment.fullId" . | quote }}
             - name: NAMESPACE

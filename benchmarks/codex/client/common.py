@@ -12,7 +12,6 @@ class Manifest(BaseModel):
     blockSize: int
     filename: str
     mimetype: str
-    uploadedAt: int
     protected: bool
 
     @staticmethod

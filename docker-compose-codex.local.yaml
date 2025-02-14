@@ -41,7 +41,7 @@ services:
     image: bittorrent-benchmarks:test
     container_name: codex-agent-1
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
-                  "agent", "experiments-codex.local.yaml", "codex_agent", "--port", "9000" ]
+                  "agent", "config/codex/agent.local.yaml", "codex_agent", "--port", "9000" ]
     environment:
       - CODEX_API_URL=http://codex-1:6891
       - NODE_ID=codex-1
@@ -69,7 +69,7 @@ services:
     image: bittorrent-benchmarks:test
     container_name: codex-agent-2
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
-                  "agent", "experiments-codex.local.yaml", "codex_agent", "--port", "9001" ]
+                  "agent", "config/codex/agent.local.yaml", "codex_agent", "--port", "9001" ]
     environment:
       - CODEX_API_URL=http://codex-2:6893
       - NODE_ID=codex-2
@@ -97,7 +97,7 @@ services:
     image: bittorrent-benchmarks:test
     container_name: codex-agent-3
     entrypoint: [ "poetry", "run", "bittorrent-benchmarks",
-                  "agent", "experiments-codex.local.yaml", "codex_agent", "--port", "9002" ]
+                  "agent", "config/codex/agent.local.yaml", "codex_agent", "--port", "9002" ]
     environment:
       - CODEX_API_URL=http://codex-3:6895
       - NODE_ID=codex-3

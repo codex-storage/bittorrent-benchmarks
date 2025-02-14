@@ -1,0 +1,3 @@
+codex_agent:
+  codex_api_url: ${CODEX_API_URL}
+  node_id: ${NODE_ID}

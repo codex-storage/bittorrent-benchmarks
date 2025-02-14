@@ -6,6 +6,7 @@ from urllib.error import HTTPError
 
 import requests
 from attr import dataclass
+from requests.exceptions import ConnectionError
 from tenacity import (
     stop_after_attempt,
     wait_exponential,
@@ -114,6 +115,9 @@ class CodexNode(Node[Cid, CodexMeta], ExperimentComponent):
     @cached_property
     def name(self) -> str:
         return self.agent.node_id()
+
+    def __str__(self):
+        return f"CodexNode({self.codex_api_url.url, self.agent})"
 
 
 class CodexDownloadHandle(DownloadHandle):

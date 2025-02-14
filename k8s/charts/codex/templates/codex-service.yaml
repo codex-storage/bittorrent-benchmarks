@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "codex-nodes.service" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: codex-nodes-service
+    {{- include "codex-benchmarks.labels" . | nindent 4}}
+
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: codex-node
+    {{- include "codex-benchmarks.selectorLabels" . | nindent 4}}
+  ports:
+    - port: 6890
+      name: discovery
+    - port: 6891
+      name: api
+    - port: 6892
+      name: listen

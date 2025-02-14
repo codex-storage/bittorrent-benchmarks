@@ -9,9 +9,8 @@ Expand the name of the chart.
 {{- mul $sizeNum (index $size $sizeUnit) -}}
 {{- end -}}
 
-{{- define "storage.size" }}
-{{- $totalSize := mul .Values.experiment.networkSize (include "filesize.bytes" .) -}}
-{{- div (mul $totalSize 12) 10 -}}
+{{- define "codex.quota" }}
+{{- div (mul (include "filesize.bytes" .) 13) 10 -}}
 {{- end -}}
 
 {{- define "experiment.groupId" -}}
@@ -27,7 +26,7 @@ Expand the name of the chart.
 {{- end }}
 
 {{/* Common and selector labels. */}}
-{{- define "deluge-benchmarks.chart" -}}
+{{- define "codex-benchmarks.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -35,23 +34,32 @@ Expand the name of the chart.
 {{- default "codex-benchmarks" .Values.deployment.appName | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "deluge-benchmarks.labels" -}}
-helm.sh/chart: {{ include "deluge-benchmarks.chart" . }}
+{{- define "codex-nodes.service" -}}
+{{ printf "codex-nodes-service-%s" (include "experiment.fullId" .) }}
+{{- end -}}
+
+{{- define "codex-nodes.statefulset" -}}
+{{ printf "codex-nodes-%s" (include "experiment.fullId" .) }}
+{{- end -}}
+
+
+{{- define "codex-benchmarks.labels" -}}
+helm.sh/chart: {{ include "codex-benchmarks.chart" . }}
 app.kubernetes.io/name: {{ include "app.name" . }}
-{{ include "deluge-benchmarks.selectorLabels" . }}
+{{ include "codex-benchmarks.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
-{{- define "deluge-benchmarks.selectorLabels" -}}
+{{- define "codex-benchmarks.selectorLabels" -}}
 app.kubernetes.io/instance: {{ include "experiment.id" . }}
 app.kubernetes.io/part-of: {{ include "experiment.groupId" . }}
 {{- end }}
 
 {{/* Annotations. */}}
-{{- define "deluge-benchmarks.pod.annotations" -}}
+{{- define "codex-benchmarks.pod.annotations" -}}
 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
 {{- end }}
 
@@ -59,6 +67,10 @@ cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
 
 {{- define "benchmark.harness.image" -}}
 {{ .Values.deployment.minikubeEnv | ternary "bittorrent-benchmarks:minikube" "codexstorage/bittorrent-benchmarks:latest" }}
+{{- end -}}
+
+{{- define "codex.image" -}}
+{{ .Values.deployment.minikubeEnv | ternary "nim-codex:minikube" "codexstorage/nim-codex:latest" }}
 {{- end -}}
 
 {{- define "benchmark.harness.imagePullPolicy" -}}

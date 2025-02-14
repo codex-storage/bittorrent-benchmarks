@@ -5,7 +5,6 @@ deluge_experiment:
   tracker_announce_url: ${TRACKER_ANNOUNCE_URL}
   file_size: ${FILE_SIZE}
   repetitions: ${REPETITIONS}
-  shared_volume_path: ${SHARED_VOLUME_PATH}
   logging_cooldown: 10
 
   nodes:
@@ -17,6 +16,3 @@ deluge_experiment:
     agent_url: "http://${DELUGE_STATEFULSET}-{node_index}.${DELUGE_SERVICE}.${NAMESPACE}:9001/"
     daemon_port: 6890
     listen_ports: [ 6891, 6892 ]
-
-deluge_agent:
-  torrents_path: /var/lib/deluge/downloads

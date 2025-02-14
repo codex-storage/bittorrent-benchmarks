@@ -19,7 +19,3 @@ codex_experiment:
       disc_port: 6893
       api_port: 6894
       agent_url: http://${CODEX_AGENT_1:-localhost}:9003/
-
-codex_agent:
-  codex_api_url: ${CODEX_API_URL}
-  node_id: ${NODE_ID}

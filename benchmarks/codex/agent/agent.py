@@ -13,7 +13,7 @@ from benchmarks.codex.client.common import Manifest
 from benchmarks.codex.logging import CodexDownloadMetric
 from benchmarks.core.utils.random import random_data
 
-EMPTY_STREAM_BACKOFF = 0.1
+EMPTY_STREAM_BACKOFF = 2
 
 logger = logging.getLogger(__name__)
 
