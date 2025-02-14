@@ -7,8 +7,8 @@ experiment:
 
   blockTTL: 360000
   blockMaintenanceInterval: 360000
-  bootstrapNodeIndex: 0
   codexLogLevel: debug
+  memory: "1Gi"
 
   # Experiments are ran as part of groups which may entail several invocations for this Helm chart.
   # We therefore identify both the experiment within a group, and the group itself.
