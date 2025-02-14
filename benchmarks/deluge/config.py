@@ -89,6 +89,13 @@ class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
         description="Time to wait after the last download completes before tearing down the experiment.",
     )
 
+    # The torrent piece size is set at torrent creation time by torrentool
+    # https://github.com/idlesign/torrentool/blob/5f37d6dcc304758bae46d01c63e5be0f0a348bfc/torrentool/torrent.py#L354
+    # Sadly we can't easily get this elsewhere.
+    # XXX this is not a great solution, by the way. The piece size should be reported by the torrent creation tool,
+    #   perhaps even by the torrent client. Having it here can very easily lead to inconsistencies.
+    download_metric_unit_bytes: int = 262144
+
     def build(self) -> DelugeDisseminationExperiment:
         nodes_specs = (
             self.nodes.nodes

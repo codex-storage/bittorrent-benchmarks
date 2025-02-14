@@ -79,6 +79,8 @@ class CodexExperimentConfig(ExperimentBuilder[CodexDisseminationExperiment]):
         description="Time to wait after the last download completes before tearing down the experiment.",
     )
 
+    download_metric_unit_bytes: int = 1
+
     nodes: List[CodexNodeConfig] | CodexNodeSetConfig
 
     def build(self) -> CodexDisseminationExperiment:
