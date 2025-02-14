@@ -47,6 +47,7 @@ class DownloadHandle:
         step_size = int(self.manifest.datasetSize * self.read_increment)
 
         async with self.parent.client.download(self.manifest.cid) as download_stream:
+            logged_step = 0
             while not download_stream.at_eof():
                 step = min(step_size, self.manifest.datasetSize - self.bytes_downloaded)
                 bytes_read = await download_stream.read(step)
@@ -56,13 +57,15 @@ class DownloadHandle:
                     await asyncio.sleep(EMPTY_STREAM_BACKOFF)
                 self.bytes_downloaded += len(bytes_read)
 
-                logger.info(
-                    CodexDownloadMetric(
-                        cid=self.manifest.cid,
-                        value=self.bytes_downloaded,
-                        node=self.parent.node_id,
+                if int(self.bytes_downloaded / step_size) > logged_step:
+                    logged_step += 1
+                    logger.info(
+                        CodexDownloadMetric(
+                            cid=self.manifest.cid,
+                            value=step_size * logged_step,
+                            node=self.parent.node_id,
+                        )
                     )
-                )
 
             if self.bytes_downloaded < self.manifest.datasetSize:
                 raise EOFError(

@@ -155,6 +155,61 @@ async def test_should_log_download_progress_as_metric_in_discrete_steps(mock_log
 
 
 @pytest.mark.asyncio
+async def test_should_log_download_progress_as_discrete_steps_even_when_underlying_stream_is_choppy(
+    mock_logger,
+):
+    logger, output = mock_logger
+
+    with patch("benchmarks.codex.agent.agent.logger", logger):
+        client = FakeCodexClient()
+        codex_agent = CodexAgent(client)
+        cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1234)
+        download_stream = client.create_download_stream(cid)
+        handle = await codex_agent.download(cid, read_increment=0.2)
+
+        # Simulates a choppy download which returns a lot less than the logging step size every time.
+        fed = 0
+        step = 37
+        while fed < 1000:
+            to_feed = min(step, 1000 - fed)
+            download_stream.feed_data(b"0" * to_feed)
+            fed += to_feed
+            assert await await_predicate_async(
+                lambda: handle.progress() == DownloadStatus(downloaded=fed, total=1000),
+                timeout=5,
+            )
+
+        download_stream.feed_eof()
+        await handle.download_task
+
+    parser = LogParser()
+    parser.register(CodexDownloadMetric)
+
+    metrics = list(parser.parse(StringIO(output.getvalue())))
+
+    assert metrics == [
+        CodexDownloadMetric(
+            cid=cid, value=200, node=codex_agent.node_id, timestamp=metrics[0].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid, value=400, node=codex_agent.node_id, timestamp=metrics[1].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid, value=600, node=codex_agent.node_id, timestamp=metrics[2].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid, value=800, node=codex_agent.node_id, timestamp=metrics[3].timestamp
+        ),
+        CodexDownloadMetric(
+            cid=cid,
+            value=1000,
+            node=codex_agent.node_id,
+            timestamp=metrics[4].timestamp,
+        ),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_should_track_download_handles():
     client = FakeCodexClient()
     codex_agent = CodexAgent(client)
