@@ -46,9 +46,9 @@ spec:
             - containerPort: 6890
           resources:
             requests:
-              memory: 6Gi
+              memory: {{ .Values.experiment.memory | quote }}
             limits:
-              memory: 6Gi
+              memory: {{ .Values.experiment.memory | quote }}
           env:
             - name: CLIENT_POD_NAME
               valueFrom:
