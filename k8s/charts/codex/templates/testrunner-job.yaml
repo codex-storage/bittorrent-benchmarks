@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: deluge-experiment-runner
+        - name: codex-experiment-runner
           image: {{ include "benchmark.harness.image" . }}
           imagePullPolicy: {{ include "benchmark.harness.imagePullPolicy" . }}
           args: [ "/opt/bittorrent-benchmarks/config/codex/experiments.k8s.yaml", "run", "codex_experiment" ]
