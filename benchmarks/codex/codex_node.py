@@ -130,7 +130,7 @@ class CodexDownloadHandle(DownloadHandle):
             completion = self.completion()
             return completion.downloaded == completion.total
 
-        return await_predicate(_predicate, timeout)
+        return await_predicate(_predicate, timeout, polling_interval=1)
 
     @property
     def node(self) -> Node:

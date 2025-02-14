@@ -74,7 +74,7 @@ class CodexExperimentConfig(ExperimentBuilder[CodexDisseminationExperiment]):
     )
 
     logging_cooldown: int = Field(
-        gt=0,
+        ge=0,
         default=0,
         description="Time to wait after the last download completes before tearing down the experiment.",
     )

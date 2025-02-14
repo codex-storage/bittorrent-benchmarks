@@ -83,7 +83,7 @@ class ExperimentEnvironment(ExperimentComponent):
     def await_ready(self, timeout: float = 0) -> bool:
         """Awaits for all components to be ready, or until a timeout is reached."""
         logging.info(
-            f"Awaiting for components to be ready:\n {'\n'.join(self._component_names(self.not_ready))}"
+            f"Awaiting for components to be ready:\n {self._component_names(self.not_ready, sep='\n')}"
         )
 
         if not await_predicate(self.is_ready, timeout, self.polling_interval):
@@ -110,8 +110,8 @@ class ExperimentEnvironment(ExperimentComponent):
         return components[: self.ping_max]
 
     @staticmethod
-    def _component_names(components: List[ExperimentComponent]) -> str:
-        return ", ".join(str(component) for component in components)
+    def _component_names(components: List[ExperimentComponent], sep: str = ", ") -> str:
+        return sep.join(str(component) for component in components)
 
     def run(self, experiment: Experiment):
         """Runs the :class:`Experiment` within this :class:`ExperimentEnvironment`."""

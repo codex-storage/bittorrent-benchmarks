@@ -4,7 +4,8 @@ codex_experiment:
   seeders: ${SEEDERS}
   file_size: ${FILE_SIZE}
   repetitions: ${REPETITIONS}
-  logging_cooldown: 10
+  # No need for cooldown as Codex takes forever to remove files, so there's plenty of time to log stuff. :-)
+  logging_cooldown: 0
 
   nodes:
     network_size: ${NETWORK_SIZE}

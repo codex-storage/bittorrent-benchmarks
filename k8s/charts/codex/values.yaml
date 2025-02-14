@@ -1,9 +1,9 @@
 experiment:
-  networkSize: 5
+  networkSize: 10
   fileSize: "100MB"
-  seeders: 1
-  seederSets: 1
-  repetitions: 1
+  seeders: 4
+  seederSets: 4
+  repetitions: 10
 
   blockTTL: 360000
   blockMaintenanceInterval: 360000
