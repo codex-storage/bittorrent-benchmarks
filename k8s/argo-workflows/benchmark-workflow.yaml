@@ -1,20 +1,28 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: deluge-benchmark-
+  generateName: codex-benchmark-
 spec:
   serviceAccountName: codex-benchmarks-workflows
   entrypoint: benchmark-workflow
   arguments:
     parameters:
+      # What are we benchmarking?
+      - name: system
+        value: "codex"
+      # How many times should we repeat for each parameter?
       - name: repetitions
         value: 5
+      # How many random seeder sets should we have?
       - name: seederSets
         value: 2
+      # What file size are we benchmarking?
       - name: fileSize
         value: '["100MB", "1GB", "5GB"]'
+      # What values for network size vs seeders should we use?
       - name: constrained__networkSize_seeders
         value: "[[2, 1], [8, [1, 2, 4]], [16, [1, 2, 4, 8]], [32, [1, 2, 4, 8, 16]]]"
+      # What's the maximum duration for this whole batch of experiments?
       - name: maxExperimentDuration
         value: 144h
 
@@ -28,7 +36,8 @@ spec:
       # If set to false, leaves pods for failed experiments behind so they can be inspected.
       - name: cleanupOnFailure
         value: "true"
-      # If set to false, does not parse/upload logs at the end of the experiment.
+      # If set to false, does not parse/upload logs at the end of the experiment. You'll probably want to
+      # disable this when running local experiments.
       - name: parseLogs
         value: "true"
 
@@ -123,7 +132,7 @@ spec:
         image: busybox:latest
         command: ["sh", "-c"]
         source: |
-          if [ "{{workflow.parameters.minikubeEnv}}" == "true"]; then
+          if [ "{{workflow.parameters.minikubeEnv}}" == "true" ]; then
             echo "bittorrent-benchmarks-workflows:minikube" > /tmp/image.txt
             echo "Never" > /tmp/imagePullPolicy.txt
           else
@@ -304,17 +313,18 @@ spec:
 
           if [[ "{{workflow.parameters.minikubeEnv}}" == "false" ]]; then
             echo "Using devnet cluster values for deploy."
-            VALUE_FILE=(-f "./k8s/clusters/devnet/deluge-chart-values.yaml")
+            VALUE_FILE=(-f "./k8s/clusters/devnet/{{workflow.parameters.system}}-chart-values.yaml")
           fi
 
-          helm install e{{inputs.parameters.runId}} ./k8s/charts/deluge\
+          helm install e{{inputs.parameters.runId}} ./k8s/charts/{{workflow.parameters.system}}\
             --namespace codex-benchmarks "${VALUE_FILE[@]}"\
             --set experiment.groupId={{inputs.parameters.groupId}}\
             --set experiment.repetitions={{inputs.parameters.repetitions}}\
             --set experiment.fileSize={{inputs.parameters.fileSize}}\
             --set experiment.networkSize={{inputs.parameters.networkSize}}\
             --set experiment.seeders={{inputs.parameters.seeders}}\
-            --set experiment.seederSets={{inputs.parameters.seederSets}}
+            --set experiment.seederSets={{inputs.parameters.seederSets}}\
+            --set experiment.deployment.minikubeEnv={{workflow.parameters.minikubeEnv}}
 
     - name: wait-for-experiment
       inputs:
@@ -329,7 +339,7 @@ spec:
         command: [ "/bin/bash" ]
         source: |
           ./docker/bin/kubectl-wait-job\
-            --selector=app.kubernetes.io/component=deluge-experiment-runner,\
+            --selector=app.kubernetes.io/component={{workflow.parameters.system}}-experiment-runner,\
           app.kubernetes.io/instance=e{{inputs.parameters.runId}},\
           app.kubernetes.io/part-of={{inputs.parameters.groupId}}\
             --timeout={{workflow.parameters.maxExperimentDuration}}\
