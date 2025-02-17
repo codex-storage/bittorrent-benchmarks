@@ -58,7 +58,13 @@ class OutputManager(AbstractContextManager):
 
 
 class FSOutputManager(OutputManager):
-    """Simple :class:`OutputManager` which writes directly into the file system."""
+    """Simple :class:`OutputManager` which writes directly into the file system.
+
+    The current implementation is very simple, and might end up keeping a lot of open files.
+    Since there's locality in th logs, we can make this better without making it slower by just
+    bounding the number of open files and juggling them as an LRU cache of sorts,
+    but for now just make sure your limits are big enough.
+    """
 
     def __init__(self, root: Path) -> None:
         self.root = root

@@ -61,6 +61,9 @@ CodexDisseminationExperiment = IteratedExperiment[
 
 
 class CodexExperimentConfig(ExperimentBuilder[CodexDisseminationExperiment]):
+    # Having this here makes it easier to analyse mixed logs later
+    experiment_type: str = "codex_static_dissemination"
+
     experiment_set_id: str = Field(
         description="Identifies the group of experiment repetitions", default="unnamed"
     )

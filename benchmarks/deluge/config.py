@@ -62,6 +62,9 @@ DelugeDisseminationExperiment = IteratedExperiment[
 
 
 class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
+    # Having this here makes it easier to analyse mixed logs later
+    experiment_type: str = "deluge_static_dissemination"
+
     experiment_set_id: str = Field(
         description="Identifies the group of experiment repetitions", default="unnamed"
     )
