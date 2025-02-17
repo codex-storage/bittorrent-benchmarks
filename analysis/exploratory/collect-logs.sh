@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <output-folder>"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <test-group-id> <output-folder>"
     exit 1
 fi
 
+group_id="${1}"
+output=${2}
+
 # TODO build auto naming for experiment folders based on metadata
-mkdir -p "${1}"
+mkdir -p "${output}"
 
 echo "Collect"
-kubectl logs --prefix -n codex-benchmarks -l "app in (deluge-nodes,testrunner)" --tail=-1 > "${1}/raw-logs.log"
+kubectl logs --prefix -n codex-benchmarks -l "app.kubernetes.io/part-of=${group_id}" --all-containers --tail=-1 > "${output}/raw-logs.log"
 
 echo "Parse"
-python -m benchmarks.cli logs "${1}/raw-logs.log" "${1}/parsed"
+python -m benchmarks.cli logs single "${output}/raw-logs.log" "${output}/parsed"
