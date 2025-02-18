@@ -104,10 +104,12 @@ async def fake_codex_api() -> AsyncIterator[Tuple[FakeCodex, Url]]:
 
     runner = web.AppRunner(app)
     await runner.setup()
+
     site = web.TCPSite(runner, "localhost", 8888)
     await site.start()
 
     try:
         yield codex, Url(scheme="http", host="localhost", port=8888)
     finally:
+        await site.stop()
         await runner.cleanup()

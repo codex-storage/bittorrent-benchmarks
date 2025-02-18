@@ -57,6 +57,31 @@ class OutputManager(AbstractContextManager):
         pass
 
 
+class ChainedLogSource(LogSource):
+    """A :class:`LogSource` which chains multiple sources together."""
+
+    def __init__(self, sources: List[LogSource]) -> None:
+        self.sources = sources
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def experiments(self, group_id: str) -> Iterator[str]:
+        for source in self.sources:
+            with source:
+                yield from source.experiments(group_id)
+
+    def logs(
+        self, group_id: str, experiment_id: Optional[str] = None
+    ) -> Iterator[Tuple[ExperimentId, NodeId, RawLine]]:
+        for source in self.sources:
+            with source:
+                yield from source.logs(group_id, experiment_id)
+
+
 class FSOutputManager(OutputManager):
     """Simple :class:`OutputManager` which writes directly into the file system.
 

@@ -28,6 +28,7 @@ from benchmarks.logging.sources.sources import (
     FSOutputManager,
     split_logs_in_source,
     LogSource,
+    ChainedLogSource,
 )
 from benchmarks.logging.sources.vector_flat_file import VectorFlatFileSource
 
@@ -179,11 +180,18 @@ def _configure_logstash_source(args, structured_only=True):
 
 
 def _configure_vector_source(args):
-    if not args.source_file.exists():
-        print(f"Log source file {args.source_file} does not exist.")
-        sys.exit(-1)
-    return VectorFlatFileSource(
-        app_name="codex-benchmarks", file=args.source_file.open(encoding="utf-8")
+    for source_file in args.source_file:
+        if not source_file.exists():
+            print(f"Log source file {args.source_file} does not exist.")
+            sys.exit(-1)
+
+    return ChainedLogSource(
+        [
+            VectorFlatFileSource(
+                app_name="codex-benchmarks", file=source_file.open(encoding="utf-8")
+            )
+            for source_file in args.source_file
+        ]
     )
 
 
@@ -311,7 +319,7 @@ def main():
 
     vector_source = source_type.add_parser("vector", help="Vector flat file source.")
     vector_source.add_argument(
-        "source_file", type=Path, help="Vector log file to parse from."
+        "source_file", type=Path, help="Vector log file to parse from.", nargs="+"
     )
 
     vector_source.set_defaults(source=lambda args, _: _configure_vector_source(args))
