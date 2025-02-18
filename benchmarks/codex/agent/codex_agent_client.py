@@ -1,3 +1,5 @@
+"""A simple client for interacting with the Codex Agent API."""
+
 import socket
 
 import requests

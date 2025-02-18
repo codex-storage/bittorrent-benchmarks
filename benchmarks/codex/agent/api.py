@@ -1,3 +1,5 @@
+"""This module contains a REST API wrapping :class:`CodexAgent`."""
+
 from typing import Annotated, Optional
 
 from aiohttp import ClientResponseError

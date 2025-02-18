@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Dict
 
+from aiohttp import ClientTimeout
 from pydantic import BaseModel
 
 from benchmarks.codex.client.async_client import AsyncCodexClient
@@ -32,11 +33,13 @@ class DownloadHandle:
         parent: "CodexAgent",
         manifest: Manifest,
         read_increment: float = 0.01,
+        read_timeout: Optional[float] = None,
     ):
         self.parent = parent
         self.manifest = manifest
         self.bytes_downloaded = 0
         self.read_increment = read_increment
+        self.read_timeout = read_timeout
         self.download_task: Optional[Task[None]] = None
 
     def begin_download(self) -> Task:
@@ -46,7 +49,14 @@ class DownloadHandle:
     async def _download_loop(self):
         step_size = int(self.manifest.datasetSize * self.read_increment)
 
-        async with self.parent.client.download(self.manifest.cid) as download_stream:
+        async with self.parent.client.download(
+            self.manifest.cid,
+            timeout=ClientTimeout(
+                total=None,
+                sock_connect=30,
+                sock_read=self.read_timeout,
+            ),
+        ) as download_stream:
             logged_step = 0
             while not download_stream.at_eof():
                 step = min(step_size, self.manifest.datasetSize - self.bytes_downloaded)
@@ -94,10 +104,16 @@ class DownloadHandle:
 
 
 class CodexAgent:
-    def __init__(self, client: AsyncCodexClient, node_id: str = "unknown") -> None:
+    def __init__(
+        self,
+        client: AsyncCodexClient,
+        node_id: str = "unknown",
+        read_timeout: Optional[float] = None,
+    ) -> None:
         self.client = client
         self.node_id = node_id
         self.ongoing_downloads: Dict[Cid, DownloadHandle] = {}
+        self.read_timeout = read_timeout
 
     async def create_dataset(self, name: str, size: int, seed: Optional[int]) -> Cid:
         with TemporaryDirectory() as td:
@@ -119,6 +135,7 @@ class CodexAgent:
             self,
             manifest=await self.client.manifest(cid),
             read_increment=read_increment,
+            read_timeout=self.read_timeout,
         )
 
         handle.begin_download()

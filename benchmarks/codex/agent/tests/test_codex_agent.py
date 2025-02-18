@@ -1,54 +1,19 @@
-from asyncio import StreamReader
-from contextlib import asynccontextmanager
+import asyncio
 from io import StringIO
-from typing import IO, Dict, AsyncIterator
 from unittest.mock import patch
 
 import pytest
 
 from benchmarks.codex.agent.agent import CodexAgent, DownloadStatus
-from benchmarks.codex.client.async_client import AsyncCodexClient
-from benchmarks.codex.client.common import Manifest, Cid
+from benchmarks.codex.agent.tests.fake_codex import FakeCodex, fake_codex_api
+from benchmarks.codex.client.async_client import AsyncCodexClientImpl
 from benchmarks.core.concurrency import await_predicate_async
-from benchmarks.core.utils.streams import BaseStreamReader
 from benchmarks.logging.logging import LogParser, DownloadMetric
-
-
-class FakeCodexClient(AsyncCodexClient):
-    def __init__(self) -> None:
-        self.storage: Dict[Cid, Manifest] = {}
-        self.streams: Dict[Cid, StreamReader] = {}
-
-    async def upload(self, name: str, mime_type: str, content: IO) -> Cid:
-        data = content.read()
-        cid = "Qm" + str(hash(data))
-        self.storage[cid] = Manifest(
-            cid=cid,
-            datasetSize=len(data),
-            mimetype=mime_type,
-            blockSize=1,
-            filename=name,
-            treeCid="",
-            protected=False,
-        )
-        return cid
-
-    async def manifest(self, cid: Cid) -> Manifest:
-        return self.storage[cid]
-
-    def create_download_stream(self, cid: Cid) -> StreamReader:
-        reader = StreamReader()
-        self.streams[cid] = reader
-        return reader
-
-    @asynccontextmanager
-    async def download(self, cid: Cid) -> AsyncIterator[BaseStreamReader]:
-        yield self.streams[cid]
 
 
 @pytest.mark.asyncio
 async def test_should_create_dataset_of_right_size():
-    codex_agent = CodexAgent(FakeCodexClient())
+    codex_agent = CodexAgent(FakeCodex())
     cid = await codex_agent.create_dataset(size=1024, name="dataset-1", seed=1234)
     manifest = await codex_agent.client.manifest(cid)
 
@@ -57,7 +22,7 @@ async def test_should_create_dataset_of_right_size():
 
 @pytest.mark.asyncio
 async def test_same_seed_creates_same_cid():
-    codex_agent = CodexAgent(FakeCodexClient())
+    codex_agent = CodexAgent(FakeCodex())
 
     cid1 = await codex_agent.create_dataset(size=2048, name="dataset-1", seed=1234)
     cid2 = await codex_agent.create_dataset(size=2048, name="dataset-1", seed=1234)
@@ -69,7 +34,7 @@ async def test_same_seed_creates_same_cid():
 
 @pytest.mark.asyncio
 async def test_should_report_download_progress():
-    client = FakeCodexClient()
+    client = FakeCodex()
     codex_agent = CodexAgent(client)
 
     cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1234)
@@ -95,7 +60,7 @@ async def test_should_report_download_progress():
 
 @pytest.mark.asyncio
 async def test_should_raise_exception_on_progress_query_if_download_fails():
-    client = FakeCodexClient()
+    client = FakeCodex()
     codex_agent = CodexAgent(client)
 
     cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1234)
@@ -114,7 +79,7 @@ async def test_should_log_download_progress_as_metric_in_discrete_steps(mock_log
     logger, output = mock_logger
 
     with patch("benchmarks.codex.agent.agent.logger", logger):
-        client = FakeCodexClient()
+        client = FakeCodex()
         codex_agent = CodexAgent(client)
 
         cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1234)
@@ -177,7 +142,7 @@ async def test_should_log_download_progress_as_discrete_steps_even_when_underlyi
     logger, output = mock_logger
 
     with patch("benchmarks.codex.agent.agent.logger", logger):
-        client = FakeCodexClient()
+        client = FakeCodex()
         codex_agent = CodexAgent(client)
         cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1234)
         download_stream = client.create_download_stream(cid)
@@ -244,7 +209,7 @@ async def test_should_log_download_progress_as_discrete_steps_even_when_underlyi
 
 @pytest.mark.asyncio
 async def test_should_track_download_handles():
-    client = FakeCodexClient()
+    client = FakeCodex()
     codex_agent = CodexAgent(client)
 
     cid = await codex_agent.create_dataset(size=1000, name="dataset-1", seed=1356)
@@ -262,3 +227,34 @@ async def test_should_track_download_handles():
     await handle.download_task
 
     assert cid in codex_agent.ongoing_downloads
+
+
+@pytest.mark.asyncio
+async def test_should_timeout_if_download_stream_takes_too_long_to_return_content():
+    async with fake_codex_api() as (fake_codex, url):
+        client = AsyncCodexClientImpl(url)
+        codex_agent = CodexAgent(client, read_timeout=0.5)
+
+        fast_cid = await codex_agent.create_dataset(
+            size=1000, name="dataset-fast-1", seed=1356
+        )
+        slow_cid = await codex_agent.create_dataset(
+            size=1000, name="dataset-slow-1", seed=1353
+        )
+
+        fast_download = fake_codex.create_download_stream(fast_cid)
+        slow_download = fake_codex.create_download_stream(slow_cid)
+
+        fast_download.feed_data(b"0" * 1000)
+        fast_download.feed_eof()
+        fast_handle = await codex_agent.download(fast_cid)
+        await fast_handle.download_task
+
+        slow_handle = await codex_agent.download(slow_cid)
+        slow_download.feed_data(b"0" * 500)
+        await asyncio.sleep(0.6)
+        slow_download.feed_data(b"0" * 500)
+        slow_download.feed_eof()
+
+        with pytest.raises(asyncio.TimeoutError):
+            await slow_handle.download_task

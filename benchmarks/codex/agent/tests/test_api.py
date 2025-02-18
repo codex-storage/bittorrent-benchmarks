@@ -5,12 +5,12 @@ from starlette.testclient import TestClient
 
 from benchmarks.codex.agent import api
 from benchmarks.codex.agent.agent import CodexAgent
-from benchmarks.codex.agent.tests.test_codex_agent import FakeCodexClient
+from benchmarks.codex.agent.tests.fake_codex import FakeCodex
 
 
 @pytest.mark.asyncio
 async def test_should_create_file():
-    codex_client = FakeCodexClient()
+    codex_client = FakeCodex()
     codex_agent = CodexAgent(codex_client)
 
     app = FastAPI()
@@ -34,7 +34,7 @@ async def test_should_create_file():
 
 @pytest.mark.asyncio
 async def test_should_report_when_download_is_complete():
-    codex_client = FakeCodexClient()
+    codex_client = FakeCodex()
     codex_agent = CodexAgent(codex_client)
 
     app = FastAPI()
