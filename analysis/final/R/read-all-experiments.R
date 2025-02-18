@@ -1,9 +1,9 @@
-read_all_experiments <- function(base_path, skip_incomplete = TRUE) {
+read_all_experiments <- function(base_path, skip_incomplete = TRUE, prefix = '') {
   roots <- list.files(base_path,
                       include.dirs = TRUE, no.. = TRUE, full.names = TRUE)
 
   experiments <- lapply(roots, read_single_experiment)
-  names(experiments) <- sapply(roots, basename)
+  names(experiments) <- paste0(prefix, sapply(roots, basename))
 
   # Validates that no experiment has missing data.
   key_sets <- lapply(experiments, ls) |> unique()
@@ -24,8 +24,7 @@ read_all_experiments <- function(base_path, skip_incomplete = TRUE) {
   experiments[!is.null(experiments)]
 }
 
-merge_experiments <- function(set_1, set_2, prefix) {
-  maxid <- max(as.integer(sub(pattern = 'e', '', ls(deluge))))
+merge_experiments <- function(set_1, set_2) {
   merged <- list()
 
   for (set_1_id in ls(set_1)) {
@@ -33,7 +32,10 @@ merge_experiments <- function(set_1, set_2, prefix) {
   }
 
   for (set_2_id in ls(set_2)) {
-    merged[[paste0(prefix, set_2_id)]] <- set_2[[set_2_id]]
+    if (set_2_id %in% names(merged)) {
+      stop(glue::glue('Duplicate experiment ID {set_2_id}. Cannot merge.'))
+    }
+    merged[[set_2_id]] <- set_2[[set_2_id]]
   }
 
   merged

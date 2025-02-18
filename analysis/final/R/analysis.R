@@ -1,13 +1,17 @@
-PIECE_SIZE <- 262144
+is_completed <- function(completion) 1.0 - completion > -1e-7
 
-piece_count <- function(experiment_meta) {
-  experiment_meta$file_size / PIECE_SIZE
-}
-
-extract_repetitions <- function(deluge_torrent_download) {
-  deluge_torrent_download |>
+#' Extracts repetition id and seed set id from the dataset name,
+#' which should be in the format `dataset-<seed_set>-<repetition>`.
+#'
+#' @param download_metric
+#' @param meta
+#'
+#' @returns
+#' @export
+extract_repetitions <- function(download_metric) {
+  download_metric |>
     mutate(
-      temp = str_remove(torrent_name, '^dataset-'),
+      temp = str_remove(dataset_name, '^dataset-'),
       seed_set = as.numeric(str_extract(temp, '^\\d+')),
       run = as.numeric(str_extract(temp, '\\d+$'))
     ) |>
@@ -15,35 +19,42 @@ extract_repetitions <- function(deluge_torrent_download) {
     select(-temp, -name)
 }
 
-compute_pieces <- function(deluge_torrent_download, n_pieces) {
-  deluge_torrent_download |>
+#' Computes the progress, in percentage, of the download. The underlying
+#' assumption is that downloads are logged as discrete chunks of the same size,
+#' and that the `value` column contains something that identifies this chunk.
+#'
+#' This makes it compatible with BitTorrent, which logs piece ids, whereas with
+#' other systems we can simply use a byte count, provided the logger is smart
+#' enough to log at equally-sized, discrete intervals.
+#'
+compute_progress <- function(download_metric, meta, count_distinct) {
+  download_metric |>
     group_by(node, seed_set, run) |>
     arrange(timestamp) |>
     mutate(
-      piece_count = seq_along(timestamp)
+      piece_count = if (count_distinct) seq_along(timestamp) else piece
     ) |>
     ungroup() |>
-    mutate(completed = piece_count / n_pieces)
+    mutate(completed = (piece_count * meta$download_metric_unit_bytes) / meta$file_size)
 }
 
-process_incomplete_downloads <- function(deluge_torrent_download, n_pieces, discard_incomplete) {
-  incomplete_downloads <- deluge_torrent_download |>
+process_incomplete_downloads <- function(download_metric, discard_incomplete) {
+  incomplete_downloads <- download_metric |>
     group_by(node, seed_set, run) |>
-    count() |>
-    ungroup() |>
-    filter(n != n_pieces)
+    summarise(completed = max(completed)) |>
+    filter(!is_completed(completed))
 
   if(nrow(incomplete_downloads) > 0) {
     (if (!discard_incomplete) stop else warning)(
       'Experiment contained incomplete downloads.')
   }
 
-  deluge_torrent_download |> anti_join(
+  download_metric |> anti_join(
     incomplete_downloads, by = c('node', 'seed_set', 'run'))
 }
 
-process_incomplete_repetitions <- function(deluge_torrent_download, repetitions, allow_missing) {
-  mismatching_repetitions <- deluge_torrent_download |>
+process_incomplete_repetitions <- function(download_metric, repetitions, allow_missing) {
+  mismatching_repetitions <- download_metric |>
     select(seed_set, node, run) |>
     distinct() |>
     group_by(seed_set, node) |>
@@ -55,10 +66,10 @@ process_incomplete_repetitions <- function(deluge_torrent_download, repetitions,
       'Experiment data did not have all repetitions.')
   }
 
-  deluge_torrent_download
+  download_metric
 }
 
-compute_download_times <- function(meta, request_event, deluge_torrent_download, group_id) {
+compute_download_times <- function(meta, request_event, download_metric, group_id) {
   n_leechers <- meta$nodes$network_size - meta$seeders
 
   download_start <- request_event |>
@@ -68,14 +79,15 @@ compute_download_times <- function(meta, request_event, deluge_torrent_download,
       # We didn't log those on the runner side so I have to reconstruct them.
       run = rep(rep(
         1:meta$repetitions - 1,
-        each = n_leechers), times=meta$seeder_sets),
+        each = n_leechers), times = meta$seeder_sets),
       seed_set = rep(
         1:meta$seeder_sets - 1,
         each = n_leechers * meta$repetitions),
+      destination = gsub('"', '', destination) # sometimes we get double-quoted strings in logs
     ) |>
     transmute(node = destination, run, seed_set, seed_request_time = timestamp)
 
-  download_times <- deluge_torrent_download |>
+  download_times <- download_metric |>
     left_join(download_start, by = c('node', 'run', 'seed_set')) |>
     mutate(
       elapsed_download_time = as.numeric(timestamp - seed_request_time)
@@ -95,38 +107,39 @@ compute_download_times <- function(meta, request_event, deluge_torrent_download,
   download_times
 }
 
-check_seeder_count <- function(download_times, seeders) {
-  mismatching_seeders <- download_times |>
-    filter(is.na(seed_request_time)) |>
-    select(node, seed_set, run) |>
-    distinct() |>
-    group_by(seed_set, run) |>
-    count() |>
-    filter(n != seeders)
 
-  nrow(mismatching_seeders) == 0
+download_times <- function(experiment, piece_count_distinct, discard_incomplete = TRUE, allow_missing = TRUE) {
+  meta <- experiment$meta
+  downloads <- experiment$download_metric |>
+    extract_repetitions() |>
+    compute_progress(meta, count_distinct = piece_count_distinct)
+
+  downloads <- process_incomplete_downloads(
+    downloads,
+    discard_incomplete
+  ) |>
+    process_incomplete_repetitions(meta$repetitions, allow_missing)
+
+  download_times <- compute_download_times(
+    meta,
+    experiment$request_event,
+    downloads,
+    group_id
+  )
+
+  if (!check_seeder_count(download_times, meta$seeders)) {
+    warning(glue::glue('Undefined download times do not match seeder count'))
+    return(NULL)
+  }
+
+  download_times
 }
 
-download_stats <- function(download_times) {
-  download_times |>
-    filter(!is.na(elapsed_download_time)) |>
-    group_by(piece_count, completed) |>
-    summarise(
-      mean = mean(elapsed_download_time),
-      median = median(elapsed_download_time),
-      max = max(elapsed_download_time),
-      min = min(elapsed_download_time),
-      p90 = quantile(elapsed_download_time, p = 0.95),
-      p10 = quantile(elapsed_download_time, p = 0.05),
-      .groups = 'drop'
-    )
-}
 
 completion_time_stats <- function(download_times, meta) {
-  n_pieces <- meta |> piece_count()
   completion_times <- download_times |>
     filter(!is.na(elapsed_download_time),
-           piece_count == n_pieces) |>
+           is_completed(completed)) |>
     pull(elapsed_download_time)
 
   n_experiments <- meta$repetitions * meta$seeder_sets
@@ -156,35 +169,32 @@ completion_time_stats <- function(download_times, meta) {
   )
 }
 
-download_times <- function(experiment, discard_incomplete = TRUE, allow_missing = TRUE) {
-  meta <- experiment$meta
-  pieces <- experiment$meta |> piece_count()
-  downloads <- experiment$deluge_torrent_download |>
-    extract_repetitions() |>
-    compute_pieces(pieces)
+check_seeder_count <- function(download_times, seeders) {
+  mismatching_seeders <- download_times |>
+    filter(is.na(seed_request_time)) |>
+    select(node, seed_set, run) |>
+    distinct() |>
+    group_by(seed_set, run) |>
+    count() |>
+    filter(n != seeders)
 
-  downloads <- process_incomplete_downloads(
-    downloads,
-    pieces,
-    discard_incomplete
-  ) |>
-    process_incomplete_repetitions(meta$repetitions, allow_missing)
-
-  download_times <- compute_download_times(
-    meta,
-    experiment$request_event,
-    downloads,
-    group_id
-  )
-
-  if (!check_seeder_count(download_times, meta$seeders)) {
-    warning(glue::glue('Undefined download times do not match seeder count'))
-    return(NULL)
-  }
-
-  download_times
+  nrow(mismatching_seeders) == 0
 }
 
+download_stats <- function(download_times) {
+  download_times |>
+    filter(!is.na(elapsed_download_time)) |>
+    group_by(piece_count, completed) |>
+    summarise(
+      mean = mean(elapsed_download_time),
+      median = median(elapsed_download_time),
+      max = max(elapsed_download_time),
+      min = min(elapsed_download_time),
+      p90 = quantile(elapsed_download_time, p = 0.95),
+      p10 = quantile(elapsed_download_time, p = 0.05),
+      .groups = 'drop'
+    )
+}
 
 compute_compact_summary <- function(download_ecdf) {
   lapply(c(0.05, 0.5, 0.95), function(p)

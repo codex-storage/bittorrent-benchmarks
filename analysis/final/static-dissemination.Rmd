@@ -20,25 +20,34 @@ devtools::load_all()
 This is data that's been pre-parsed from an experiment [log source](https://github.com/codex-storage/bittorrent-benchmarks/blob/1ee8ea8a35a2c0fccea6e7c955183c4ed03eebb3/benchmarks/logging/sources.py#L27).
 
 ```{r}
-deluge <- read_all_experiments('./data/g1738145663/') |>
-  merge_experiments(
-    read_all_experiments('./data/g1738248455/'), prefix = 's')
+experiments <- read_all_experiments('./data/g1739826980')
 ```
+
+```{r}
+COUNT_DISTINCT = list(
+  'codex_static_dissemination' = FALSE,
+  'deluge_static_dissemination' = TRUE
+)
+```
+
+
 Computes the benchmark statistics from raw download logs.
 
 ```{r}
-benchmarks <- lapply(deluge, function(experiment) {
+benchmarks <- lapply(experiments, function(experiment) {
   print(glue::glue('Process {experiment$experiment_id}'))
   download_time_stats <- tryCatch({
     meta <- experiment$meta
     completion <- experiment |>
-      download_times() |>
+      download_times(
+        piece_count_distinct = COUNT_DISTINCT[[meta$experiment_type]]) |>
       completion_time_stats(meta)
     
     if (is.null(completion)) {
       NULL
     } else {
       completion |> mutate(
+        experiment_type = meta$experiment_type,
         network_size = meta$nodes$network_size,
         seeders = meta$seeders,
         leechers = network_size - meta$seeders,
@@ -71,7 +80,7 @@ benchmarks
 We then plot the median by network size, and facet it by seeder ratio and file size to see if looks sane:
 
 ```{r fig.width = 10, warning=FALSE, message=FALSE}
-ggplot(benchmarks) +
+ggplot(benchmarks, aes(col = experiment_type, fill = experiment_type)) +
   geom_ribbon(aes(ymin = p25, ymax = p75, x = network_size),
               fill = scales::alpha('blue', 0.5), col = 'lightgray') +
   geom_point(aes(x = network_size, y = p25), col = 'darkgray', size=10.0, shape='-') +
@@ -90,5 +99,7 @@ ggplot(benchmarks) +
         paste0("seeder ratio: ", scales::percent(as.numeric(x)))
       }))
   ) +
+  scale_color_discrete(name = 'experiment type') +
+  guides(fill = 'none') +
   ylim(c(0,NA))
 ```
