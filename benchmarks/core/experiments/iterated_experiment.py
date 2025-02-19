@@ -25,6 +25,9 @@ class IteratedExperiment(Experiment, Generic[TExperiment]):
         self.raise_when_failures = raise_when_failures
         self.experiments = experiments
 
+    def experiment_id(self) -> str:
+        return self.experiment_set_id
+
     def run(self):
         for i, experiment in enumerate(self.experiments):
             start = time.time()

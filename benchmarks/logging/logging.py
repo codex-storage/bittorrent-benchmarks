@@ -247,7 +247,7 @@ class DownloadMetric(Metric):
     dataset_name: str
 
 
-class RequestEventType(Enum):
+class EventBoundary(Enum):
     start = "start"
     end = "end"
 
@@ -255,12 +255,18 @@ class RequestEventType(Enum):
 class RequestEvent(NodeEvent):
     destination: NodeId
     request_id: str
-    type: RequestEventType
+    type: EventBoundary
 
 
 class ExperimentStatus(Event):
     repetition: int
     duration: float
+    error: Optional[str] = None
+
+
+class ExperimentStage(Event):
+    stage: str
+    type: EventBoundary
     error: Optional[str] = None
 
 
@@ -273,4 +279,5 @@ def basic_log_parser() -> LogParser:
     parser.register(DownloadMetric)
     parser.register(RequestEvent)
     parser.register(ExperimentStatus)
+    parser.register(ExperimentStage)
     return parser

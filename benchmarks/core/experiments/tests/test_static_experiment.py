@@ -8,7 +8,7 @@ from benchmarks.core.experiments.dissemination_experiment.static import (
     StaticDisseminationExperiment,
 )
 from benchmarks.core.network import Node, DownloadHandle
-from benchmarks.logging.logging import LogParser, RequestEvent, RequestEventType
+from benchmarks.logging.logging import LogParser, RequestEvent, EventBoundary
 
 
 @dataclass
@@ -178,7 +178,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             node="runner",
             name="genseed",
             request_id="dataset-1",
-            type=RequestEventType.start,
+            type=EventBoundary.start,
             timestamp=events[0].timestamp,
         ),
         RequestEvent(
@@ -186,7 +186,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             node="runner",
             name="genseed",
             request_id="dataset-1",
-            type=RequestEventType.end,
+            type=EventBoundary.end,
             timestamp=events[1].timestamp,
         ),
         RequestEvent(
@@ -194,7 +194,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             node="runner",
             name="leech",
             request_id="dataset-1",
-            type=RequestEventType.start,
+            type=EventBoundary.start,
             timestamp=events[2].timestamp,
         ),
         RequestEvent(
@@ -202,7 +202,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             node="runner",
             name="leech",
             request_id="dataset-1",
-            type=RequestEventType.end,
+            type=EventBoundary.end,
             timestamp=events[3].timestamp,
         ),
         RequestEvent(
@@ -210,7 +210,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             node="runner",
             name="leech",
             request_id="dataset-1",
-            type=RequestEventType.start,
+            type=EventBoundary.start,
             timestamp=events[4].timestamp,
         ),
         RequestEvent(
@@ -218,7 +218,7 @@ def test_should_log_requests_to_seeders_and_leechers(mock_logger):
             node="runner",
             name="leech",
             request_id="dataset-1",
-            type=RequestEventType.end,
+            type=EventBoundary.end,
             timestamp=events[5].timestamp,
         ),
     ]

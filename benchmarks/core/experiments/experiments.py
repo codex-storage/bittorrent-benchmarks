@@ -18,6 +18,12 @@ class Experiment(ABC):
     """Base interface for an executable :class:`Experiment`."""
 
     @abstractmethod
+    def experiment_id(self) -> Optional[str]:
+        """A meaningful identifier for the experiment. What this means is experiment-specific.
+        Anonymous experiments can simply return None."""
+        pass
+
+    @abstractmethod
     def run(self):
         """Synchronously runs the experiment, blocking the current thread until it's done."""
         pass
@@ -28,7 +34,7 @@ TExperiment = TypeVar("TExperiment", bound=Experiment)
 ExperimentBuilder = Builder[TExperiment]
 
 
-class ExperimentWithLifecycle(Experiment):
+class ExperimentWithLifecycle(Experiment, ABC):
     """An :class:`ExperimentWithLifecycle` is a basic implementation of an :class:`Experiment` with overridable
     lifecycle hooks."""
 
@@ -130,6 +136,9 @@ class BoundExperiment(Experiment, Generic[TExperiment]):
     def __init__(self, experiment: Experiment, env: ExperimentEnvironment):
         self.experiment = experiment
         self.env = env
+
+    def experiment_id(self) -> Optional[str]:
+        return self.experiment.experiment_id()
 
     def run(self):
         self.env.run(self.experiment)

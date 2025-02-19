@@ -8,13 +8,14 @@ from typing_extensions import Generic, List, Tuple
 
 from benchmarks.core.concurrency import ensure_successful
 from benchmarks.core.experiments.experiments import ExperimentWithLifecycle
+from benchmarks.core.experiments.logging import experiment_stage
 from benchmarks.core.network import (
     TInitialMetadata,
     TNetworkHandle,
     Node,
     DownloadHandle,
 )
-from benchmarks.logging.logging import RequestEvent, RequestEventType
+from benchmarks.logging.logging import RequestEvent, EventBoundary
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,14 @@ class StaticDisseminationExperiment(
         seed: int,
         concurrency: Optional[int] = None,
         logging_cooldown: int = 0,
+        experiment_id: Optional[str] = None,
     ) -> None:
         self.nodes = network
         self.seeders = seeders
         self.meta = meta
         self.file_size = file_size
         self.seed = seed
+        self._experiment_id = experiment_id
 
         self._executor = ThreadPoolExecutor(
             max_workers=len(network) - len(seeders)
@@ -46,66 +49,76 @@ class StaticDisseminationExperiment(
         self._cid: Optional[TNetworkHandle] = None
         self.logging_cooldown = logging_cooldown
 
+    def experiment_id(self) -> Optional[str]:
+        return self._experiment_id
+
     def setup(self):
         pass
 
     def do_run(self, run: int = 0):
         seeders, leechers = self._split_nodes()
 
-        logger.info(
-            "Running experiment with %d seeders and %d leechers",
-            len(seeders),
-            len(leechers),
-        )
-
-        for node in seeders:
-            _log_request(node, "genseed", str(self.meta), RequestEventType.start)
-            self._cid = node.genseed(self.file_size, self.seed, self.meta)
-            _log_request(node, "genseed", str(self.meta), RequestEventType.end)
-
-        assert self._cid is not None  # to please mypy
-
-        logger.info(f"Setting up leechers: {[str(leecher) for leecher in leechers]}")
-
-        def _leech(leecher):
-            _log_request(leecher, "leech", str(self.meta), RequestEventType.start)
-            download = leecher.leech(self._cid)
-            _log_request(leecher, "leech", str(self.meta), RequestEventType.end)
-            return download
-
-        logger.info("Now waiting for downloads to complete")
-
-        downloads = ensure_successful(
-            [self._executor.submit(_leech, leecher) for leecher in leechers]
-        )
-
-        def _await_for_download(
-            element: Tuple[int, DownloadHandle],
-        ) -> Tuple[int, DownloadHandle]:
-            index, download = element
-            if not download.await_for_completion():
-                raise Exception(
-                    f"Download ({index}, {str(download)}) did not complete in time."
-                )
+        with experiment_stage(self, "seeding"):
             logger.info(
-                "Download %d / %d completed (node: %s)",
-                index + 1,
-                len(downloads),
-                download.node.name,
+                "Running experiment with %d seeders and %d leechers",
+                len(seeders),
+                len(leechers),
             )
-            return element
 
-        ensure_successful(
-            [
-                self._executor.submit(_await_for_download, (i, download))
-                for i, download in enumerate(downloads)
-            ]
-        )
+            for node in seeders:
+                _log_request(node, "genseed", str(self.meta), EventBoundary.start)
+                self._cid = node.genseed(self.file_size, self.seed, self.meta)
+                _log_request(node, "genseed", str(self.meta), EventBoundary.end)
 
-        # FIXME this is a hack to ensure that nodes get a chance to log their data before we
-        #   run the teardown hook and remove the torrents.
-        logger.info(f"Waiting for {self.logging_cooldown} seconds before teardown...")
-        sleep(self.logging_cooldown)
+            assert self._cid is not None  # to please mypy
+
+        with experiment_stage(self, "leeching"):
+            logger.info(
+                f"Setting up leechers: {[str(leecher) for leecher in leechers]}"
+            )
+
+            def _leech(leecher):
+                _log_request(leecher, "leech", str(self.meta), EventBoundary.start)
+                download = leecher.leech(self._cid)
+                _log_request(leecher, "leech", str(self.meta), EventBoundary.end)
+                return download
+
+            downloads = ensure_successful(
+                [self._executor.submit(_leech, leecher) for leecher in leechers]
+            )
+
+        with experiment_stage(self, "downloading"):
+
+            def _await_for_download(
+                element: Tuple[int, DownloadHandle],
+            ) -> Tuple[int, DownloadHandle]:
+                index, download = element
+                if not download.await_for_completion():
+                    raise Exception(
+                        f"Download ({index}, {str(download)}) did not complete in time."
+                    )
+                logger.info(
+                    "Download %d / %d completed (node: %s)",
+                    index + 1,
+                    len(downloads),
+                    download.node.name,
+                )
+                return element
+
+            ensure_successful(
+                [
+                    self._executor.submit(_await_for_download, (i, download))
+                    for i, download in enumerate(downloads)
+                ]
+            )
+
+        with experiment_stage(self, "log_cooldown"):
+            # FIXME this is a hack to ensure that nodes get a chance to log their data before we
+            #   run the teardown hook and remove the torrents.
+            logger.info(
+                f"Waiting for {self.logging_cooldown} seconds before teardown..."
+            )
+            sleep(self.logging_cooldown)
 
     def teardown(self, exception: Optional[Exception] = None):
         logger.info("Tearing down experiment.")
@@ -123,12 +136,13 @@ class StaticDisseminationExperiment(
             return element
 
         try:
-            ensure_successful(
-                [
-                    self._executor.submit(_remove, (i, node))
-                    for i, node in enumerate(self.nodes)
-                ]
-            )
+            with experiment_stage(self, "deleting"):
+                ensure_successful(
+                    [
+                        self._executor.submit(_remove, (i, node))
+                        for i, node in enumerate(self.nodes)
+                    ]
+                )
         finally:
             logger.info("Shut down thread pool.")
             self._executor.shutdown(wait=True)
@@ -149,7 +163,7 @@ def _log_request(
     node: Node[TNetworkHandle, TInitialMetadata],
     name: str,
     request_id: str,
-    event_type: RequestEventType,
+    event_type: EventBoundary,
 ):
     logger.info(
         RequestEvent(

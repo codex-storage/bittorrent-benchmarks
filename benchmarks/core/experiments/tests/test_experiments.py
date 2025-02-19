@@ -1,5 +1,5 @@
 from time import sleep
-from typing import List
+from typing import List, Optional
 
 from benchmarks.core.experiments.experiments import (
     ExperimentComponent,
@@ -58,6 +58,9 @@ def test_should_timeout_if_component_takes_too_long():
 class ExperimentThatReliesOnComponents(Experiment):
     def __init__(self, components: List[ExperimentComponent]):
         self.components = components
+
+    def experiment_id(self) -> Optional[str]:
+        return None
 
     def run(self):
         assert all(component.is_ready() for component in self.components)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from benchmarks.core.experiments.experiments import Experiment
 from benchmarks.core.experiments.iterated_experiment import IteratedExperiment
 
@@ -5,6 +7,9 @@ from benchmarks.core.experiments.iterated_experiment import IteratedExperiment
 class SimpleExperiment(Experiment):
     def __init__(self):
         self.ran = False
+
+    def experiment_id(self) -> Optional[str]:
+        return None
 
     def run(self):
         self.ran = True
@@ -27,6 +32,9 @@ def test_should_run_experiment_repetitions():
 
 def test_should_register_failed_repetitions():
     class FailingExperiment(Experiment):
+        def experiment_id(self) -> Optional[str]:
+            return None
+
         def run(self):
             raise RuntimeError("This experiment failed.")
 
