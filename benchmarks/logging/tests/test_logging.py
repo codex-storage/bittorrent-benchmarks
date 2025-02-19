@@ -2,6 +2,8 @@ import datetime
 from collections import defaultdict
 from io import StringIO
 
+from pydantic import BaseModel
+
 from benchmarks.logging.logging import (
     LogEntry,
     LogParser,
@@ -235,4 +237,22 @@ def test_should_store_split_logs_as_jsonl_for_requested_types():
         {"name":"start","timestamp":"2021-01-01T00:00:00Z"}
         {"name":"start2","timestamp":"2021-01-01T00:00:00Z"}
     """)
+    )
+
+
+class AModel(BaseModel):
+    a: int
+
+
+class BModel(AModel):
+    b: int
+
+
+def test_should_log_attributes_for_superclasses_in_adapted_entries():
+    BModelLogEntry = LogEntry.adapt(BModel)
+    instance = BModel(a=1, b=2)
+
+    assert (
+        str(BModelLogEntry.adapt_instance(instance))
+        == '>>{"a":1,"b":2,"entry_type":"b_model_log_entry"}'
     )

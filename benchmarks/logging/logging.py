@@ -53,9 +53,11 @@ class LogEntry(SnakeCaseModel):
         def recover_instance(self):
             return model.model_validate(self.model_dump())
 
+        parents = [base for base in model.__bases__ if issubclass(base, BaseModel)]
+
         adapted = type(
             f"{model.__name__}LogEntry",
-            (LogEntry,),
+            tuple([LogEntry] + parents),
             {
                 "__annotations__": model.__annotations__,
                 "adapt_instance": classmethod(adapt_instance),
