@@ -13,6 +13,14 @@ def to_snake_case(name: str) -> str:
 
 
 class SnakeCaseModel(BaseModel):
+    model_config = {"alias_generator": lambda x: to_snake_case(x)}
+
+    @classmethod
+    def alias(cls):
+        return cls.model_config["alias_generator"](cls.__name__)
+
+
+class ConfigModel(BaseModel):
     model_config = {"alias_generator": lambda x: to_snake_case(drop_config_suffix(x))}
 
     @classmethod

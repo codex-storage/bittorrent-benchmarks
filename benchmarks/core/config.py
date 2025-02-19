@@ -8,12 +8,12 @@ from typing import Type, Dict, TextIO
 import yaml
 from typing_extensions import Generic, overload, TypeVar
 
-from benchmarks.core.pydantic import SnakeCaseModel
+from benchmarks.core.pydantic import ConfigModel
 
 T = TypeVar("T")
 
 
-class Builder(SnakeCaseModel, Generic[T]):
+class Builder(ConfigModel, Generic[T]):
     """:class:`Builder` is a configuration model that can build useful objects."""
 
     @abstractmethod

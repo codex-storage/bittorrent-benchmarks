@@ -1,7 +1,9 @@
 import pytest
 
+from benchmarks.core.experiments.dissemination_experiment.static import (
+    StaticDisseminationExperiment,
+)
 from benchmarks.core.experiments.experiments import ExperimentEnvironment
-from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.utils.units import megabytes
 
 from benchmarks.deluge.deluge_node import DelugeMeta

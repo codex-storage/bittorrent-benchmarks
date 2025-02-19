@@ -4,7 +4,9 @@ from io import StringIO
 from typing import Optional, List
 from unittest.mock import patch
 
-from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
+from benchmarks.core.experiments.dissemination_experiment.static import (
+    StaticDisseminationExperiment,
+)
 from benchmarks.core.network import Node, DownloadHandle
 from benchmarks.logging.logging import LogParser, RequestEvent, RequestEventType
 
@@ -149,7 +151,9 @@ def test_should_download_at_remaining_nodes():
 
 def test_should_log_requests_to_seeders_and_leechers(mock_logger):
     logger, output = mock_logger
-    with patch("benchmarks.core.experiments.static_experiment.logger", logger):
+    with patch(
+        "benchmarks.core.experiments.dissemination_experiment.static.logger", logger
+    ):
         network = mock_network(n=3)
         seeders = [1]
 

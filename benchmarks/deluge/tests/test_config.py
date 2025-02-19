@@ -4,7 +4,9 @@ from unittest.mock import patch
 
 import yaml
 
-from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
+from benchmarks.core.experiments.dissemination_experiment.static import (
+    StaticDisseminationExperiment,
+)
 from benchmarks.deluge.config import (
     DelugeNodeSetConfig,
     DelugeNodeConfig,

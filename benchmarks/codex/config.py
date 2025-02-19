@@ -9,13 +9,18 @@ from urllib3.util import parse_url
 from benchmarks.codex.agent.codex_agent_client import CodexAgentClient
 from benchmarks.codex.client.common import Cid
 from benchmarks.codex.codex_node import CodexMeta, CodexNode
+from benchmarks.core.experiments.dissemination_experiment.config import (
+    DisseminationExperimentConfig,
+)
+from benchmarks.core.experiments.dissemination_experiment.static import (
+    StaticDisseminationExperiment,
+)
 from benchmarks.core.experiments.experiments import (
     ExperimentBuilder,
     ExperimentEnvironment,
     ExperimentComponent,
 )
 from benchmarks.core.experiments.iterated_experiment import IteratedExperiment
-from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
 from benchmarks.core.pydantic import SnakeCaseModel, Host
 from benchmarks.core.utils.random import sample
 
@@ -60,31 +65,15 @@ CodexDisseminationExperiment = IteratedExperiment[
 ]
 
 
-class CodexExperimentConfig(ExperimentBuilder[CodexDisseminationExperiment]):
-    # Having this here makes it easier to analyse mixed logs later
-    experiment_type: str = "codex_static_dissemination"
-
-    experiment_set_id: str = Field(
-        description="Identifies the group of experiment repetitions", default="unnamed"
-    )
-    seeder_sets: int = Field(
-        gt=0, default=1, description="Number of distinct seeder sets to experiment with"
-    )
-    seeders: int = Field(gt=0, description="Number of seeders per seeder set")
-    file_size: int = Field(gt=0, description="File size, in bytes")
+class CodexExperimentConfig(
+    ExperimentBuilder[CodexDisseminationExperiment],
+    DisseminationExperimentConfig[CodexNodeConfig, CodexNodeSetConfig],
+):
     repetitions: int = Field(
         gt=0, description="How many experiment repetitions to run for each seeder set"
     )
 
-    logging_cooldown: int = Field(
-        ge=0,
-        default=0,
-        description="Time to wait after the last download completes before tearing down the experiment.",
-    )
-
     download_metric_unit_bytes: int = 1
-
-    nodes: List[CodexNodeConfig] | CodexNodeSetConfig
 
     def build(self) -> CodexDisseminationExperiment:
         node_specs = (

@@ -6,13 +6,19 @@ from pydantic import BaseModel, Field, model_validator, HttpUrl
 from torrentool.torrent import Torrent
 from urllib3.util import parse_url
 
+from benchmarks.core.experiments.dissemination_experiment.config import (
+    DisseminationExperimentConfig,
+)
+from benchmarks.core.experiments.dissemination_experiment.static import (
+    StaticDisseminationExperiment,
+)
 from benchmarks.core.experiments.experiments import (
     ExperimentEnvironment,
     BoundExperiment,
     ExperimentBuilder,
 )
 from benchmarks.core.experiments.iterated_experiment import IteratedExperiment
-from benchmarks.core.experiments.static_experiment import StaticDisseminationExperiment
+
 from benchmarks.core.pydantic import Host
 from benchmarks.core.utils.random import sample
 
@@ -61,29 +67,16 @@ DelugeDisseminationExperiment = IteratedExperiment[
 ]
 
 
-class DelugeExperimentConfig(ExperimentBuilder[DelugeDisseminationExperiment]):
-    # Having this here makes it easier to analyse mixed logs later
-    experiment_type: str = "deluge_static_dissemination"
-
-    experiment_set_id: str = Field(
-        description="Identifies the group of experiment repetitions", default="unnamed"
-    )
-    seeder_sets: int = Field(
-        gt=0, default=1, description="Number of distinct seeder sets to experiment with"
-    )
-    seeders: int = Field(gt=0, description="Number of seeders per seeder set")
-
+class DelugeExperimentConfig(
+    DisseminationExperimentConfig[DelugeNodeConfig, DelugeNodeSetConfig],
+    ExperimentBuilder[DelugeDisseminationExperiment],
+):
     repetitions: int = Field(
         gt=0, description="How many experiment repetitions to run for each seeder set"
     )
-    file_size: int = Field(gt=0, description="File size, in bytes")
 
     tracker_announce_url: HttpUrl = Field(
         description="URL to the tracker announce endpoint"
-    )
-
-    nodes: List[DelugeNodeConfig] | DelugeNodeSetConfig = Field(
-        description="Configuration for the nodes that make up the network"
     )
 
     logging_cooldown: int = Field(

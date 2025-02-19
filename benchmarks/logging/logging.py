@@ -10,7 +10,7 @@ from enum import Enum
 from json import JSONDecodeError
 from typing import Type, TextIO, Iterable, Callable, Dict, Tuple, cast, Optional
 
-from pydantic import ValidationError, computed_field, Field
+from pydantic import ValidationError, computed_field, Field, BaseModel
 
 from benchmarks.core.pydantic import SnakeCaseModel
 
@@ -43,11 +43,11 @@ class LogEntry(SnakeCaseModel):
         return self.alias()
 
     @classmethod
-    def adapt(cls, model: Type[SnakeCaseModel]) -> Type["AdaptedLogEntry"]:
+    def adapt(cls, model: Type[BaseModel]) -> Type["AdaptedLogEntry"]:
         """Adapts an existing Pydantic model to a LogEntry. This is useful for when you have a model
         that you want to log and later recover from logs using :class:`LogParser` or :class:`LogSplitter`."""
 
-        def adapt_instance(cls, data: SnakeCaseModel):
+        def adapt_instance(cls, data: BaseModel):
             return cls.model_validate(data.model_dump())
 
         def recover_instance(self):
@@ -72,11 +72,11 @@ class AdaptedLogEntry(LogEntry, ABC):
 
     @classmethod
     @abstractmethod
-    def adapt_instance(cls, data: SnakeCaseModel) -> "AdaptedLogEntry":
+    def adapt_instance(cls, data: BaseModel) -> "AdaptedLogEntry":
         pass
 
     @abstractmethod
-    def recover_instance(self) -> SnakeCaseModel:
+    def recover_instance(self) -> BaseModel:
         pass
 
 
@@ -85,9 +85,9 @@ class ConfigToLogAdapters:
     configuration classes (typically :class:`ExperimentBuilder` models) so they can be logged and later recovered."""
 
     def __init__(self) -> None:
-        self.adapters: Dict[Type[SnakeCaseModel], Type[AdaptedLogEntry]] = {}
+        self.adapters: Dict[Type[BaseModel], Type[AdaptedLogEntry]] = {}
 
-    def adapt(self, model: Type[SnakeCaseModel]) -> Type[AdaptedLogEntry]:
+    def adapt(self, model: Type[BaseModel]) -> Type[AdaptedLogEntry]:
         if model in self.adapters:
             return self.adapters[model]
 
@@ -95,13 +95,13 @@ class ConfigToLogAdapters:
         self.adapters[model] = adapted
         return adapted
 
-    def adapt_instance(self, instance: SnakeCaseModel) -> AdaptedLogEntry:
+    def adapt_instance(self, instance: BaseModel) -> AdaptedLogEntry:
         return self.adapt(instance.__class__).adapt_instance(instance)
 
     def adapted_types(self) -> Iterable[Type[AdaptedLogEntry]]:
         return self.adapters.values()
 
-    def __getitem__(self, model: Type[SnakeCaseModel]) -> Type[AdaptedLogEntry]:
+    def __getitem__(self, model: Type[BaseModel]) -> Type[AdaptedLogEntry]:
         return self.adapt(model)
 
 
