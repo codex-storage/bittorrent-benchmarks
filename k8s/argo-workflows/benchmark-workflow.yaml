@@ -26,10 +26,9 @@ spec:
       - name: maxExperimentDuration
         value: 144h
 
-      # Groups the expansion such that all experiments with a given networkSize run together, smallest
-      # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
-      - name: orderBy
-        value: '["networkSize", "seeders", "fileSize"]'
+      # Which tag to use for the node (Codex, Deluge, whatnot) images?
+      - name: nodeTag
+        value: "latest"
       # Set this to true to run workflows on Minikube.
       - name: minikubeEnv
         value: "false"
@@ -40,6 +39,11 @@ spec:
       # disable this when running local experiments.
       - name: parseLogs
         value: "true"
+      # Groups the expansion such that all experiments with a given networkSize run together, smallest
+      # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
+      - name: orderBy
+        value: '["networkSize", "seeders", "fileSize"]'
+
 
   templates:
     - name: benchmark-workflow
@@ -326,7 +330,8 @@ spec:
             --set experiment.networkSize={{inputs.parameters.networkSize}}\
             --set experiment.seeders={{inputs.parameters.seeders}}\
             --set experiment.seederSets={{inputs.parameters.seederSets}}\
-            --set deployment.minikubeEnv={{workflow.parameters.minikubeEnv}}
+            --set deployment.minikubeEnv={{workflow.parameters.minikubeEnv}}\
+            --set deployment.nodeTag={{workflow.parameters.nodeTag}}
 
     - name: wait-for-experiment
       inputs:
