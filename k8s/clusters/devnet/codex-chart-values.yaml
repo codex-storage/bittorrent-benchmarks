@@ -1,0 +1,30 @@
+experiment:
+  networkSize: 5
+  fileSize: "100MB"
+  seeders: 1
+  seederSets: 1
+  repetitions: 2
+
+  # Experiments are ran as part of groups which may entail several invocations for this Helm chart.
+  # We therefore identify both the experiment within a group, and the group itself.
+
+  # Identifies the experiment within the group. If left empty, defaults to the release name.
+  id: ""
+  # Identifies the experiment group. Needs to be defined by the user.
+  groupId: ""
+
+  testRunner: true
+
+deployment:
+  appName: ""
+
+  # If false, Codex nodes will not be allowed to run on the same node.
+  allowColocation: false
+  minikubeEnv: false
+
+  # Labels for setting deluge node affinity towards a node pool.
+  codexNodePool:
+    workload-type: "benchmarks"
+
+  runnerNodePool:
+    workload-type: "benchmarks"
