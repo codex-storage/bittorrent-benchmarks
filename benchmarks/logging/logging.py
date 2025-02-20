@@ -47,19 +47,19 @@ class LogEntry(SnakeCaseModel):
         """Adapts an existing Pydantic model to a LogEntry. This is useful for when you have a model
         that you want to log and later recover from logs using :class:`LogParser` or :class:`LogSplitter`."""
 
-        def adapt_instance(cls, data: BaseModel):
-            return cls.model_validate(data.model_dump())
+        def adapt_instance(klass, data: BaseModel):
+            return klass.model_validate(data.model_dump())
 
         def recover_instance(self):
             return model.model_validate(self.model_dump())
 
-        parents = [base for base in model.__bases__ if issubclass(base, BaseModel)]
-
         adapted = type(
             f"{model.__name__}LogEntry",
-            tuple([LogEntry] + parents),
+            (
+                LogEntry,
+                model,
+            ),
             {
-                "__annotations__": model.__annotations__,
                 "adapt_instance": classmethod(adapt_instance),
                 "recover_instance": recover_instance,
             },

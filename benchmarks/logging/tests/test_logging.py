@@ -247,6 +247,9 @@ class AModel(BaseModel):
 class BModel(AModel):
     b: int
 
+    def hello(self):
+        return f"world {self.a} {self.b}"
+
 
 def test_should_log_attributes_for_superclasses_in_adapted_entries():
     BModelLogEntry = LogEntry.adapt(BModel)
@@ -256,3 +259,10 @@ def test_should_log_attributes_for_superclasses_in_adapted_entries():
         str(BModelLogEntry.adapt_instance(instance))
         == '>>{"a":1,"b":2,"entry_type":"b_model_log_entry"}'
     )
+
+
+def test_should_preserve_methods_in_adapted_entries():
+    BModelLogEntry = LogEntry.adapt(BModel)
+    instance = BModel(a=1, b=2)
+
+    assert BModelLogEntry.adapt_instance(instance).hello() == "world 1 2"
