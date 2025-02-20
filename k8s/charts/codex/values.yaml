@@ -30,6 +30,11 @@ deployment:
   # Disables pulling of images and uses :minikube tag for the test runner, agents, and Codex.
   minikubeEnv: false
 
+  # Allows overriding the tags for non-minikube images. This is useful when you're trying to
+  # run the experiment in the cluster but off of a Codex or benchmark harness branch.
+  runnerTag: "latest"
+  nodeTag: "latest"
+
   # Labels for setting Deluge, tracker, and experiment runner node affinity towards pools.
   # Example:
   #   codexNodePool:

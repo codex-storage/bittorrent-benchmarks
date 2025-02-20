@@ -63,14 +63,14 @@ app.kubernetes.io/part-of: {{ include "experiment.groupId" . }}
 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
 {{- end }}
 
-{{/* Minikube env. */}}
+{{/* Image settings. */}}
 
 {{- define "benchmark.harness.image" -}}
-{{ .Values.deployment.minikubeEnv | ternary "bittorrent-benchmarks:minikube" "codexstorage/bittorrent-benchmarks:latest" }}
+{{ .Values.deployment.minikubeEnv | ternary "bittorrent-benchmarks:minikube" (printf "codexstorage/bittorrent-benchmarks:%s" .Values.deployment.runnerTag) }}
 {{- end -}}
 
 {{- define "codex.image" -}}
-{{ .Values.deployment.minikubeEnv | ternary "nim-codex:minikube" "codexstorage/nim-codex:latest" }}
+{{ .Values.deployment.minikubeEnv | ternary "nim-codex:minikube" (printf "codexstorage/nim-codex:%s" .Values.deployment.nodeTag) }}
 {{- end -}}
 
 {{- define "benchmark.harness.imagePullPolicy" -}}
