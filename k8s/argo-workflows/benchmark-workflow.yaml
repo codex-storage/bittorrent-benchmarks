@@ -7,10 +7,10 @@ spec:
   entrypoint: benchmark-workflow
   arguments:
     parameters:
-      # What are we benchmarking?
+      # What are we benchmarking (one of: codex, deluge)?
       - name: system
         value: "codex"
-      # How many times should we repeat for each parameter?
+      # How many times should we repeat experiment for each parameter set/random seeder set?
       - name: repetitions
         value: 5
       # How many random seeder sets should we have?
@@ -25,10 +25,15 @@ spec:
       # What's the maximum duration for this whole batch of experiments?
       - name: maxExperimentDuration
         value: 144h
-
-      # Which tag to use for the node (Codex, Deluge, whatnot) images?
+      # Which tag to use for the node (Codex, Deluge, whatnot) images? Useful if you want to run something
+      # off of a branch.
       - name: nodeTag
         value: "latest"
+      # How many experiments should we run at a time? In clusters with lots of resources, more parallelism
+      # means experiments can run a lot faster.
+      - name: experimentParallelism
+        value: 1
+
       # Set this to true to run workflows on Minikube.
       - name: minikubeEnv
         value: "false"
@@ -47,7 +52,7 @@ spec:
 
   templates:
     - name: benchmark-workflow
-      parallelism: 1
+      parallelism: {{workflow.parameters.experimentParallelism}}
       dag:
         tasks:
         - name: define-image-settings
