@@ -48,7 +48,9 @@ spec:
       # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
       - name: orderBy
         value: '["networkSize", "seeders", "fileSize"]'
-
+      # The region in which to deploy machines. Leave empty to deploy to default.
+      - name: region
+        value: ""
 
   templates:
     - name: benchmark-workflow
@@ -336,7 +338,8 @@ spec:
             --set experiment.seeders={{inputs.parameters.seeders}}\
             --set experiment.seederSets={{inputs.parameters.seederSets}}\
             --set deployment.minikubeEnv={{workflow.parameters.minikubeEnv}}\
-            --set deployment.nodeTag={{workflow.parameters.nodeTag}}
+            --set deployment.nodeTag={{workflow.parameters.nodeTag}}\
+            --set deployment.region={{workflow.parameters.region}}
 
     - name: wait-for-experiment
       inputs:

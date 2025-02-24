@@ -34,3 +34,6 @@ deployment:
   delugeNodePool: {}
   trackerNodePool: {}
   runnerNodePool: {}
+
+  # Region in which to deploy machines. Leave empty to deploy to default.
+  region: ""

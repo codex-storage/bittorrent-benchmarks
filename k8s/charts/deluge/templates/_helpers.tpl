@@ -43,6 +43,9 @@ app.kubernetes.io/name: {{ include "app.name" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Values.deployment.region }}
+topology.kubernetes.io/region: {{ .Values.deployment.region }}
+{{- end }}
 {{- end }}
 
 {{- define "deluge-benchmarks.selectorLabels" -}}
