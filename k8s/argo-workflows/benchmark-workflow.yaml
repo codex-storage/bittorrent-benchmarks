@@ -7,10 +7,16 @@ spec:
   entrypoint: benchmark-workflow
   arguments:
     parameters:
+      ######################################## Global Settings ##############################################
       # What are we benchmarking (one of: codex, deluge)?
       - name: system
         value: "codex"
-      # How many times should we repeat experiment for each parameter set/random seeder set?
+
+      ################################ Experiment Parameter Matrix ##########################################
+      # Parameters in the experiment parameter matrix will be expanded, and can be set
+      # to lists or constrained lists of arguments.
+
+      # How many times should we repeat the experiment for each parameter set/random seeder set?
       - name: repetitions
         value: 5
       # How many random seeder sets should we have?
@@ -29,10 +35,46 @@ spec:
       # off of a branch.
       - name: nodeTag
         value: "latest"
+
+      ###################################### Experiment Retries #############################################
+      # Allow the workflow to replay failed experiments from a previous run instead of running a new set.
+
+      # If set to an existing group ID (e.g. "g1740079931"), will replay the failed experiments
+      # in this group, ignoring all other parameters in the parameter matrix. Requires the Argo
+      # workflow service name to be known.
+      - name: retryGroup
+        value: "g1740320977"
+
+      # You need to set the name for the argo workflows service in the k8s cluster manually, and this might differ
+      # between our cluster and minikube. This is a pain point, and should fade away as we move towards
+      # Hera (https://github.com/argoproj-labs/hera). I could set this similarly to what we do on define-image-settings,
+      # for the minikube env, but not worth it.
+      - name: argoService
+        value: "argo-workflows-server" # -> cluster
+        # value: "argo-server" # -> minikube
+
+      ################################## Performance and Resource Usage #####################################
+      # Affects cluster resource usage (how many nodes can we use?) and overall performance.
+
       # How many experiments should we run at a time? In clusters with lots of resources, more parallelism
       # means experiments can run a lot faster.
-      - name: experimentParallelism
-        value: 1
+#      - name: experimentParallelism
+#        value: 1
+      # XXX Unfortunately Argo won't expand those properly for sub-workflows, so you have to set it manually all over.
+      #   Another pain point that should disappear as we move to Hera.
+
+      # Groups the expansion such that all experiments with a given networkSize run together, smallest
+      # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
+      # If you plan to run experiments in parallel, optimizing for smallest accrued VM usage might be
+      # more important.
+      - name: orderBy
+        value: '["fileSize", "seeders", "networkSize"]'
+      # The region in which to deploy machines. Leave empty to deploy to default.
+      - name: region
+        value: ""
+
+      ###################################### Dev. and Debugging #############################################
+      # Settings for running experiments locally or debugging failures.
 
       # Set this to true to run workflows on Minikube.
       - name: minikubeEnv
@@ -44,24 +86,18 @@ spec:
       # disable this when running local experiments.
       - name: parseLogs
         value: "true"
-      # Groups the expansion such that all experiments with a given networkSize run together, smallest
-      # to largest. This can save significant amounts of time when running on a cluster with autoscaling.
-      - name: orderBy
-        value: '["networkSize", "seeders", "fileSize"]'
-      # The region in which to deploy machines. Leave empty to deploy to default.
-      - name: region
-        value: ""
+
+      #######################################################################################################
 
   templates:
     - name: benchmark-workflow
-      parallelism: {{workflow.parameters.experimentParallelism}}
       dag:
         tasks:
         - name: define-image-settings
           template: define-image-settings
 
-        - name: generate-group-id
-          template: generate-group-id
+        - name: new-benchmark-run
+          template: new-benchmark-run
           arguments:
             parameters:
               - name: runnerImage
@@ -69,15 +105,44 @@ spec:
               - name: imagePullPolicy
                 value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
           depends: "define-image-settings.Succeeded"
+          when: '{{workflow.parameters.retryGroup}} == ""'
 
-        - name: expand-parameter-matrix
-          template: expand-parameter-matrix
+        - name: retry-benchmark-run
+          template: retry-benchmark-run
           arguments:
             parameters:
               - name: runnerImage
                 value: "{{tasks.define-image-settings.outputs.parameters.image}}"
               - name: imagePullPolicy
                 value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
+          depends: "define-image-settings.Succeeded"
+          when: '{{workflow.parameters.retryGroup}} != ""'
+
+    - name: new-benchmark-run
+      parallelism: 2
+      inputs:
+        parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
+      dag:
+        tasks:
+        - name: generate-group-id
+          template: generate-group-id
+          arguments:
+            parameters:
+              - name: runnerImage
+                value: "{{inputs.parameters.runnerImage}}"
+              - name: imagePullPolicy
+                value: "{{inputs.parameters.imagePullPolicy}}"
+
+        - name: expand-parameter-matrix
+          template: expand-parameter-matrix
+          arguments:
+            parameters:
+              - name: runnerImage
+                value: "{{inputs.parameters.runnerImage}}"
+              - name: imagePullPolicy
+                value: "{{inputs.parameters.imagePullPolicy}}"
           depends: "generate-group-id.Succeeded"
 
         - name: benchmark-experiment
@@ -99,9 +164,9 @@ spec:
               - name: repetitions
                 value: "{{item.repetitions}}"
               - name: runnerImage
-                value: "{{tasks.define-image-settings.outputs.parameters.image}}"
+                value: "{{inputs.parameters.runnerImage}}"
               - name: imagePullPolicy
-                value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
+                value: "{{inputs.parameters.imagePullPolicy}}"
 
           withParam: "{{tasks.expand-parameter-matrix.outputs.result}}"
           depends: "expand-parameter-matrix.Succeeded"
@@ -112,6 +177,64 @@ spec:
             parameters:
               - name: groupId
                 value: "{{tasks.generate-group-id.outputs.result}}"
+          depends: "benchmark-experiment.AnySucceeded"
+          when: '{{workflow.parameters.parseLogs}} == true'
+
+    - name: retry-benchmark-run
+      parallelism: 2
+      inputs:
+        parameters:
+          - name: runnerImage
+          - name: imagePullPolicy
+      dag:
+        tasks:
+        - name: collect-failed-parameters
+          template: collect-failed-parameters
+          arguments:
+            parameters:
+              - name: groupId
+                value: "{{workflow.parameters.retryGroup}}"
+
+        - name: increment-retry-counter
+          template: increment-retry-counter
+          arguments:
+            parameters:
+              - name: groupId
+                value: "{{workflow.parameters.retryGroup}}"
+          depends: "collect-failed-parameters.Succeeded"
+
+        - name: benchmark-experiment
+          template: wrapped-benchmark-experiment
+          arguments:
+            parameters:
+              - name: groupId
+                value: "{{tasks.increment-retry-counter.outputs.result}}"
+              - name: runId
+                value: "{{item.runId}}"
+              - name: fileSize
+                value: "{{item.fileSize}}"
+              - name: seederSets
+                value: "{{item.seederSets}}"
+              - name: networkSize
+                value: "{{item.networkSize}}"
+              - name: seeders
+                value: "{{item.seeders}}"
+              - name: repetitions
+                value: "{{item.repetitions}}"
+              - name: runnerImage
+                value: "{{inputs.parameters.runnerImage}}"
+              - name: imagePullPolicy
+                value: "{{inputs.parameters.imagePullPolicy}}"
+
+          withParam: "{{tasks.collect-failed-parameters.outputs.result}}"
+          depends: "increment-retry-counter.Succeeded"
+
+        - name: parse-logs
+          template: parse-logs
+          arguments:
+            parameters:
+              - name: groupId
+                value: "{{tasks.increment-retry-counter.outputs.result}}"
           depends: "benchmark-experiment.AnySucceeded"
           when: '{{workflow.parameters.parseLogs}} == true'
 
@@ -172,6 +295,29 @@ spec:
         command: [ "python", "-m", "parameter_expander" ]
         args:
           - "{{ workflow.parameters.json }}"
+
+    - name: collect-failed-parameters
+      inputs:
+          parameters:
+          - name: groupId
+      script:
+          image: codexstorage/bittorrent-benchmarks:latest
+          command: ["python", "-m", "benchmarks.k8s.collect_failed_inputs"]
+          args:
+            - "{{inputs.parameters.groupId}}"
+            - "wrapped-benchmark-experiment"
+            - "{{workflow.parameters.argoService}}.argo.svc.cluster.local"
+            - "2746"
+
+    - name: increment-retry-counter
+      inputs:
+          parameters:
+          - name: groupId
+      script:
+          image: codexstorage/bittorrent-benchmarks:latest
+          command: ["python", "-m", "benchmarks.k8s.increment_retry_counter"]
+          args:
+            - "{{inputs.parameters.groupId}}"
 
     - name: generate-group-id
       inputs:
