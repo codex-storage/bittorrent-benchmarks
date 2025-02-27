@@ -10,7 +10,7 @@ spec:
       ######################################## Global Settings ##############################################
       # What are we benchmarking (one of: codex, deluge)?
       - name: system
-        value: "codex"
+        value: "deluge"
 
       ################################ Experiment Parameter Matrix ##########################################
       # Parameters in the experiment parameter matrix will be expanded, and can be set
@@ -43,7 +43,7 @@ spec:
       # in this group, ignoring all other parameters in the parameter matrix. Requires the Argo
       # workflow service name to be known.
       - name: retryGroup
-        value: "g1740320977"
+        value: ""
 
       # You need to set the name for the argo workflows service in the k8s cluster manually, and this might differ
       # between our cluster and minikube. This is a pain point, and should fade away as we move towards
@@ -71,7 +71,7 @@ spec:
         value: '["fileSize", "seeders", "networkSize"]'
       # The region in which to deploy machines. Leave empty to deploy to default.
       - name: region
-        value: ""
+        value: "hel1"
 
       ###################################### Dev. and Debugging #############################################
       # Settings for running experiments locally or debugging failures.
@@ -105,7 +105,7 @@ spec:
               - name: imagePullPolicy
                 value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
           depends: "define-image-settings.Succeeded"
-          when: '{{workflow.parameters.retryGroup}} == ""'
+          when: '"{{workflow.parameters.retryGroup}}" == ""'
 
         - name: retry-benchmark-run
           template: retry-benchmark-run
@@ -116,10 +116,10 @@ spec:
               - name: imagePullPolicy
                 value: "{{tasks.define-image-settings.outputs.parameters.imagePullPolicy}}"
           depends: "define-image-settings.Succeeded"
-          when: '{{workflow.parameters.retryGroup}} != ""'
+          when: '"{{workflow.parameters.retryGroup}}" != ""'
 
     - name: new-benchmark-run
-      parallelism: 2
+      parallelism: 1
       inputs:
         parameters:
           - name: runnerImage
