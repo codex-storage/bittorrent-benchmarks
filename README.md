@@ -1,5 +1,8 @@
 # bittorrent-benchmarks
 
+TL;DR: the main outcome of this repository, so far, has been this analysis on the performance 
+of Codex versus the [Deluge](https://deluge-torrent.org/) bittorrent client: https://rpubs.com/giuliano_mega/1266876
+
 Scaffolding and experiments for benchmarking Codex against the Deluge bittorrent client.
 This is general enough that it could be extended to benchmark Codex against any content
 distribution network, including IPFS.
