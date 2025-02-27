@@ -1,5 +1,5 @@
 ---
-title: "Analysis for Deluge Benchmarks - Static Network Dissemination Experiment"
+title: "Analysis for Codex vs. Deluge Benchmarks - Static Network Dissemination Experiment"
 output:
   bookdown::html_notebook2:
     number_sections: TRUE
@@ -7,33 +7,45 @@ output:
 date: "2025-01-15"
 ---
 
-This document contains the analysis for the Deluge benchmarks.
+# Introduction
 
-```{r message=FALSE}
+This document contains the analysis for the Deluge vs. Codex benchmarks. All data is obtained from our [benchmark suite](https://github.com/codex-storage/bittorrent-benchmarks/).
+Each node runs in its own virtual machine, a [CPX31](https://www.hetzner.com/cloud) standard Hetzner virtual machine with $4$ shared vCPUs and $8\text{GB}$ of RAM. [iperf3](https://iperf.fr/) measurements conducted across nodes puts inter-node networking bandwidth at about $4.3\text{Gbps}$.
+
+The benchmark consists in running a series of _static dissemination experiments_, where a file of size $b$ is disseminated across a swarm (set of nodes) of size $n$. Each swarm is split into a seeder set of size $s$ and a leecher (or downloader) set of size $l = n - s$. Seeders have the complete file at the start of the experiment, whereas leechers have nothing. The experiment consists in starting the leechers and then measuring the time it takes for each to download the file.
+
+Leechers are started as closely as possible to each other so that they start downloading the file roughly at the same time. This stresses the network and, under these conditions,
+ should provide us with a reasonable idea of what the lower bound on performance should be.
+
+For a given network configuration $(n, s, l = n - s)$, we define it's seeder ratio as $r = s / n$. A higher seeder ratio should lead to faster dissemination, but if the swarms are homogeneous and scalable, the impact should not be large. We also expect close-to-constant performance for a given seeder ratio after for large enough swarms. Deviations from such behavior are likely issues.
+
+We are then interested in asserting how system performance degrades under increasing file or swarm sizes. We expect larger files to take roughly linearly longer to download. We expect system performance to increase with swarm size up to a maximum. Deviations from this behavior likely reflect issues with the protocol.
+
+Each experiment is ran $10$ times. We rotate seeders and leechers at random at every $5$ repetitions (so twice in total). This should allow us to account for performance differences that might arise from lack of overlay homogeneity or other factors.
+
+```{r message=FALSE, echo = FALSE}
 library(tidyverse)
+library(bit64)
 
 devtools::load_all()
 ```
 
-# Parse/Load Data
-
-This is data that's been pre-parsed from an experiment [log source](https://github.com/codex-storage/bittorrent-benchmarks/blob/1ee8ea8a35a2c0fccea6e7c955183c4ed03eebb3/benchmarks/logging/sources.py#L27).
-
-```{r}
-experiments <- read_all_experiments('./data/g1739826980')
+```{r message = FALSE, include = !knitr::is_html_output()}
+experiments <- read_all_experiments('./data/devnet/g1740079931/', prefix='codex.') |>
+  merge_experiments(read_all_experiments('./data/devnet/g1740498004/', prefix='codex.r1.')) |>
+  merge_experiments(read_all_experiments('./data/devnet/g1740320977/', prefix='deluge.')) |>
+  merge_experiments(read_all_experiments('./data/devnet/g1740585825/', prefix='deluge.r1.')) |>
+  merge_experiments(read_all_experiments('./data/devnet/g1740593730/', prefix='deluge.r2'))
 ```
 
-```{r}
+```{r include = !knitr::is_html_output()}
 COUNT_DISTINCT = list(
-  'codex_static_dissemination' = FALSE,
-  'deluge_static_dissemination' = TRUE
+  'codex_experiment_config_log_entry' = FALSE,
+  'deluge_experiment_config_log_entry' = TRUE
 )
 ```
 
-
-Computes the benchmark statistics from raw download logs.
-
-```{r}
+```{r message = FALSE, include = !knitr::is_html_output()}
 benchmarks <- lapply(experiments, function(experiment) {
   print(glue::glue('Process {experiment$experiment_id}'))
   download_time_stats <- tryCatch({
@@ -60,46 +72,136 @@ benchmarks <- lapply(experiments, function(experiment) {
   bind_rows() |>
   arrange(file_size, network_size, seeders, leechers) |>
   mutate(
+    file_size_bytes = file_size,
     # This factor conversion is horrible but needed so things are sorted properly in the plot.
     file_size = factor(rlang::parse_bytes(as.character(file_size)),
                         levels = rlang::parse_bytes(as.character(
                           unique(file_size[order(file_size, decreasing = TRUE)])))),
-    seeder_ratio = seeders/network_size
+    seeder_ratio = seeders / network_size,
+    median_speed = file_size_bytes / median,
+    p25_speed = file_size_bytes / p25,
+    p75_speed = file_size_bytes / p75
   ) |>
-  relocate(file_size, network_size, seeders, leechers)
+  relocate(file_size, network_size, seeders, leechers, file_size_bytes)
 ```
 
 # Results
 
-First, we present the raw data in tabular format:
-
-```{r}
-benchmarks
+```{r echo = FALSE}
+benchmarks <- benchmarks |>
+  group_by(experiment_type, network_size, seeders, leechers, file_size) |>
+  slice_min(missing, n = 1, with_ties = FALSE) |>
+  ungroup()
 ```
 
-We then plot the median by network size, and facet it by seeder ratio and file size to see if looks sane:
+## Benchmark Data - Raw
 
-```{r fig.width = 10, warning=FALSE, message=FALSE}
-ggplot(benchmarks, aes(col = experiment_type, fill = experiment_type)) +
-  geom_ribbon(aes(ymin = p25, ymax = p75, x = network_size),
-              fill = scales::alpha('blue', 0.5), col = 'lightgray') +
+Raw data in tabular format:
+
+```{r echo = FALSE}
+DT::datatable(
+  benchmarks |> arrange(network_size, seeders),
+  extensions = 'Buttons',
+  options = list(
+    dom = 'tBplr',
+    searching = FALSE,
+    buttons = c('copy', 'csv', 'excel'),
+    scrollX = TRUE
+  )
+)
+```
+
+```{r echo = FALSE}
+relative_performance <- benchmarks |>
+  filter(experiment_type == 'deluge_experiment_config_log_entry') |>
+  transmute(
+    file_size, network_size, seeders, leechers, deluge_median = median,
+  ) |>
+  inner_join(
+    benchmarks |> 
+      filter(experiment_type == 'codex_experiment_config_log_entry') |>
+      select(
+        file_size, network_size, seeders, leechers, codex_median = median
+      ),
+    by = c('file_size', 'network_size', 'seeders', 'leechers')
+  ) |>
+  mutate(
+    performance = codex_median / deluge_median,
+    seeder_ratio = seeders / network_size
+  )
+```
+
+## Median Download Speed
+
+```{r fig.cap='Median download speed for Deluge and Codex', fig.width = 11, message = FALSE, echo = FALSE}
+ggplot(benchmarks, aes(col = experiment_type, fill = experiment_type, group = experiment_type)) +
+  geom_ribbon(aes(ymin = p25_speed, ymax = p75_speed, x = network_size, fill = experiment_type, alpha = 0.5), col = 'lightgray') +
+  geom_point(aes(x = network_size, y = p25_speed), col = 'darkgray', size=10.0, shape='-') +
+  geom_point(aes(x = network_size, y = p75_speed), col = 'darkgray', size=10.0, shape='-') +
+  geom_line(aes(x = network_size, y = median_speed)) +
+  geom_point(aes(x = network_size, y = median_speed)) +
+  ylab('median download speed (bytes/second)') +
+  xlab('network size') +
+  theme_minimal(base_size=15) +
+  scale_y_continuous(labels = function(x) paste0(scales::label_bytes()(x), '/s')) +
+  facet_grid(
+    file_size ~ seeder_ratio,
+    labeller = labeller(
+      seeder_ratio = as_labeller(function(x) {
+        paste0("seeder ratio: ", scales::percent(as.numeric(x)))
+      }))
+  ) +
+  scale_color_discrete(name = '', labels = c('Codex', 'Deluge')) +
+  guides(fill = 'none', alpha = 'none')
+```
+
+## Median Download Time
+
+
+```{r fig.cap='Median time to download a whole file for Deluge and Codex', fig.width = 11, message = FALSE, echo = FALSE}
+ggplot(benchmarks, aes(col = experiment_type, fill = experiment_type, group = experiment_type)) +
+  geom_ribbon(aes(ymin = p25, ymax = p75, x = network_size, fill = experiment_type, alpha = 0.5), col = 'lightgray') +
   geom_point(aes(x = network_size, y = p25), col = 'darkgray', size=10.0, shape='-') +
   geom_point(aes(x = network_size, y = p75), col = 'darkgray', size=10.0, shape='-') +
   geom_line(aes(x = network_size, y = median)) +
   geom_point(aes(x = network_size, y = median)) +
-  ylab('median download time (seconds)') +
+  ylab('median download time') +
   xlab('network size') +
+  theme_minimal(base_size = 15) +
+  scale_y_continuous(labels = scales::label_timespan()) +
+  facet_grid(
+    scales = 'free_y',
+    file_size ~ seeder_ratio,
+    labeller = labeller(
+      seeder_ratio = as_labeller(function(x) {
+        paste0("seeder ratio: ", scales::percent(as.numeric(x)))
+      }))
+  ) +
+  scale_color_discrete(name = '', labels = c('Codex', 'Deluge')) +
+  guides(fill = 'none', alpha = 'none')
+```
+
+## Median Download Time Ratio
+
+Let $t_d$ and $t_c$ be the median times that Deluge and Codex, respectively, take to download some file of a given size. The median download time ratio is defined as $m = t_c / t_d$.
+When $m < 1$, Codex is faster than Deluge. It is otherwise $m$ times slower to download the same file.
+
+```{r fig.cap='Median downlaod time ratio for Codex and Deluge', fig.width = 11, message = FALSE, echo = FALSE}
+ggplot(relative_performance) +
+  geom_line(aes(x = network_size, y = performance, col = file_size), lwd=1) +
+  geom_hline(yintercept = 1, linetype = 'dashed', col = 'darkgray') +
+  geom_point(aes(x = network_size, y = performance, col = file_size)) +
+  ylab('median Codex/Deluge performance ratio') +
+  annotate('text', label = 'faster', x = 29, y = 0, col = 'darkgreen') +
+  annotate('text', label = 'slower', x = 28.5, y = 2, col = 'darkred') +
   theme_minimal(base_size=15) +
+  scale_color_discrete(name = 'file size') +
   facet_grid(
     file_size ~ seeder_ratio,
-    scales = 'free_y',
     labeller = labeller(
       file_size = as_labeller(function(x) x),
       seeder_ratio = as_labeller(function(x) {
         paste0("seeder ratio: ", scales::percent(as.numeric(x)))
       }))
-  ) +
-  scale_color_discrete(name = 'experiment type') +
-  guides(fill = 'none') +
-  ylim(c(0,NA))
+  )
 ```

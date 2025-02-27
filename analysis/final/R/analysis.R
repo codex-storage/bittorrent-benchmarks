@@ -1,4 +1,4 @@
-is_completed <- function(completion) 1.0 - completion > -1e-7
+is_completed <- function(completion) abs(1.0 - completion) < 1e-7
 
 #' Extracts repetition id and seed set id from the dataset name,
 #' which should be in the format `dataset-<seed_set>-<repetition>`.
@@ -35,7 +35,7 @@ compute_progress <- function(download_metric, meta, count_distinct) {
       piece_count = if (count_distinct) seq_along(timestamp) else piece
     ) |>
     ungroup() |>
-    mutate(completed = (piece_count * meta$download_metric_unit_bytes) / meta$file_size)
+    mutate(completed = (as.integer64(piece_count) * meta$download_metric_unit_bytes) / meta$file_size)
 }
 
 process_incomplete_downloads <- function(download_metric, discard_incomplete) {
@@ -74,7 +74,7 @@ compute_download_times <- function(meta, request_event, download_metric, group_i
 
   download_start <- request_event |>
     select(-request_id) |>
-    filter(name == 'leech', type == 'RequestEventType.start') |>
+    filter(name == 'leech', type == 'EventBoundary.start') |>
     mutate(
       # We didn't log those on the runner side so I have to reconstruct them.
       run = rep(rep(
