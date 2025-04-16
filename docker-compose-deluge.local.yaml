@@ -23,7 +23,7 @@ services:
       interval: 1s
 
   deluge-1:
-    image: codexstorage/deluge
+    image: ${COMPOSE_DELUGE_IMAGE:-codexstorage/deluge}
     container_name: deluge-1
     environment:
       - DELUGE_RPC_PORT=6890
@@ -52,7 +52,7 @@ services:
       - "9001:9001"
 
   deluge-2:
-    image: codexstorage/deluge
+    image: ${COMPOSE_DELUGE_IMAGE:-codexstorage/deluge}
     container_name: deluge-2
     environment:
       - DELUGE_RPC_PORT=6893
@@ -81,7 +81,7 @@ services:
       - "9002:9002"
 
   deluge-3:
-    image: codexstorage/deluge
+    image: ${COMPOSE_DELUGE_IMAGE:-codexstorage/deluge}
     container_name: deluge-3
     environment:
       - DELUGE_RPC_PORT=6896
@@ -110,13 +110,13 @@ services:
       - "9003:9003"
 
   tracker:
-    image: codexstorage/bittorrent-tracker
+    image: ${COMPOSE_TRACKER_IMAGE:-codexstorage/bittorrent-tracker}
     container_name: tracker
     ports:
       - "8000:8000"
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    image: ${COMPOSE_ES_IMAGE:-docker.elastic.co/elasticsearch/elasticsearch:8.17.1}
     container_name: elasticsearch
     command: ["elasticsearch", "-Elogger.level=ERROR"]
     environment:
