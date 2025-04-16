@@ -1,0 +1,55 @@
+# Ad hoc deployment for measuring network performance semi-manually. You'll have to log
+# into the iperf3-client pod, fire the test, and look at the results.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: iperf3-server
+  namespace: codex-benchmarks
+  labels:
+    app: iperf-server
+spec:
+  nodeSelector:
+    workload-type: "benchmarks"
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - iperf-client
+          topologyKey: "kubernetes.io/hostname"
+  containers:
+  - name: iperf3
+    image: networkstatic/iperf3
+    command: ["iperf3", "-s"]
+    ports:
+    - containerPort: 5201
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: iperf3-client
+  namespace: codex-benchmarks
+  labels:
+    app: iperf-client
+spec:
+  nodeSelector:
+    workload-type: "benchmarks"
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - iperf-server
+          topologyKey: "kubernetes.io/hostname"
+  containers:
+  - name: iperf3
+    image: networkstatic/iperf3
+    command: ["sleep", "50000"]
+  restartPolicy: Never

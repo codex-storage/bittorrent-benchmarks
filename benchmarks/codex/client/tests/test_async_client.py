@@ -16,7 +16,9 @@ async def test_should_upload_file(codex_node_1_url: str):
     data = BytesIO()
     random_data(megabytes(1), data)
 
-    cid = client.upload("test.txt", "application/octet-stream", data)
+    cid = client.upload(
+        "test.txt", "application/octet-stream", BytesIO(data.getvalue())
+    )
     assert cid is not None
 
 
@@ -25,14 +27,15 @@ async def test_should_upload_file(codex_node_1_url: str):
 async def test_should_download_file(codex_node_1_url: str):
     client = AsyncCodexClientImpl(parse_url(codex_node_1_url))
 
-    buff = BytesIO()
-    random_data(megabytes(1), buff)
-    data = buff.getvalue()
+    data = BytesIO()
+    random_data(megabytes(1), data)
 
-    cid = await client.upload("test.txt", "application/octet-stream", BytesIO(data))
+    cid = await client.upload(
+        "test.txt", "application/octet-stream", BytesIO(data.getvalue())
+    )
     assert cid is not None
 
     async with client.download(cid) as content:
         downloaded = await content.readexactly(megabytes(1))
 
-    assert downloaded == data
+    assert downloaded == data.getvalue()
