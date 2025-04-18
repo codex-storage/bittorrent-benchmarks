@@ -1,16 +1,25 @@
 """Async Client implementation for the base Codex API."""
 
 from abc import ABC, abstractmethod
-
-from contextlib import asynccontextmanager
-from typing import IO, AsyncIterator, AsyncGenerator, Optional
+from typing import IO, Optional
 
 import aiohttp
 from aiohttp import ClientTimeout
+from pydantic import BaseModel
 from urllib3.util import Url
 
 from benchmarks.codex.client.common import Manifest, Cid
-from benchmarks.core.utils.streams import BaseStreamReader
+
+
+class DownloadStatus(BaseModel):
+    downloaded: int
+    total: int
+
+    def as_percent(self) -> float:
+        return (self.downloaded * 100) / self.total
+
+    def is_complete(self) -> bool:
+        return self.downloaded == self.total
 
 
 class AsyncCodexClient(ABC):
@@ -28,11 +37,14 @@ class AsyncCodexClient(ABC):
     async def manifest(self, cid: Cid) -> Manifest:
         pass
 
-    @asynccontextmanager
     @abstractmethod
-    def download(
-        self, cid: Cid, timeout: Optional[ClientTimeout] = None
-    ) -> AsyncGenerator[BaseStreamReader, None]:
+    async def download(
+        self, manifest: Manifest, timeout: Optional[ClientTimeout] = None
+    ) -> Cid:
+        pass
+
+    @abstractmethod
+    async def download_status(self, dataset: Cid) -> DownloadStatus:
         pass
 
 
@@ -77,16 +89,44 @@ class AsyncCodexClientImpl(AsyncCodexClient):
 
         return Manifest.from_codex_api_response(response_contents)
 
-    @asynccontextmanager
     async def download(
-        self, cid: Cid, timeout: Optional[ClientTimeout] = None
-    ) -> AsyncIterator[BaseStreamReader]:
+        self, manifest: Manifest, timeout: Optional[ClientTimeout] = None
+    ) -> Cid:
         async with aiohttp.ClientSession(timeout=ClientTimeout()) as session:
-            response = await session.get(
-                self.codex_api_url._replace(path=f"/api/codex/v1/data/{cid}").url,
-                timeout=timeout,
+            response = await session.post(
+                self.codex_api_url._replace(path="/api/codex/v1/download").url,
+                json={
+                    "cid": manifest.cid,
+                    "manifest": manifest.model_dump(exclude={"cid"}, mode="json"),
+                },
             )
 
             response.raise_for_status()
+            response_contents = await response.json()
 
-            yield response.content
+            return response_contents["downloadId"]
+
+    async def download_status(self, dataset: Cid) -> DownloadStatus:
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(
+                self.codex_api_url._replace(
+                    path=f"/api/codex/v1/download/{dataset}"
+                ).url,
+            )
+
+            response.raise_for_status()
+            response_contents = await response.json()
+
+        return DownloadStatus(
+            downloaded=response_contents["downloaded"], total=response_contents["total"]
+        )
+
+    async def leave_swarm(self, dataset: Cid) -> None:
+        async with aiohttp.ClientSession() as session:
+            response = await session.delete(
+                self.codex_api_url._replace(
+                    path=f"/api/codex/v1/download/{dataset}"
+                ).url,
+            )
+
+            response.raise_for_status()

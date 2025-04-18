@@ -25,7 +25,7 @@ services:
     image: ${COMPOSE_CODEX_IMAGE:-codexstorage/nim-codex:latest}
     container_name: codex-1
     environment:
-      - CODEX_LOG_LEVEL=DEBUG
+      - CODEX_LOG_LEVEL=DEBUG;trace:swarm,blockexcnetworkpeer
       - CODEX_DATA_DIR=/var/lib/codex
       - CODEX_DISC_PORT=6890
       - CODEX_API_BINDADDR=0.0.0.0
@@ -52,7 +52,7 @@ services:
     image: ${COMPOSE_CODEX_IMAGE:-codexstorage/nim-codex:latest}
     container_name: codex-2
     environment:
-      - CODEX_LOG_LEVEL=DEBUG
+      - CODEX_LOG_LEVEL=DEBUG;trace:swarm,blockexcnetworkpeer
       - CODEX_DATA_DIR=/var/lib/codex
       - CODEX_DISC_PORT=6892
       - CODEX_API_BINDADDR=0.0.0.0
@@ -80,7 +80,7 @@ services:
     image: ${COMPOSE_CODEX_IMAGE:-codexstorage/nim-codex:latest}
     container_name: codex-3
     environment:
-      - CODEX_LOG_LEVEL=DEBUG
+      - CODEX_LOG_LEVEL=DEBUG;trace:swarm,blockexcnetworkpeer
       - CODEX_DATA_DIR=/var/lib/codex
       - CODEX_DISC_PORT=6894
       - CODEX_API_BINDADDR=0.0.0.0

@@ -6,8 +6,8 @@ import requests
 from requests.exceptions import ConnectionError
 from urllib3.util import Url, parse_url
 
-from benchmarks.codex.agent.agent import DownloadStatus
-from benchmarks.codex.client.common import Cid
+from benchmarks.codex.client.async_client import DownloadStatus
+from benchmarks.codex.client.common import Manifest
 from benchmarks.core.experiments.experiments import ExperimentComponent
 
 
@@ -22,7 +22,7 @@ class CodexAgentClient(ExperimentComponent):
         except (ConnectionError, socket.gaierror):
             return False
 
-    def generate(self, size: int, seed: int, name: str) -> Cid:
+    def generate(self, size: int, seed: int, name: str) -> Manifest:
         response = requests.post(
             url=self.url._replace(path="/api/v1/codex/dataset").url,
             params={
@@ -34,14 +34,12 @@ class CodexAgentClient(ExperimentComponent):
 
         response.raise_for_status()
 
-        return response.text
+        return Manifest.model_validate(response.json())
 
-    def download(self, cid: str) -> Url:
+    def download(self, manifest: Manifest) -> Url:
         response = requests.post(
             url=self.url._replace(path="/api/v1/codex/download").url,
-            params={
-                "cid": cid,
-            },
+            json=manifest.model_dump(mode="json"),
         )
 
         response.raise_for_status()

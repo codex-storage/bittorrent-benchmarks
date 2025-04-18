@@ -6,6 +6,7 @@ from starlette.testclient import TestClient
 from benchmarks.codex.agent import api
 from benchmarks.codex.agent.agent import CodexAgent
 from benchmarks.codex.agent.tests.fake_codex import FakeCodex
+from benchmarks.codex.client.common import Manifest
 
 
 @pytest.mark.asyncio
@@ -25,9 +26,8 @@ async def test_should_create_file():
     )
 
     assert response.status_code == 200
-    assert response.charset_encoding == "utf-8"
 
-    manifest = await codex_client.manifest(response.text)
+    manifest = Manifest.model_validate(response.json())
 
     assert manifest.datasetSize == 1024
 
@@ -50,28 +50,24 @@ async def test_should_report_when_download_is_complete():
         )
 
         assert response.status_code == 200
-        assert response.charset_encoding == "utf-8"
+        manifest = Manifest.model_validate(response.json())
 
-        cid = response.text
-
-        download_stream = codex_client.create_download_stream(cid)
+        fake_download = codex_client.new_download(manifest)
 
         response = await client.post(
-            "/api/v1/codex/download",
-            params={"cid": cid},
+            "/api/v1/codex/download", json=manifest.model_dump(mode="json")
         )
 
         assert response.status_code == 202
         assert response.json() == {
-            "status": f"http://testserver/api/v1/codex/download/{cid}/status"
+            "status": f"http://testserver/api/v1/codex/download/{manifest.treeCid}/status"
         }
 
-        download_stream.feed_data(b"0" * 1024)
-        download_stream.feed_eof()
+        fake_download.advance_download(blocks=1024)
 
-        await codex_agent.ongoing_downloads[cid].download_task
+        await codex_agent.ongoing_downloads[manifest.treeCid].download_task
 
-        response = await client.get(f"api/v1/codex/download/{cid}/status")
+        response = await client.get(f"api/v1/codex/download/{manifest.treeCid}/status")
 
         assert response.status_code == 200
         assert response.json() == {"downloaded": 1024, "total": 1024}
