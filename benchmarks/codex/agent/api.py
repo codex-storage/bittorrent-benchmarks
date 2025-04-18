@@ -1,5 +1,6 @@
 """This module contains a REST API wrapping :class:`CodexAgent`."""
 
+import logging
 from typing import Annotated, Optional
 
 from aiohttp import ClientResponseError
@@ -10,9 +11,12 @@ from urllib3.util import parse_url
 
 from benchmarks.codex.agent.agent import CodexAgent, DownloadStatus
 from benchmarks.codex.client.async_client import AsyncCodexClientImpl
+from benchmarks.codex.client.common import Manifest
 from benchmarks.core.agent import AgentBuilder
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 def codex_agent() -> CodexAgent:
@@ -30,21 +34,22 @@ async def generate(
     name: str,
     size: int,
     seed: Optional[int],
-):
-    return Response(
-        await agent.create_dataset(name=name, size=size, seed=seed),
-        media_type="text/plain; charset=UTF-8",
-    )
+) -> Manifest:
+    return await agent.create_dataset(name=name, size=size, seed=seed)
 
 
 @router.post("/api/v1/codex/download")
 async def download(
-    request: Request, agent: Annotated[CodexAgent, Depends(codex_agent)], cid: str
+    request: Request,
+    agent: Annotated[CodexAgent, Depends(codex_agent)],
+    manifest: Manifest,
 ):
-    await agent.download(cid)
+    await agent.download(manifest)
     return JSONResponse(
         status_code=202,
-        content={"status": str(request.url_for("download_status", cid=cid))},
+        content={
+            "status": str(request.url_for("download_status", cid=manifest.treeCid))
+        },
     )
 
 
@@ -52,12 +57,23 @@ async def download(
 async def download_status(
     agent: Annotated[CodexAgent, Depends(codex_agent)], cid: str
 ) -> DownloadStatus:
-    if cid not in agent.ongoing_downloads:
+    download = agent.ongoing_downloads.get(cid)
+    if download is None:
         raise HTTPException(
             status_code=404, detail=f"There are no ongoing downloads for CID {cid}"
         )
 
-    return agent.ongoing_downloads[cid].progress()
+    assert download.download_task is not None
+
+    if download.download_task.done():
+        exception = download.download_task.exception()
+        if exception is not None:
+            logger.error("Error during download:", exc_info=exception)
+            raise HTTPException(
+                status_code=500, detail=f"Error during download: {exception}"
+            )
+
+    return download.progress()
 
 
 @router.get("/api/v1/codex/download/node-id")

@@ -1,22 +1,32 @@
-import json
-import re
-from asyncio import StreamReader
-from contextlib import asynccontextmanager
-from io import BytesIO
-from typing import Dict, Optional, AsyncIterator, Tuple, IO
+from typing import Dict, Optional, IO
 
-from aiohttp import web, ClientTimeout
-from urllib3.util import Url
+from aiohttp import ClientTimeout
 
-from benchmarks.codex.client.async_client import AsyncCodexClient, Cid
+from benchmarks.codex.client.async_client import AsyncCodexClient, Cid, DownloadStatus
 from benchmarks.codex.client.common import Manifest
-from benchmarks.core.utils.streams import BaseStreamReader
+
+
+class FakeDownload:
+    def __init__(self, manifest: Manifest) -> None:
+        self.manifest = manifest
+        self.downloaded = 0
+        self.exception: Optional[Exception] = None
+
+    def advance_download(self, blocks: int):
+        self.downloaded += blocks
+        print("Advance download to", self.downloaded)
+        assert (
+            self.downloaded <= self.manifest.block_count
+        ), "Downloaded blocks exceed total blocks"
+
+    def abort(self, exception: Exception):
+        self.exception = exception
 
 
 class FakeCodex(AsyncCodexClient):
     def __init__(self) -> None:
-        self.storage: Dict[Cid, Manifest] = {}
-        self.streams: Dict[Cid, StreamReader] = {}
+        self.manifests: Dict[Cid, Manifest] = {}
+        self.ongoing_downloads: Dict[Cid, FakeDownload] = {}
 
     async def upload(
         self,
@@ -27,89 +37,38 @@ class FakeCodex(AsyncCodexClient):
     ) -> Cid:
         data = content.read()
         cid = "Qm" + str(hash(data))
-        self.storage[cid] = Manifest(
+        self.manifests[cid] = Manifest(
             cid=cid,
+            treeCid=f"{cid}treeCid",
             datasetSize=len(data),
             mimetype=mime_type,
             blockSize=1,
             filename=name,
-            treeCid="",
             protected=False,
         )
         return cid
 
     async def manifest(self, cid: Cid) -> Manifest:
-        return self.storage[cid]
+        return self.manifests[cid]
 
-    def create_download_stream(self, cid: Cid) -> StreamReader:
-        reader = StreamReader()
-        self.streams[cid] = reader
-        return reader
-
-    @asynccontextmanager
     async def download(
-        self, cid: Cid, timeout: Optional[ClientTimeout] = None
-    ) -> AsyncIterator[BaseStreamReader]:
-        yield self.streams[cid]
+        self, manifest: Manifest, timeout: Optional[ClientTimeout] = None
+    ) -> Cid:
+        if manifest.treeCid not in self.ongoing_downloads:
+            raise ValueError("You need to create a " "download before initiating it")
+        return manifest.treeCid
 
+    def new_download(self, manifest: Manifest) -> FakeDownload:
+        """Creates a download which we can then use to simulate progress."""
+        handle = FakeDownload(manifest)
+        self.ongoing_downloads[manifest.treeCid] = handle
+        return handle
 
-@asynccontextmanager
-async def fake_codex_api() -> AsyncIterator[Tuple[FakeCodex, Url]]:
-    codex = FakeCodex()
-    routes = web.RouteTableDef()
-
-    @routes.get("/api/codex/v1/data/{cid}/network/manifest")
-    async def manifest(request):
-        cid = request.match_info["cid"]
-        assert cid in codex.storage
-        # Gets the manifest in a similar shape as the Codex response.
-        manifest = json.loads(codex.storage[cid].model_dump_json())
-        return web.json_response(
-            data={
-                "cid": manifest.pop("cid"),
-                "manifest": manifest,
-            }
+    async def download_status(self, dataset: Cid) -> DownloadStatus:
+        download = self.ongoing_downloads[dataset]
+        if download.exception:
+            raise download.exception
+        return DownloadStatus(
+            downloaded=download.downloaded,
+            total=download.manifest.block_count,
         )
-
-    @routes.post("/api/codex/v1/data")
-    async def upload(request):
-        await request.post()
-        filename = re.findall(
-            r'filename="(.+)"', request.headers["Content-Disposition"]
-        )[0]
-        cid = await codex.upload(
-            name=filename,
-            mime_type=request.headers["Content-Type"],
-            content=BytesIO(await request.read()),
-        )
-        return web.Response(text=cid)
-
-    @routes.get("/api/codex/v1/data/{cid}")
-    async def download(request):
-        cid = request.match_info["cid"]
-        assert cid in codex.streams
-        reader = codex.streams[cid]
-
-        # We basically copy the stream onto the response.
-        response = web.StreamResponse()
-        await response.prepare(request)
-        while not reader.at_eof():
-            await response.write(await reader.read(1024))
-
-        await response.write_eof()
-        return response
-
-    app = web.Application()
-    app.add_routes(routes)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(runner, "localhost", 8888)
-    await site.start()
-
-    try:
-        yield codex, Url(scheme="http", host="localhost", port=8888)
-    finally:
-        await site.stop()
-        await runner.cleanup()

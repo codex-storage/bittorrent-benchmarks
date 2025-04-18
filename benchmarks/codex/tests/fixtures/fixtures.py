@@ -13,6 +13,7 @@ def codex_node(codex_api_url: str, agent_url: str) -> Iterator[CodexNode]:
     node = CodexNode(
         codex_api_url=parse_url(codex_api_url),
         agent=CodexAgentClient(parse_url(agent_url)),
+        remove_data=True,
     )
     assert await_predicate(node.is_ready, timeout=10, polling_interval=0.5)
 
