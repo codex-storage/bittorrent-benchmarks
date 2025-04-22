@@ -21,6 +21,10 @@ experiment:
   # If set to false, does not deploy a test runner (useful if you just want the network).
   testRunner: true
 
+  # If set to false, does not delete the data at the end of each experiment. This is faster
+  # than deleting it, but requires more space.
+  removeData: true
+
 deployment:
   appName: ""
 

@@ -36,6 +36,8 @@ spec:
               value: {{ .Values.experiment.repetitions | quote }}
             - name: SEEDER_SETS
               value: {{ .Values.experiment.seederSets | quote }}
+            - name: REMOVE_DATA
+              value: {{ .Values.experiment.removeData | quote }}
             - name: FILE_SIZE
               value: {{ include "filesize.bytes" . | quote }}
             - name: CODEX_STATEFULSET
