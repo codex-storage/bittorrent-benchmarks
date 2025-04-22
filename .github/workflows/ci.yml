@@ -13,6 +13,7 @@ env:
   DOCKER_REPO: codexstorage/bittorrent-benchmarks
   BUILD_ARGS: |
     BUILD_TYPE=test
+  CODEX_COMPOSE_IMAGE: codexstorage/nim-codex:sha-f529a70
 
 jobs:
   build-and-test:
