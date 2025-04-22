@@ -74,6 +74,7 @@ class CodexExperimentConfig(
     )
 
     download_metric_unit_bytes: int = 1
+    remove_data: bool = False
 
     def build(self) -> CodexDisseminationExperiment:
         node_specs = (
@@ -90,6 +91,7 @@ class CodexExperimentConfig(
             CodexNode(
                 codex_api_url=parse_url(f"http://{str(node.address)}:{node.api_port}"),
                 agent=agents[i],
+                remove_data=self.remove_data,
             )
             for i, node in enumerate(node_specs)
         ]

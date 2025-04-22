@@ -9,8 +9,13 @@ Expand the name of the chart.
 {{- mul $sizeNum (index $size $sizeUnit) -}}
 {{- end -}}
 
-{{- define "codex.quota" }}
-{{- div (mul (include "filesize.bytes" .) 13) 10 -}}
+{{- define "experiment.count" -}}
+{{- mul .Values.experiment.seederSets .Values.experiment.repetitions -}}
+{{- end -}}
+
+{{- define "codex.quota" -}}
+{{- $mulFactor := .Values.experiment.removeData | ternary 1 (include "experiment.count" .) -}}
+{{- div (mul (mul (include "filesize.bytes" .) $mulFactor) 13) 10 -}}
 {{- end -}}
 
 {{- define "experiment.groupId" -}}
