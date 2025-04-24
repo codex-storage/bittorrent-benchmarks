@@ -188,7 +188,9 @@ def _configure_vector_source(args):
     return ChainedLogSource(
         [
             VectorFlatFileSource(
-                app_name="codex-benchmarks", file=source_file.open(encoding="utf-8")
+                app_name="codex-benchmarks",
+                file=source_file.open(encoding="utf-8"),
+                sorted=args.chronological,
             )
             for source_file in args.source_file
         ]
@@ -320,6 +322,9 @@ def main():
     vector_source = source_type.add_parser("vector", help="Vector flat file source.")
     vector_source.add_argument(
         "source_file", type=Path, help="Vector log file to parse from.", nargs="+"
+    )
+    vector_source.add_argument(
+        "--chronological", action="store_true", help="Sort logs chronologically (slow)."
     )
 
     vector_source.set_defaults(source=lambda args, _: _configure_vector_source(args))
