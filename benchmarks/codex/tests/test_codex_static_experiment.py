@@ -35,13 +35,13 @@ def test_should_run_with_a_single_seeder(codex_node1, codex_node2, codex_node3):
         experiment.setup()
         experiment.do_run()
 
-        all_datasets = list(codex_node1.hosted_datasets)
+        all_datasets = list(codex_node1.hosted_datasets.values())
         assert len(all_datasets) == 1
-        cid = all_datasets[0]
+        manifest = all_datasets[0]
 
-        content_1 = merge_chunks(codex_node1.download_local(cid))
-        content_2 = merge_chunks(codex_node2.download_local(cid))
-        content_3 = merge_chunks(codex_node3.download_local(cid))
+        content_1 = merge_chunks(codex_node1.download_local(manifest))
+        content_2 = merge_chunks(codex_node2.download_local(manifest))
+        content_3 = merge_chunks(codex_node3.download_local(manifest))
 
         assert len(content_1) == megabytes(2)
         assert content_1 == content_2 == content_3

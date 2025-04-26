@@ -1,0 +1,215 @@
+---
+title: "Measuring Codex Performance for Content Delivery"
+subtitle: "(aka Codex Benchmarks)"
+format: 
+  revealjs:
+    slide-number: true
+execute:
+  cache: true
+---
+
+<!--
+This is NOT self-contained. Compiling the presentation requires exporting 
+the benchmarks table to a file. It also requires its own packages.
+-->
+
+```{r echo = FALSE, warning = FALSE, echo = FALSE, message = FALSE}
+library(tidyverse)
+library(DT)
+
+benchmarks <- read_csv('./benchmarks.csv') |>
+  mutate(
+   file_size = factor(rlang::parse_bytes(as.character(file_size)),
+                        levels = rlang::parse_bytes(as.character(
+                          unique(file_size[order(file_size, decreasing = TRUE)])))))
+
+relative_performance <- benchmarks |>
+  filter(experiment_type == 'deluge_experiment_config_log_entry') |>
+  transmute(
+    file_size, network_size, seeders, leechers, deluge_median = median,
+  ) |>
+  inner_join(
+    benchmarks |> 
+      filter(experiment_type == 'codex_experiment_config_log_entry') |>
+      select(
+        file_size, network_size, seeders, leechers, codex_median = median
+      ),
+    by = c('file_size', 'network_size', 'seeders', 'leechers')
+  ) |>
+  mutate(
+    performance = codex_median / deluge_median,
+    seeder_ratio = seeders / network_size
+  )
+```
+
+
+## Intro
+
+::: {.incremental}
+
+* Why?
+  * _performance_ is a key aspect of a storage system;
+  * want to understand _how Codex performs_.
+  
+* What?
+  * Content delivery: _download_ performance.
+  * Download performance: latency, throughput.
+  * Codex aims at supporting _large_ files;
+    * download speed ($\text{MB/s}$) is dominant.
+  
+:::
+
+## Baseline {.smaller}
+
+::: {.incremental}
+
+* _Quality_ baseline: easier to know where you stand;
+  * faster: good;
+  * slower: maybe not so good.
+  
+* Decentralized, large-file content distribution:
+  * Bittorrent;
+  * IPFS.
+  
+* Bittorrent: _de facto_ standard;
+  * been used for a very long time;
+  * fast and efficient (more so than IPFS);
+  * several open source implementations.
+
+:::
+
+## Baseline
+
+::: {.incremental}
+
+* For our baseline, we picked [Deluge](https://deluge-torrent.org/):
+  * well-known, lots of users despite small market share (1%);
+  * can be run as a daemon, has [open source client libraries](https://github.com/JohnDoee/deluge-client) to interact with daemon remotely;
+  * based on [libtorrent (rasterbar)](https://www.libtorrent.org/).
+
+:::
+
+## Static Dissemination Experiment
+
+::: {.incremental}
+
+* _Static dissemination experiment._
+* Network of size $n$;
+  * split into $s$ seeders, $l = n - s$ leechers;
+  * seeder ratio $r = \frac{s}{n}$.
+
+* Experiment:
+  * generate file $F$ of size $b$;
+  * upload $F$ to each seeder;
+  * fire up all leechers "at the same time";
+  * measure time to download $F$ at leechers.
+
+:::
+
+## Static Dissemination Experiment
+
+```{r fig.align="center", echo = FALSE}
+knitr::include_graphics('./images/un-1.png')
+``` 
+
+## Static Dissemination Experiment
+
+```{r fig.align="center", echo = FALSE}
+knitr::include_graphics('./images/un-2.png')
+``` 
+
+## Static Dissemination Experiment
+
+```{r fig.align="center", echo = FALSE}
+knitr::include_graphics('./images/un-3.png')
+``` 
+
+## Static Dissemination Experiment
+
+```{r fig.align="center", echo = FALSE}
+knitr::include_graphics('./images/un-4.png')
+``` 
+
+## Static Dissemination Experiment
+
+```{r fig.align="center", echo = FALSE}
+knitr::include_graphics('./images/nu-6.png')
+``` 
+
+## Static Dissemination Experiment
+
+```{r fig.align="center", echo = FALSE}
+knitr::include_graphics('./images/nu-7.png')
+``` 
+
+## Static Dissemination Experiment
+
+* Parameters:
+  * File sizes: $b \in {100\text{MB}, 1\text{GB}, 5\text{GB}}$;
+  * Network sizes: $n \in {2, 8, 16, 32}$;
+  * Seeder ratios: $0.5, 0.25, 0.125, 0.0625, 0.03125$ (depending on $n$).
+  
+* Hardware:
+  * [CPX31](https://www.hetzner.com/cloud?ref=blog.codex.storage) Hetzner VMs (4 vCPU, 8GB RAM);
+  * $\sim 4\text{Gbps}$ point-to-point bandwidth.
+  
+## Results - Download Speed
+
+```{r fig.width = 10, warning=FALSE, message=FALSE, echo=FALSE}
+ggplot(benchmarks, aes(col = experiment_type, fill = experiment_type, group = experiment_type)) +
+  geom_ribbon(aes(ymin = p25_speed, ymax = p75_speed, x = network_size, fill = experiment_type, alpha = 0.5), col = 'lightgray') +
+  geom_point(aes(x = network_size, y = p25_speed), col = 'darkgray', size=10.0, shape='-') +
+  geom_point(aes(x = network_size, y = p75_speed), col = 'darkgray', size=10.0, shape='-') +
+  geom_line(aes(x = network_size, y = median_speed)) +
+  geom_point(aes(x = network_size, y = median_speed)) +
+  ylab('median download speed (bytes/second)') +
+  xlab('network size') +
+  theme_minimal(base_size=15) +
+  scale_y_continuous(labels = function(x) paste0(scales::label_bytes()(x), '/s')) +
+  facet_grid(
+    file_size ~ seeder_ratio,
+    labeller = labeller(
+      seeder_ratio = as_labeller(function(x) {
+        paste0("seeder ratio: ", scales::percent(as.numeric(x)))
+      }))
+  ) +
+  scale_color_discrete(name = '', labels = c('Codex', 'Deluge')) +
+  guides(fill = 'none', alpha = 'none')
+```
+## Results - Relative (Median) Speed
+
+```{r fig.cap='Median downlaod time ratio for Codex and Deluge', fig.width = 11, message = FALSE, echo = FALSE}
+ggplot(relative_performance) +
+  geom_line(aes(x = network_size, y = performance, col = file_size), lwd=1) +
+  geom_hline(yintercept = 1, linetype = 'dashed', col = 'darkgray') +
+  geom_point(aes(x = network_size, y = performance, col = file_size)) +
+  ylab('median Codex/Deluge performance ratio') +
+  annotate('text', label = 'faster', x = 29, y = 0, col = 'darkgreen') +
+  annotate('text', label = 'slower', x = 28.5, y = 2, col = 'darkred') +
+  theme_minimal(base_size=15) +
+  scale_color_discrete(name = 'file size') +
+  facet_grid(
+    file_size ~ seeder_ratio,
+    labeller = labeller(
+      file_size = as_labeller(function(x) x),
+      seeder_ratio = as_labeller(function(x) {
+        paste0("seeder ratio: ", scales::percent(as.numeric(x)))
+      }))
+  )
+```
+
+## Next
+
+::: {.incremental}
+
+* Debugging, debugging...
+* larger experiments (networks, files);
+* dynamic network experiments, with churn and faults.
+
+:::
+
+## Thank You!
+
+* Benchmarks repo: [github.com/codex-network/codex-benchmarks]()
+* RPubs Notebook with Data: [https://rpubs.com/giuliano_mega/1266876]()
+* Blog post: [https://blog.codex.storage/measuring-codex-performance-for-content-delivery/]()
