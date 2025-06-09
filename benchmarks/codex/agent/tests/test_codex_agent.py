@@ -99,35 +99,30 @@ async def test_should_log_download_progress_as_metric_in_discrete_steps(mock_log
     assert metrics == [
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=200,
             node=codex_agent.node_id,
             timestamp=metrics[0].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=400,
             node=codex_agent.node_id,
             timestamp=metrics[1].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=600,
             node=codex_agent.node_id,
             timestamp=metrics[2].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=800,
             node=codex_agent.node_id,
             timestamp=metrics[3].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=1000,
             node=codex_agent.node_id,
             timestamp=metrics[4].timestamp,
@@ -171,38 +166,78 @@ async def test_should_log_download_progress_as_discrete_steps_even_when_underlyi
     assert metrics == [
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=200,
             node=codex_agent.node_id,
             timestamp=metrics[0].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=400,
             node=codex_agent.node_id,
             timestamp=metrics[1].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=600,
             node=codex_agent.node_id,
             timestamp=metrics[2].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=800,
             node=codex_agent.node_id,
             timestamp=metrics[3].timestamp,
         ),
         DownloadMetric(
             dataset_name="dataset-1",
-            handle=cid,
             value=1000,
             node=codex_agent.node_id,
             timestamp=metrics[4].timestamp,
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_should_log_download_progress_even_when_log_granularity_larger_than_number_of_bytes(
+    mock_logger,
+):
+    logger, output = mock_logger
+
+    with patch("benchmarks.codex.agent.agent.logger", logger):
+        client = FakeCodex()
+        codex_agent = CodexAgent(client)
+        cid = await codex_agent.create_dataset(size=3, name="dataset-1", seed=1234)
+        download_stream = client.create_download_stream(cid)
+        handle = await codex_agent.download(cid, read_increment=0.1)
+
+        download_stream.feed_data(b"0" * 3)
+        download_stream.feed_eof()
+
+        await handle.download_task
+
+    parser = LogParser()
+    parser.register(DownloadMetric)
+
+    metrics = list(parser.parse(StringIO(output.getvalue())))
+
+    assert metrics == [
+        DownloadMetric(
+            dataset_name="dataset-1",
+            value=1,
+            node=codex_agent.node_id,
+            timestamp=metrics[0].timestamp,
+        ),
+        DownloadMetric(
+            dataset_name="dataset-1",
+            value=2,
+            node=codex_agent.node_id,
+            timestamp=metrics[1].timestamp,
+        ),
+        DownloadMetric(
+            dataset_name="dataset-1",
+            value=3,
+            node=codex_agent.node_id,
+            timestamp=metrics[2].timestamp,
         ),
     ]
 

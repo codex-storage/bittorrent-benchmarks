@@ -35,11 +35,14 @@ class CodexMeta:
 
 
 class CodexNode(Node[Cid, CodexMeta], ExperimentComponent):
-    def __init__(self, codex_api_url: Url, agent: CodexAgentClient) -> None:
+    def __init__(
+        self, codex_api_url: Url, agent: CodexAgentClient, remove_data: bool = True
+    ) -> None:
         self.codex_api_url = codex_api_url
         self.agent = agent
         # Lightweight tracking of datasets created by this node. It's OK if we lose them.
         self.hosted_datasets: Set[Cid] = set()
+        self.remove_data = remove_data
 
     def is_ready(self) -> bool:
         try:
@@ -70,12 +73,14 @@ class CodexNode(Node[Cid, CodexMeta], ExperimentComponent):
         return CodexDownloadHandle(parent=self, monitor_url=self.agent.download(handle))
 
     def remove(self, handle: Cid) -> bool:
-        response = requests.delete(
-            str(self.codex_api_url._replace(path=f"/api/codex/v1/data/{handle}")),
-            timeout=DELETE_TIMEOUT,
-        )
+        if self.remove_data:
+            response = requests.delete(
+                str(self.codex_api_url._replace(path=f"/api/codex/v1/data/{handle}")),
+                timeout=DELETE_TIMEOUT,
+            )
 
-        response.raise_for_status()
+            response.raise_for_status()
+
         return True
 
     def exists_local(self, handle: Cid) -> bool:

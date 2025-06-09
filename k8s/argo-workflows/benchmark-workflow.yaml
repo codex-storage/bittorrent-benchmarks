@@ -10,7 +10,7 @@ spec:
       ######################################## Global Settings ##############################################
       # What are we benchmarking (one of: codex, deluge)?
       - name: system
-        value: "deluge"
+        value: "codex"
 
       ################################ Experiment Parameter Matrix ##########################################
       # Parameters in the experiment parameter matrix will be expanded, and can be set
@@ -35,6 +35,17 @@ spec:
       # off of a branch.
       - name: nodeTag
         value: "latest"
+      # Which tag to use for the experiment runner. Useful if you want to run something off of a branch.
+      - name: runnerTag
+        value: "latest"
+      # Which tag to use for the workflow runner. Useful if you want to run something off of a branch.
+      - name: workflowRunnerTag
+        value: "latest"
+      - name: removeData
+        value: "false"
+      - name: codexLogLevel
+        value: "INFO"
+        # value: "DEBUG;trace:swarm\\,blockexcnetworkpeer" # make sure to escape commas or helm will fail
 
       ###################################### Experiment Retries #############################################
       # Allow the workflow to replay failed experiments from a previous run instead of running a new set.
@@ -85,7 +96,7 @@ spec:
       # If set to false, does not parse/upload logs at the end of the experiment. You'll probably want to
       # disable this when running local experiments.
       - name: parseLogs
-        value: "true"
+        value: "false"
 
       #######################################################################################################
 
@@ -181,7 +192,7 @@ spec:
           when: '{{workflow.parameters.parseLogs}} == true'
 
     - name: retry-benchmark-run
-      parallelism: 2
+      parallelism: 1
       inputs:
         parameters:
           - name: runnerImage
@@ -272,7 +283,7 @@ spec:
             echo "Never" > /tmp/imagePullPolicy.txt
           else
             echo "NOT using Minikube env"
-            echo "codexstorage/bittorrent-benchmarks-workflows:latest" > /tmp/image.txt
+            echo "codexstorage/bittorrent-benchmarks-workflows:{{workflow.parameters.workflowRunnerTag}}" > /tmp/image.txt
             echo "Always" > /tmp/imagePullPolicy.txt
           fi
       outputs:
@@ -468,7 +479,7 @@ spec:
         imagePullPolicy: '{{inputs.parameters.imagePullPolicy}}'
         command: [ "/bin/bash" ]
         source: |
-          set -e 
+          set -e
 
           if [[ "{{workflow.parameters.minikubeEnv}}" == "false" ]]; then
             echo "Using devnet cluster values for deploy."
@@ -482,9 +493,12 @@ spec:
             --set experiment.fileSize={{inputs.parameters.fileSize}}\
             --set experiment.networkSize={{inputs.parameters.networkSize}}\
             --set experiment.seeders={{inputs.parameters.seeders}}\
+            --set "experiment.codexLogLevel={{workflow.parameters.codexLogLevel}}"\
             --set experiment.seederSets={{inputs.parameters.seederSets}}\
             --set deployment.minikubeEnv={{workflow.parameters.minikubeEnv}}\
+            --set deployment.removeData={{workflow.parameters.removeData}}\
             --set deployment.nodeTag={{workflow.parameters.nodeTag}}\
+            --set deployment.runnerTag={{workflow.parameters.runnerTag}}\
             --set deployment.region={{workflow.parameters.region}}
 
     - name: wait-for-experiment

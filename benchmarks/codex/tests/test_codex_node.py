@@ -36,6 +36,14 @@ def test_should_remove_file(codex_node1: CodexNode):
 
 
 @pytest.mark.codex_integration
+def test_should_turn_remove_file_into_noop_if_remove_file_flag_is_false(
+    codex_node1: CodexNode,
+):
+    codex_node1.remove_data = False
+    assert codex_node1.remove("malformed-and-invalid-cid")
+
+
+@pytest.mark.codex_integration
 def test_should_download_file_from_local_node(codex_node1: CodexNode):
     cid = codex_node1.genseed(
         size=megabytes(1),

@@ -47,7 +47,7 @@ class DownloadHandle:
         return self.download_task
 
     async def _download_loop(self):
-        step_size = int(self.manifest.datasetSize * self.read_increment)
+        step_size = max(1, int(self.manifest.datasetSize * self.read_increment))
 
         async with self.parent.client.download(
             self.manifest.cid,
@@ -72,7 +72,6 @@ class DownloadHandle:
                     logger.info(
                         DownloadMetric(
                             dataset_name=self.manifest.filename,
-                            handle=self.manifest.cid,
                             value=step_size * logged_step,
                             node=self.parent.node_id,
                         )
